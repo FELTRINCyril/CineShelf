@@ -499,6 +499,8 @@ public final class TitleCollection {
     public var titles: [Title]? = []
     @Relationship(deleteRule: .cascade, inverse: \MediaAttachment.collection)
     public var attachments: [MediaAttachment]? = []
+    @Relationship(deleteRule: .cascade, inverse: \ResourceLink.collection)
+    public var links: [ResourceLink]? = []
 
     public init(name: String = "") { self.name = name }
 }
@@ -649,6 +651,14 @@ public extension MediaAsset {
     }
 }
 ```
+
+> **Correction du 2026-08-02.** `TitleCollection.links` manquait ici, alors que
+> `ResourceLink.collection` existait déjà en §3.8 : la relation n'avait donc pas
+> d'inverse et le miroir CloudKit refusait le schéma entier. `CloudKitConformanceTests`
+> l'a relevé au premier lancement, avec le nom de la relation fautive. Le côté
+> manquant est désormais déclaré ci-dessus, symétrique de `Title.links` et
+> `Person.links`. C'était le **seul** cas du modèle : les 16 autres entités et
+> toutes leurs autres relations passent la conformité sans retouche.
 
 ### 3.8 Liens
 

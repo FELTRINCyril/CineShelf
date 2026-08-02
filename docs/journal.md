@@ -249,3 +249,37 @@ tableaux sans cases à cocher.
 **Suite**
 
 Prompt 7 — les tokens du design system, chez Claude Design.
+
+---
+
+## 2026-08-02 — Décisions arrêtées et corrections documentaires
+
+**Trois décisions, désormais fermées**
+
+1. **`CropValues` est conservé.** `MediaAsset.crop(for:)` renvoie une valeur
+   nommée, pas un tuple à trois membres, et il n'y aura pas de
+   `// swiftlint:disable large_tuple`. Les membres restent `.x`, `.y`, `.zoom` :
+   les appels de `docs/04` §4 sont valides tels quels.
+2. **`ProfileRepository.move` ne supprime pas les flags.** Ils suivent le profil
+   et pointent vers des titres restés dans l'ancienne bibliothèque : ils
+   deviennent donc invisibles, et **réapparaissent** si le profil revient sur sa
+   bibliothèque d'origine. C'est le comportement voulu — rien n'est détruit. Un
+   avertissement à l'écran l'expliquera au prompt 18 (profils & Face ID).
+3. **`MediaRepository.attach` imposera `hasExactlyOneOwner` à l'écriture**, au
+   prompt 13 (pipeline médias). D'ici là l'invariante n'est vérifiée qu'en test.
+
+**Corrections documentaires**
+
+- `docs/02` §3.5 déclare enfin `TitleCollection.links`, et une note au-dessus de
+  §3.8 explique l'omission, comment `CloudKitConformanceTests` l'a relevée, et
+  qu'elle était le seul cas du modèle. Le document et le code disent maintenant
+  la même chose.
+- La CI reçoit une étape `swift-format lint --recursive --strict`, dans le job
+  `lint` : `swift-format` est livré avec la chaîne d'outils Xcode, il n'y a rien
+  à installer. Vérifié que `--strict` existe et renvoie bien 1 sur une
+  violation, et que `.build` n'est pas parcouru — c'est un dossier caché.
+
+**Règle de travail**
+
+`docs/` dans le dépôt est **la** référence. Toute correction issue d'une session
+s'y répercute dans la même session, jamais « plus tard ».

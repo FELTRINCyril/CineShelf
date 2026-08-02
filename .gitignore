@@ -1,0 +1,60 @@
+# --- Projet Xcode ---
+# Reproductible depuis project.yml via `xcodegen generate` : on ne le versionne
+# pas, ça évite les conflits de merge dans le pbxproj.
+*.xcodeproj
+*.xcworkspace
+!*.xcworkspace/contents.xcworkspacedata
+
+# --- Xcode ---
+build/
+DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+timeline.xctimeline
+playground.xcworkspace
+
+# --- Swift Package Manager ---
+.build/
+.swiftpm/
+Packages/*/.build/
+Package.resolved
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+
+# --- Signature & secrets ---
+*.mobileprovision
+*.provisionprofile
+*.p12
+*.cer
+.env
+.env.*
+
+# --- Données locales ---
+/data
+
+# --- macOS ---
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+
+# --- Outils ---
+.claude/settings.local.json
+*.log

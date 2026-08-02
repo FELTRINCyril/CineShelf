@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>CineShelf</string>
+
+	<key>CFBundleDevelopmentRegion</key>
+	<string>fr</string>
+
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>fr</string>
+	</array>
+
+	<!-- UIUserInterfaceStyle est volontairement absent : l'app suit le système. -->
+
+	<key>NSFaceIDUsageDescription</key>
+	<string>CineShelf utilise Face ID pour protéger l'accès à ta bibliothèque.</string>
+
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>CineShelf a besoin d'accéder à tes photos pour ajouter des images à ton catalogue.</string>
+
+	<!--
+	Police Archivo : à décommenter quand les fichiers seront déposés dans
+	Packages/DesignSystem/Sources/DesignSystem/Resources/.
+
+	<key>UIAppFonts</key>
+	<array>
+		<string>Archivo-Regular.ttf</string>
+		<string>Archivo-Medium.ttf</string>
+		<string>Archivo-SemiBold.ttf</string>
+		<string>Archivo-Bold.ttf</string>
+	</array>
+	-->
+</dict>
+</plist>

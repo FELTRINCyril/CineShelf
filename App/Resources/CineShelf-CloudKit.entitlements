@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	FICHIER EN ATTENTE — non référencé par project.yml.
+
+	Il ne sera utilisable qu'une fois l'abonnement Apple Developer souscrit et
+	le conteneur iCloud.fr.feltrin.CineShelf créé sur le portail développeur.
+	La marche à suivre exacte est dans le README, section « Activer CloudKit ».
+
+	Contenu à fusionner dans CineShelf.entitlements le jour venu :
+
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudKit</string>
+	</array>
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.fr.feltrin.CineShelf</string>
+	</array>
+	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
+	<string>$(TeamIdentifierPrefix)$(CFBundleIdentifier)</string>
+	<key>aps-environment</key>
+	<string>development</string>
+	-->
+	<key>fr.feltrin.CineShelf.cloudkit-placeholder</key>
+	<false/>
+</dict>
+</plist>

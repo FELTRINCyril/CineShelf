@@ -1,0 +1,108 @@
+name: CI
+
+# Les runners macOS de GitHub consomment les minutes gratuites au tarif ×10.
+# On ne déclenche donc que sur les pull requests et sur main, jamais sur les
+# push de branche de travail.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SCHEME: CineShelf
+  IOS_DESTINATION: platform=iOS Simulator,name=iPhone 17,OS=latest
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer SwiftLint
+        run: brew install swiftlint
+
+      - name: SwiftLint
+        run: swiftlint --strict
+
+  packages:
+    name: Tests des packages
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [CineShelfCore, DesignSystem, MediaKit]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tests ${{ matrix.package }}
+        working-directory: Packages/${{ matrix.package }}
+        run: swift test
+
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: iOS
+            destination: platform=iOS Simulator,name=iPhone 17,OS=latest
+          - platform: macOS
+            destination: platform=macOS
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer XcodeGen
+        run: brew install xcodegen
+
+      - name: Générer le projet
+        run: xcodegen generate
+
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -scheme "$SCHEME" \
+            -destination "${{ matrix.destination }}" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO
+
+  test:
+    name: Tests ${{ matrix.name }}
+    runs-on: macos-latest
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Tests de logique : tournent sur Mac, sans simulateur ni interface.
+          - name: logique (macOS)
+            scheme: CineShelf
+            destination: platform=macOS
+          # Tests d'interface : simulateur iOS uniquement, cf. README.
+          - name: interface (iOS)
+            scheme: CineShelfUITests
+            destination: platform=iOS Simulator,name=iPhone 17,OS=latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer XcodeGen
+        run: brew install xcodegen
+
+      - name: Générer le projet
+        run: xcodegen generate
+
+      - name: Tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -scheme "${{ matrix.scheme }}" \
+            -destination "${{ matrix.destination }}" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO

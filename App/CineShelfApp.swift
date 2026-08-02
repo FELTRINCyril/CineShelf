@@ -1,11 +1,28 @@
+import CineShelfCore
+import SwiftData
 import SwiftUI
 
 @main
 struct CineShelfApp: App {
+    @State private var container: ModelContainer
+
+    init() {
+        do {
+            let container = try Persistence.makeContainer(cloudKit: FeatureFlags.cloudKitEnabled)
+            try Bootstrap.ensureDefaults(in: container.mainContext)
+            self.container = container
+        } catch {
+            // Sans magasin, il n'y a pas d'app. Les états de synchronisation
+            // auront leur propre interface au prompt « Synchronisation ».
+            fatalError("Impossible d'ouvrir la bibliothèque : \(error)")
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
         }
+        .modelContainer(container)
         .commands {
             CineShelfCommands()
         }

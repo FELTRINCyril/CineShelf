@@ -15,3 +15,9 @@ public final class ActivityEntry {
 
     public init() {}
 }
+
+extension ActivityEntry {
+    /// Nulle si l'entrée vient d'une version qui journalisait une autre action :
+    /// dans une piste d'audit, mieux vaut l'absence qu'une valeur de repli fausse.
+    public var action: ActivityAction? { ActivityAction(rawValue: actionRaw) }
+}

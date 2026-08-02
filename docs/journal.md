@@ -148,3 +148,104 @@ fonctionnalité visible, et le document est fait de tableaux sans cases à coche
 **Suite**
 
 Prompt 6 — repositories et outillage.
+
+---
+
+## 2026-08-02 — Couche d'accès et amorçage (prompt 6)
+
+**Fait**
+
+- `CineShelfApp` ouvre le magasin : `Persistence.makeContainer(cloudKit:
+  FeatureFlags.cloudKitEnabled)` en `init()`, exposé par `.modelContainer()`.
+- `Bootstrap.ensureDefaults(in:)` dans `CineShelfCore` — pas dans une `View` :
+  crée « Ma bibliothèque » (`isDefault`) et le profil « Moi » si la base est
+  vide, réutilise l'existant sinon. Idempotent.
+- `Repositories/` : `TitleRepository`, `PersonRepository`,
+  `CollectionRepository`, `MediaRepository` en `create / update / softDelete /
+  restore`. `update` appelle toujours `refreshDerived()` ; `MediaAsset` n'a pas
+  de dérivé textuel, seul `updatedAt` bouge.
+- `GenreRepository.findOrCreate(name:target:in:)` sur `nameKey` + cible +
+  bibliothèque, plus `rename` qui rafraîchit la clé.
+- `ProfileRepository` : créer, renommer, supprimer, changer de bibliothèque.
+- `Services/` : `ActivityRecorder` (+ enum `ActivityAction`, protocole
+  `ActivityDescribing`) et `ImportActor` en `@ModelActor` avec le patron de
+  sauvegarde par lots de 200.
+
+**Vérifications, toutes vertes**
+
+| Contrôle | Résultat |
+|---|---|
+| Build iOS Simulator (iPhone 17) | `** BUILD SUCCEEDED **` |
+| Build macOS | `** BUILD SUCCEEDED **` |
+| `xcodebuild test -scheme CineShelf` (macOS et iOS) | 8 tests |
+| `xcodebuild test -scheme CineShelfUITests` (iOS) | 1 test |
+| `swift test` × 3 packages | 78 tests (75 pour Core) |
+| `swiftlint --strict` | 0 violation / 72 fichiers |
+| `swift-format lint` | 0 avertissement |
+
+**Amorçage vérifié sur le vrai magasin, pas seulement en mémoire**
+
+Lancement de l'app macOS depuis un conteneur vide, puis lecture directe du
+`default.store` : une `ZLIBRARY` « Ma bibliothèque » par défaut, un `ZPROFILE`
+« Moi » par défaut, deux entrées de fil `create`. Après un second lancement :
+toujours 1 / 1 / 2. C'est ce que les tests unitaires ne pouvaient pas montrer —
+que le magasin sur disque s'ouvre sous le sandbox et que l'amorçage ne double
+pas.
+
+Le test fumigatoire laisse un magasin dans
+`~/Library/Containers/fr.feltrin.CineShelf` ; supprimer ce dossier suffit à
+retrouver un premier lancement.
+
+**Ce que les tests ont appris sur SwiftData**
+
+`fetchCount` **voit les insertions en attente** : après une erreur au 250e
+élément, le contexte de l'`ImportActor` compte 249 titres alors que 200
+seulement sont sauvegardés (vérifié depuis un contexte neuf). Deux
+conséquences :
+
+1. Le dédoublonnage de `GenreRepository` fonctionne **avant** le premier
+   `save()` — le cas qui compte pour l'import, qui insère par lots. Pas besoin
+   de doubler le `fetch` d'une recherche dans la relation en mémoire.
+2. Un import interrompu est reprenable **par lot**, pas par élément : le lot en
+   cours est perdu. C'est explicite dans le test.
+
+**Écarts et choix, à valider ou corriger plus tard**
+
+1. Pas de `SpotlightIndexer`, que `docs/04` §3 montre dans
+   `TitleRepository.update/softDelete` : l'indexation est au prompt 12. Les
+   repositories sont le point de branchement.
+2. `MediaRepository` n'a pas de `attach(asset:to:slot:)` : rien n'impose encore
+   l'invariante `hasExactlyOneOwner` à l'écriture, elle n'est vérifiée qu'en
+   test. À traiter au prompt 13/14.
+3. `ActivityAction` ajoute `restore` aux cinq actions nommées par le prompt, et
+   `ActivityEntry.action` est **optionnelle** : dans une piste d'audit, mieux
+   vaut `nil` qu'un repli faux.
+4. `ProfileRepository.move` ne touche pas aux flags du profil, qui pointent
+   alors vers des titres restés dans l'ancienne bibliothèque. À trancher avec le
+   transfert d'entités.
+5. Échec du conteneur ou de l'amorçage : `fatalError`, comme `docs/04` §2. À
+   remplacer par une vraie interface au prompt 22.
+
+**Deux points ouverts, hors de ce prompt**
+
+- Avec `cloudKitEnabled = true`, sur un appareil neuf, l'amorçage peut créer une
+  bibliothèque par défaut avant que la sync n'ait rapatrié l'existante : c'est le
+  doublon classique, à régler au prompt 22 avec la passe de fusion de `docs/02`
+  §8.
+- `docs/02` §3.5 ne déclare toujours pas `TitleCollection.links` : le fichier est
+  identique à celui du commit d'initialisation. Le code garde la correction —
+  sans elle le miroir CloudKit refuse le schéma — mais **le document reste à
+  corriger**.
+
+Le bloc « Ajoute aussi » du prompt 6 (`.swiftlint.yml` avec la règle sur les
+couleurs littérales, `.swift-format`, `.github/workflows/ci.yml`,
+`docs/journal.md`) était déjà livré au prompt 4 : vérifié, pas réécrit. La CI
+n'a pas d'étape `swift-format lint` ; le prompt ne la demande pas.
+
+`docs/03-FONCTIONNALITES-NATIF.md` reste inchangé : ce prompt livre de
+l'infrastructure, aucune fonctionnalité visible, et le document est fait de
+tableaux sans cases à cocher.
+
+**Suite**
+
+Prompt 7 — les tokens du design system, chez Claude Design.

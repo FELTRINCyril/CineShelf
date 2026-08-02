@@ -41,3 +41,10 @@ public enum CropContext: String, Codable, CaseIterable, Sendable {
 public enum SavedLinkKind: String, Codable, CaseIterable, Sendable {
     case website, video, article, store, social, other
 }
+
+/// Les actions du fil d'activité. Absente de §3.1, qui décrit `actionRaw` en
+/// texte libre : `ActivityRecorder` a besoin d'un vocabulaire fermé.
+public enum ActivityAction: String, Codable, CaseIterable, Sendable {
+    case create, update, delete, restore, merge
+    case `import`
+}

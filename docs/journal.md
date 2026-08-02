@@ -283,3 +283,113 @@ Prompt 7 — les tokens du design system, chez Claude Design.
 
 `docs/` dans le dépôt est **la** référence. Toute correction issue d'une session
 s'y répercute dans la même session, jamais « plus tard ».
+
+---
+
+## 2026-08-02 — Pipeline médias, partie logique (prompt 13)
+
+Pris en avance sur le prompt 9, qui attend le `DesignSystem`. `MediaKit` ne
+dépend que de `CineShelfCore` : aucune vue, aucun `import UIKit` ni `AppKit`, le
+même code sur iOS et sur macOS.
+
+**Fait**
+
+- `Ingestion/MediaIngestor` : `ingest(data:)` et `ingest(fileURL:)` →
+  redimension à 2 000 px sur le grand côté, HEIC 0.8, sha256, blurhash 4×3,
+  dimensions et poids. `IngestedImage.draft` donne directement le
+  `MediaAssetDraft` que le repository attend.
+- `Ingestion/BlurHash` : encodeur écrit à la main, base 83, aucune dépendance
+  externe. Coefficients calculés sur une réduction à 64 px de côté.
+- `Ingestion/HEICEncoder` et `ImageDecoder` : encodage et décodage partiel
+  partagés par l'ingestion et le cache.
+- `Display/ThumbnailPreset` : `thumb` 160 pt, `card` 360 pt, `hero` 1200 pt.
+- `Display/ThumbnailCache` : `actor`, mémoire (`NSCache` borné à 64 Mo) puis
+  disque (`Caches/thumbnails/<assetID>-<preset>@<scale>.heic`, purge au-delà de
+  200 Mo), purge sur pression mémoire, écritures différées et sérialisées.
+- `ThumbnailLoader`, la closure `(UUID, CGSize, CGFloat) async -> CGImage?` que
+  `MediaThumbnail` recevra au prompt 9, obtenue par `ThumbnailCache.loader()`.
+- Dans `CineShelfCore` : `MediaAssetDraft` et
+  `MediaRepository.findOrCreate(_:)`, qui réutilise l'asset de même checksum.
+
+**Vérifications, toutes vertes**
+
+| Contrôle | Résultat |
+|---|---|
+| Build iOS Simulator (iPhone 17) | `** BUILD SUCCEEDED **` |
+| Build macOS | `** BUILD SUCCEEDED **` |
+| `xcodebuild test -scheme CineShelf` (macOS et iOS) | 8 tests |
+| `xcodebuild test -scheme CineShelfUITests` (iOS) | 1 test |
+| `swift test` × 3 packages | 114 tests (38 pour MediaKit) |
+| `swiftlint --strict` | 0 violation / 83 fichiers |
+| `swift-format lint --strict` | 0 avertissement |
+
+MediaKit a été relancé trois fois de suite, vert à chaque fois : la suite du
+cache contient une mesure de performance, il fallait s'assurer qu'elle
+n'introduisait pas d'instabilité.
+
+**Les chiffres mesurés**
+
+Vignette `card` @2× (720 px) depuis un original 2 000 × 3 000, par unité, sur ce
+Mac :
+
+| Étape | Coût |
+|---|---:|
+| Décodage partiel + redimension — le chemin d'affichage | **18,9 ms** |
+| Idem, écriture HEIC sur disque comprise | 44,4 ms |
+| Relecture depuis le cache disque | 2,2 ms |
+| Relecture depuis le cache mémoire | ~0 ms |
+
+Le budget de `docs/04` §4 est de 20 ms pour générer une vignette : il est tenu
+sur le chemin d'affichage, et c'est **pour cela** que l'encodage et l'écriture
+sont différés hors de ce chemin. À mesurer de nouveau sur le plus vieil appareil
+visé, pas sur ce Mac — le budget de 250 Mo et les 120 fps sur 2 000 jaquettes ne
+se valident qu'avec la grille réelle, donc au prompt 14.
+
+**Trois erreurs de ma part, corrigées**
+
+1. **Ma première mesure était fausse** : `Duration.components.attoseconds`
+   n'inclut pas les secondes entières, donc 8,9 s se lisait « 0,9 s ». Le premier
+   chiffre annoncé, 4,69 ms, était donc dix fois trop optimiste. Corrigé, et la
+   conversion est désormais dans une fonction unique.
+2. **Trois prémisses de test fausses sur le blurhash.** Sur un aplat, les
+   composantes alternatives ne sont pas nulles : celles dont un indice vaut 0
+   gardent une somme entière sur cet axe et valent 2·c/côté. L'encodeur était
+   correct, mes tests supposaient le contraire. Ils vérifient maintenant des
+   propriétés réellement vraies : la composante continue est la couleur moyenne
+   (décodée et comparée à ±2), et les axes ne sont pas inversés (image coupée
+   dans un sens puis dans l'autre).
+3. **Un test intrinsèquement instable.** `NSCache` peut évincer à tout moment
+   sous pression mémoire — ce qui arrivait quand la mesure de performance
+   tournait en parallèle. Affirmer « la mémoire garde l'entrée » n'est donc pas
+   testable. La suite est sérialisée, et les assertions portent désormais sur ce
+   qui est garanti : l'entrée est bien posée, et cache chaud l'original n'est
+   plus jamais relu.
+
+**Reporté au prompt 13 bis, explicitement hors de cette session**
+
+- `PhotosPicker`, `.fileImporter`, glisser-déposer, collage.
+- `CropEditor` : `MagnifyGesture` + `DragGesture`, aperçu par contexte, écriture
+  dans `MediaCrop`.
+- Le branchement de `MediaThumbnail` sur `ThumbnailLoader` — prompt 9, avec le
+  `DesignSystem`.
+
+**Toujours ouvert**
+
+- `MediaRepository.attach` et l'invariante `hasExactlyOneOwner` à l'écriture :
+  décidé au prompt 13 pour être fait au prompt 13, ce n'est pas livré ici puisque
+  le rattachement fait partie de la partie visuelle reportée. À traiter au
+  prompt 13 bis.
+- Le prompt 13 de `docs/PROMPTS.md` demande un dédoublonnage « pour ce
+  propriétaire ». Il est pour l'instant global au magasin : le rattachement
+  n'existe pas encore, donc la portée par propriétaire n'est pas exprimable.
+- `Bootstrap` ne branche pas encore `startObservingMemoryPressure()` : le cache
+  n'est instancié par personne tant qu'aucune vue n'affiche d'image.
+
+**Répercuté dans `docs/04` §4**, selon la règle de la session précédente : les
+trois presets chiffrés, le sha256 sur les octets source, l'absence de repli
+JPEG, la pression mémoire par `DispatchSource`, et l'écriture différée.
+
+**Suite**
+
+Prompt 9 — intégration du `DesignSystem`, dès que Claude Design a livré. Sinon
+prompt 13 bis.

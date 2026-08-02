@@ -21,13 +21,55 @@ public struct MediaRepository {
         data: Data? = nil,
         externalURLString: String? = nil
     ) -> MediaAsset {
-        let asset = MediaAsset(kind: kind)
-        asset.data = data
-        asset.externalURLString = externalURLString
-        asset.byteSize = data?.count ?? 0
+        create(
+            MediaAssetDraft(
+                kind: kind,
+                data: data,
+                externalURLString: externalURLString,
+                byteSize: data?.count ?? 0
+            )
+        )
+    }
+
+    @discardableResult
+    public func create(_ draft: MediaAssetDraft) -> MediaAsset {
+        let asset = MediaAsset(kind: draft.kind)
+        apply(draft, to: asset)
         context.insert(asset)
         ActivityRecorder(context: context).record(.create, asset)
         return asset
+    }
+
+    /// Réutilise l'asset de même empreinte s'il en existe un : c'est notre
+    /// remplacement de la contrainte d'unicité, comme `nameKey` pour les genres.
+    ///
+    /// Les assets à la corbeille sont ignorés : réimporter un fichier supprimé
+    /// crée un asset neuf plutôt que de ressusciter l'ancien avec ses
+    /// rattachements.
+    public func findOrCreate(_ draft: MediaAssetDraft) throws -> MediaAsset {
+        if let existing = try asset(withChecksum: draft.checksum) { return existing }
+        return create(draft)
+    }
+
+    public func asset(withChecksum checksum: String) throws -> MediaAsset? {
+        guard !checksum.isEmpty else { return nil }
+        var descriptor = FetchDescriptor<MediaAsset>(
+            predicate: #Predicate { $0.checksum == checksum && $0.deletedAt == nil }
+        )
+        descriptor.fetchLimit = 1
+        return try context.fetch(descriptor).first
+    }
+
+    private func apply(_ draft: MediaAssetDraft, to asset: MediaAsset) {
+        asset.kind = draft.kind
+        asset.data = draft.data
+        asset.externalURLString = draft.externalURLString
+        asset.mimeType = draft.mimeType
+        asset.pixelWidth = draft.pixelWidth
+        asset.pixelHeight = draft.pixelHeight
+        asset.byteSize = draft.byteSize
+        asset.blurHash = draft.blurHash
+        asset.checksum = draft.checksum
     }
 
     public func update(_ asset: MediaAsset, _ mutate: (MediaAsset) -> Void) {

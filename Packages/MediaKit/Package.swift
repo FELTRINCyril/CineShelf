@@ -19,7 +19,10 @@ let package = Package(
         ),
         .testTarget(
             name: "MediaKitTests",
-            dependencies: ["MediaKit"],
+            dependencies: [
+                "MediaKit",
+                .product(name: "CineShelfCore", package: "CineShelfCore")
+            ],
             swiftSettings: [.swiftLanguageMode(.v6)]
         )
     ]

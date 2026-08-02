@@ -183,11 +183,22 @@ Le point de performance n°1 de la version web (une grille de 48 jaquettes tél�
 Fichier choisi
   ├─ redimensionner à 2 000 px max        (une jaquette n'a pas besoin de plus)
   ├─ ré-encoder en HEIC qualité 0.8       (~3× plus petit que le JPEG source)
-  ├─ calculer sha256                      → dédoublonnage applicatif
+  ├─ calculer sha256 des octets SOURCE    → dédoublonnage applicatif
   ├─ calculer blurHash (4×3)              → ~30 octets, placeholder instantané
   ├─ relever pixelWidth / pixelHeight     → réserve de place, zéro saut
   └─ stocker dans MediaAsset.data (.externalStorage → CKAsset)
 ```
+
+> **Le sha256 porte sur les octets source, pas sur le HEIC produit.** Décidé en
+> implémentant le pipeline : l'empreinte est ainsi calculable sans décoder, et
+> surtout stable d'un appareil et d'une version d'OS à l'autre. Un encodeur qui
+> évolue donnerait sinon deux empreintes pour la même image, et le dédoublonnage
+> tomberait dès la première synchronisation. Contrepartie assumée : la même image
+> importée en JPEG puis en PNG donne deux `MediaAsset`.
+
+> **L'encodage HEIC n'a pas de repli.** Vérifié disponible sur simulateur iOS
+> comme sur macOS (Xcode 26) : un échec d'encodage est donc une vraie erreur, pas
+> un cas à contourner en JPEG.
 
 ### À l'affichage
 
@@ -200,7 +211,31 @@ actor ThumbnailCache {
 - Vignette produite par `CGImageSourceCreateThumbnailAtIndex` avec `kCGImageSourceThumbnailMaxPixelSize` — décodage partiel, jamais l'image complète en mémoire.
 - Cache disque dans `Caches/thumbnails/<assetID>-<preset>@<scale>.heic`, plus un `NSCache` mémoire borné.
 - **Jamais synchronisé** : c'est reconstructible, et le quota iCloud appartient à l'utilisateur.
-- Purge automatique quand `Caches/` dépasse un seuil, et sur `didReceiveMemoryWarning`.
+- Purge automatique quand `Caches/` dépasse un seuil, et sur pression mémoire.
+
+**Les trois presets**, chiffrés en implémentant le cache. Le côté long en points,
+multiplié par l'échelle de l'écran à la génération :
+
+| Preset | Côté long | Ce qu'il couvre |
+|---|---:|---|
+| `thumb` | 160 pt | listes, casting, avatars — la carte portrait compacte fait 104 × 156 pt |
+| `card` | 360 pt | grilles et rails — la plus grande carte de `docs/01` fait 340 pt de large |
+| `hero` | 1200 pt | bandeau d'accueil et fiches |
+
+La taille demandée par une vue est **arrondie au preset qui la couvre** : le nom
+de fichier ci-dessus suppose un nombre borné d'entrées, pas une par largeur de
+grille. À 3× un `hero` dépasse les 2 000 px de l'original, qui est alors rendu
+tel quel — c'est voulu.
+
+> **La purge mémoire écoute `DispatchSource.makeMemoryPressureSource`** et non
+> `didReceiveMemoryWarning` : la notification est UIKit, la source de pression
+> existe à l'identique sur iOS et sur macOS, et `MediaKit` reste ainsi compilable
+> sans distinction de plateforme.
+
+> **L'encodage HEIC de la vignette sort du chemin d'affichage.** Mesuré : le
+> décodage-redimension coûte ~19 ms, l'encodage et l'écriture ~25 ms de plus. La
+> vignette est donc rendue dès qu'elle existe, l'écriture disque est enchaînée en
+> arrière-plan, et `flushPendingWrites()` permet de l'attendre avant de purger.
 
 ### Affichage sans saut de mise en page
 

@@ -1,8 +1,13 @@
+import OSLog
 import SwiftUI
 
 #if canImport(CoreText)
     import CoreText
 #endif
+
+/// Les échecs d'enregistrement de police, visibles dans la Console.
+///   log stream --predicate 'subsystem == "fr.feltrin.CineShelf.DesignSystem"'
+private let log = Logger(subsystem: "fr.feltrin.CineShelf.DesignSystem", category: "fonts")
 
 // MARK: - Typographie
 //
@@ -97,8 +102,66 @@ public enum DesignSystemFonts {
         }
     }
 
+    /// Ce que l'enregistrement des polices a produit, lisible après `register()`.
+    ///
+    /// Existe parce que `CTFontManagerRegisterFontURLs` ne retourne rien : son
+    /// seul canal d'erreur est le `registrationHandler`, et le code d'origine en
+    /// jetait le tableau `errors`. Un `.ttf` absent ou corrompu passait donc
+    /// totalement silencieux à l'exécution — même classe de défaillance que
+    /// `Color(_:bundle:)` qui ne signale pas un jeu de couleurs absent.
+    public struct RegistrationReport: Sendable {
+        /// Les fontes dont le fichier est introuvable dans le bundle.
+        public let missingFiles: [String]
+        /// Les erreurs remontées par CoreText, mises à plat.
+        public let errors: [String]
+        /// CoreText a signalé la fin de l'opération.
+        ///
+        /// Le header dit que le handler est appelé « as errors are discovered or
+        /// upon completion » et « may be called multiple times ». Sans ce
+        /// drapeau, lire `errors` reviendrait à parier sur un appel synchrone —
+        /// c'est bien ce qui se passe sur macOS, mais ce n'est pas contractuel,
+        /// et une erreur remontée plus tard passerait inaperçue.
+        public let isComplete: Bool
+
+        /// Aucune erreur, **et** CoreText a fini de parler.
+        public var isClean: Bool { missingFiles.isEmpty && errors.isEmpty && isComplete }
+    }
+
     private static let lock = NSLock()
     nonisolated(unsafe) private static var didRegister = false
+
+    /// Verrou distinct de `lock` : le `registrationHandler` peut être appelé
+    /// avant le retour de `CTFontManagerRegisterFontURLs`, donc alors que
+    /// `register()` détient encore `lock`. Réutiliser le même `NSLock`, non
+    /// récursif, provoquerait un interblocage.
+    private static let reportLock = NSLock()
+    nonisolated(unsafe) private static var storedReport: RegistrationReport?
+
+    /// `nil` tant que `register()` n'a pas été appelé.
+    public static var registrationReport: RegistrationReport? {
+        reportLock.lock()
+        defer { reportLock.unlock() }
+        return storedReport
+    }
+
+    private static func record(_ report: RegistrationReport) {
+        reportLock.lock()
+        defer { reportLock.unlock() }
+        storedReport = report
+    }
+
+    /// Le handler peut être appelé plusieurs fois : les erreurs s'accumulent, et
+    /// `isComplete` ne devient vrai qu'au `done` de CoreText.
+    private static func appendErrors(_ messages: [String], done: Bool) {
+        reportLock.lock()
+        defer { reportLock.unlock() }
+        let previous = storedReport
+        storedReport = RegistrationReport(
+            missingFiles: previous?.missingFiles ?? [],
+            errors: (previous?.errors ?? []) + messages,
+            isComplete: done
+        )
+    }
 
     /// Idempotent, sûr depuis n'importe quel thread. À appeler au démarrage de l'app
     /// (`init()` de l'`App`) — les previews du package l'appellent automatiquement.
@@ -109,12 +172,52 @@ public enum DesignSystemFonts {
         didRegister = true
 
         #if canImport(CoreText)
-            let urls = Face.allCases.compactMap {
-                Bundle.designSystem.url(forResource: $0.fileName, withExtension: "ttf")
+            var missingFiles: [String] = []
+            var urls: [URL] = []
+            for face in Face.allCases {
+                if let url = Bundle.designSystem.url(forResource: face.fileName, withExtension: "ttf") {
+                    urls.append(url)
+                } else {
+                    missingFiles.append(face.fileName)
+                }
             }
-            CTFontManagerRegisterFontURLs(urls as CFArray, .process, true) { _, _ in false }
+
+            record(RegistrationReport(missingFiles: missingFiles, errors: [], isComplete: false))
+            for file in missingFiles {
+                log.error("Font file missing from bundle: \(file, privacy: .public).ttf")
+            }
+
+            CTFontManagerRegisterFontURLs(urls as CFArray, .process, true) { errors, done in
+                let messages = messages(from: errors)
+                appendErrors(messages, done: done)
+                for message in messages {
+                    log.error("Font registration rejected: \(message, privacy: .public)")
+                }
+                // `true` = poursuivre. `false` **arrête** l'opération, et c'est
+                // ce que ce handler retournait — les fontes restantes n'auraient
+                // pas été enregistrées si CoreText avait signalé quoi que ce
+                // soit avant la fin.
+                return true
+            }
+        #else
+            // Aucun CoreText : rien à enregistrer, donc rien à attendre.
+            record(RegistrationReport(missingFiles: [], errors: [], isComplete: true))
         #endif
     }
+
+    #if canImport(CoreText)
+        /// Les erreurs de CoreText en messages lisibles. `CFError` se pontifie en
+        /// `NSError` ; le repli couvre le cas où ce pont changerait.
+        private static func messages(from errors: CFArray?) -> [String] {
+            guard let raw = errors as? [Any] else { return [] }
+            return raw.map { item in
+                if let error = item as? NSError {
+                    return "\(error.domain) \(error.code) : \(error.localizedDescription)"
+                }
+                return String(describing: item)
+            }
+        }
+    #endif
 }
 
 // MARK: - Confort

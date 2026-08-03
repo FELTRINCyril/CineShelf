@@ -19,6 +19,11 @@ React + Express retirée. **Aucun backend.** SwiftData + CloudKit privé.
 - Les enums sont persistées en `rawValue: String`, exposées en propriété calculée.
 - `sortName` et `searchText` maintenus par `refreshDerived()`, appelé à **chaque** écriture.
 - `CloudKitConformanceTests` doit passer avant tout commit.
+- **`versionIdentifier` du schéma reste à `1.0.0` pendant tout le développement.**
+  Tout changement de modèle est libre, sans étape de migration : le magasin local
+  est effacé si besoin. La version **gèle au prompt 20**, à l'import des vraies
+  données ; à partir de là, tout changement de modèle exige un plan de migration.
+  Détail dans `docs/02` §7.
 
 ## Règles non négociables — design
 - Aucune couleur littérale hors du package `DesignSystem`.
@@ -34,6 +39,15 @@ React + Express retirée. **Aucun backend.** SwiftData + CloudKit privé.
 - Aucune logique métier dans une `View` : repository ou service.
 - Un dossier `Features/X` n'importe jamais `Features/Y`.
 - `CineShelfCore` n'importe jamais SwiftUI.
+- **Tout test de `#Predicate` SwiftData passe par le magasin** : `save()` puis
+  `fetch`, ou fetch depuis un `ModelContext` neuf. Jamais sur des objets encore
+  en attente. Sur du pending, SwiftData évalue le prédicat en Swift et sa
+  traduction SQL n'est **pas** exercée — un test vert peut alors couvrir une app
+  cassée. C'est arrivé : `searchText.contains("")` est vrai en Swift mais
+  `CONTAINS ''` ne matche aucune ligne en SQL, et la grille des titres est restée
+  vide en permanence derrière 42 tests verts. Quand le comportement *avant*
+  sauvegarde est lui-même le sujet (dédoublonnage intra-lot d'import), le dire
+  dans le nom du test et couvrir le chemin SQL ailleurs.
 
 ## Commandes
 ```bash
@@ -47,7 +61,8 @@ xcodebuild test -scheme CineShelfUITests -destination 'platform=iOS Simulator,na
 for p in CineShelfCore DesignSystem MediaKit; do (cd "Packages/$p" && swift test); done
 
 swiftlint --strict
-swift-format lint --recursive App Catalog Packages Tests
+# swift-format n'est pas dans le PATH : il est livré avec la toolchain Xcode.
+xcrun swift-format lint --recursive App Catalog Packages Tests
 ```
 
 Catalogue du design system — c'est aussi le seul endroit où les tests d'assets

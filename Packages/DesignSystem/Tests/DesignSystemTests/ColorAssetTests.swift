@@ -79,11 +79,17 @@ func probeDetectsAMissingColorSet() {
 // MARK: - Le chemin que les vues empruntent reellement
 //
 // Les tests ci-dessus verifient que les *noms* de `ColorTokens.all` existent
-// dans le catalogue. Ils ne verifient pas les chaines ecrites a la main dans
-// les accesseurs de Colors.swift : `bgCanvas` pourrait appeler `.ds("bg/canvas")`
-// comme `.ds("bg/canvass")`, le switch genere compilerait, la liste de tokens
-// resterait juste, et rien n'echouerait — alors que toutes les vues rendraient
-// du transparent. C'est le trou que ces deux tests ferment.
+// dans le catalogue. Ils ne verifient pas que les accesseurs publics y sont
+// correctement cables : un accesseur pointant a cote compilerait, laisserait la
+// liste de tokens juste, et ferait rendre du transparent a toutes les vues sans
+// qu'un seul test bronche. C'est ce trou que les tests suivants ferment.
+//
+// La chaine d'un token ne vit plus qu'a un seul endroit — le bloc
+// `extension ColorTokens` de ColorTokens.generated.swift — donc une faute de
+// frappe ne peut plus se glisser dans un chemin sans l'autre. Ces tests restent
+// utiles pour autant : ils verifient le cablage lui-meme (les deux extensions
+// referencent-elles bien la bonne source ?) et surtout que le catalogue compile
+// resout, ce qu'aucune relecture de code ne peut prouver.
 //
 // La sonde est l'alpha : un jeu absent ne rend pas « une couleur par defaut »,
 // il rend transparent (mesure : 0.0000/0.0000/0.0000 a=0.00). Et comme les deux
@@ -158,34 +164,34 @@ func semanticColorsDoNotFallBackToADefault(token: String) throws {
     #expect(
         rendered.isTransparent == false,
         """
-        \(token) rend transparent : l'accesseur type de Colors.swift ne pointe sur \
-        aucun Color Set. Verifier la chaine passee a `.ds(...)`.
+        \(token) rend transparent : l'accesseur type ne pointe sur aucun Color \
+        Set. Verifier le bloc `extension ColorTokens` de ColorTokens.generated.swift.
         """
     )
 
-    // Second filet, le plus serre : l'accesseur ecrit a la main et le nom du
-    // token doivent designer le meme jeu.
+    // Second filet, le plus serre : l'accesseur et le nom du token doivent
+    // designer le meme jeu.
     let byName = try #require(components(of: Color(token, bundle: .designSystem)))
     #expect(
         rendered.matches(byName),
         """
-        \(token) : l'accesseur type rend \(rendered), le jeu nomme rend \(byName). \
-        La chaine de Colors.swift ne correspond pas au token.
+        \(token) : `extension Color` rend \(rendered), le jeu nomme rend \(byName). \
+        L'accesseur ne pointe pas sur le bon token — verifier ColorTokens.generated.swift.
         """
     )
 }
 
-// Colors.swift ecrit chaque token DEUX fois : une sur
-// `extension ShapeStyle where Self == Color`, une sur `extension Color`. Le
-// switch de ColorTokens.generated.swift n'atteint que la seconde — Swift
-// prefere le membre du type concret au membre d'extension de protocole. Or
-// `.background(.bgCanvas)` emprunte la premiere. Verifie par experience : une
-// faute de frappe dans la version ShapeStyle passait tous les tests.
+// `typedAccessor(for:)` traverse `extension Color`, et rien d'autre : Swift
+// prefere le membre du type concret au membre d'extension de protocole, donc
+// `Color.bgCanvas` n'atteint jamais `extension ShapeStyle where Self == Color`.
+// Or c'est celle-la que `.background(.bgCanvas)` emprunte — la forme que les
+// vues ecrivent le plus. Verifie par experience : avant la generation, une faute
+// de frappe dans la version ShapeStyle passait tous les tests.
 //
 // Le parametre `some ShapeStyle` ci-dessous force la resolution vers
-// l'extension de protocole. La liste est donc ecrite a la main, une fois, ici :
-// c'est la duplication de Colors.swift qui l'impose, et le test la surveille au
-// lieu de la subir.
+// l'extension de protocole. La liste est ecrite a la main ici, et c'est voulu :
+// une liste generee depuis la meme source que le code teste ne prouverait rien.
+// `shapeStyleListIsExhaustive` la garde alignee sur ColorTokens.semantics.
 
 private func viaShapeStyle(_ style: some ShapeStyle) -> Color? { style as? Color }
 

@@ -29,7 +29,7 @@ Version détaillée (vérifications, critères de sortie, dépannage) → `GUIDE
 | 18 | Profils, bibliothèques, Face ID | Code | `02 §2.2 §9` | ⬜ |
 | 19 | Import/export CSV | Code | `03 §10`, `04 §7` | ⬜ |
 | 2 | **Dump de l'app web** | Code (dépôt web) | `02 §7` | ⬜ avant le 20 |
-| 20 | Migration des vraies données | Code | `02 §7` | ⬜ |
+| 20 | Migration des vraies données | Code | `02 §7` | ⬜ — **point de contrôle : geler `versionIdentifier`** (`02 §7` étape 0) |
 | 21 | Config CloudKit | toi | — | ⬜ abonnement requis |
 | 22 | Synchronisation | Code | `04 §5` | ⬜ |
 | 23 | Intégrations système | Code | `03 §13` | ⬜ |
@@ -53,7 +53,13 @@ Version détaillée (vérifications, critères de sortie, dépannage) → `GUIDE
 | `MediaSlot.portrait` (jaquette portrait alternative) jamais lu | 13b |
 | `.navigationTransition(.zoom)` : la source est déclarée par `PosterCard`, mais son `@Namespace` est privé à la grille — le chaînage vers la destination manque | 13b |
 | Pas de `fetchLimit` progressif : `@Query` tout chargé (décision actée, à revoir au-delà de ~10 000 titres) | — |
-| **Quatre critères filtrés en mémoire** (genre, personne, durée, note) : `#Predicate` sature au-delà de ~6 clauses, donc le catalogue entier est rapatrié avant d'être filtré. Sans effet perceptible aujourd'hui ; **à mesurer sur 5 000 titres avant le prompt 20**, et à revoir si nécessaire — par exemple en dénormalisant les identifiants de genre dans un champ interrogeable, sur le modèle de `searchText` | avant 20 |
+| **Cinq critères filtrés en mémoire** (collection, genre, personne, durée, note) : `#Predicate` sature au-delà de ~6 clauses, donc le catalogue entier est rapatrié avant d'être filtré. La collection a rejoint la liste quand la clause de bibliothèque a pris sa place dans le prédicat — **mesuré** : deux traversées `(x.rel?.id ?? noID) == cible` dans la même chaîne font échouer la vérification de types des *deux* prédicats. Sans effet perceptible aujourd'hui ; **à mesurer sur 5 000 titres avant le prompt 20**, et à revoir si nécessaire — par exemple en dénormalisant les identifiants de collection et de genre dans des champs interrogeables, sur le modèle de `searchText` | avant 20 |
+| `AppIcon.appiconset` déclare 11 emplacements sans un seul nom de fichier : `actool` ne produit rien et l'app n'a **pas d'icône**. L'icône viendra de Claude Design | avant 25 |
+| `Typo.sectionTitle` inutilisé dans `App/` : **décision actée** — aucun en-tête de section n'est aujourd'hui sans style, donc rien à y brancher. Les quatre en-têtes de contenu de `TitleDetailView` gardent `railLabelStyle()` ; les promouvoir serait un changement de hiérarchie visuelle (12 → 20 pt de base sur iOS, perte des majuscules et du `tracking`), pas un branchement. À reprendre au prompt 16, qui écrit Accueil, Collections et Genres — de vrais groupes de contenu. Poser alors `sectionTitle` **une fois**, dans un `sectionTitleStyle()` sur le modèle de `railLabelStyle()`, plutôt que sur chaque appelant : ce serait un ajout aux 15 composants de `docs/01` partie D | 16 |
+| Prédicats de production sans aucune couverture : `Bootstrap.existingProfile` (structurellement inatteignable en test, il ne sert qu'au cas d'une relation inverse désynchronisée par CloudKit), et ceux déclarés dans des vues (`MediaEnvironment`, `TitleDetailView`, `RouteInspector`, `Sidebar`, `TitleFilterSheet`) — aucune cible de test ne monte les vues | 22 · 24 |
+| `MediaRepository.asset(withID:)` : code mort, aucun appelant dans le dépôt | — |
+| `ColorTokens.typedAccessor(for:)` n'a plus d'appelant de production depuis que `ProfileSession.accentColor` est un `switch` sur `ProfileAccent` : API `public` exercée par les seuls tests. La garder tant que le catalogue peut en avoir besoin, sinon la passer `internal` | — |
+| **Teinte de profil : deux choix seulement** (`accent/solid`, `accent/text`). Ce sont les deux seuls jetons d'accent à alpha 1 ; `accent/soft` est un lavis de fond (alpha 0,10 à 0,22) qui rendrait l'accent invisible en `.tint`. Si le prompt 18 veut de vraies couleurs par profil, il faudra étendre la palette dans `colors.tokens.json`, pas réutiliser les rôles existants | 18 |
 | Grille non navigable au clavier sur Mac (`PosterCard` ouvre par `onTapGesture`, sans `focusable()`) | 24 |
 | `MediaEnvironment.displayScale` jamais alimenté : vignettes générées en @2x quelle que soit la dalle | 13b |
 | `DemoCatalog` hors des repositories : **décision actée** — une fixture n'est pas une action utilisateur, et on ne veut pas 300 `ActivityEntry` fictives dans le fil. L'invariant `refreshDerived()` tient et `DemoCatalogTests` le vérifie. Reste factice : `MediaAsset.checksum` et `blurHash` non calculés | — |

@@ -989,3 +989,210 @@ Preuve d'échec, en injectant une faute dans les deux accesseurs de `bgCanvas` :
 Les correctifs arbitrés : la clause de recherche de `TitleFilter` (la grille est
 vide en permanence), l'audit des tests de `#Predicate`, la déduplication de
 `Colors.swift`.
+
+---
+
+## 2026-08-03 (6) — La grille était vide en permanence, et pourquoi 42 tests ne l'ont pas vu
+
+**Le bug**
+
+`App/Navigation/TitleFilter.swift` mettait `title.searchText.contains(search)`
+dans le prédicat même quand le terme cherché était vide, sur la foi d'un
+commentaire qui affirmait : « une recherche vide donne `contains("")`, toujours
+vrai ». C'est vrai de `String.contains("")` en Swift. C'est **faux** de la
+traduction que SwiftData en fait : `CONTAINS ''` ne matche aucune ligne en SQL.
+La grille des titres était donc vide en permanence, tant que l'utilisateur
+n'avait pas tapé quelque chose — quelles que soient les données.
+
+Bissection sur le magasin réel (122 titres), clause par clause :
+
+```
+BISECT deletedAt==nil:             121
+BISECT archived:                   119
+BISECT private:                    122
+BISECT searchText.contains(""):      0     <-- ici
+BISECT full sans search:           118
+```
+
+Les données n'ont jamais été en cause : 122 `Title`, 30 `Person`, 6
+`TitleCollection`, 11 `Genre` bien présents, une seule `Library`, `sortName` et
+`searchText` propres. `DemoCatalog` faisait son travail.
+
+**Pourquoi les tests étaient verts, et c'est le vrai sujet de la session**
+
+`TitleFilterTests` fetchait sans jamais appeler `context.save()`. Sur des objets
+encore en attente, SwiftData évalue le `#Predicate` **en Swift** ; sa traduction
+SQL n'est jamais exercée. Le test mesurait donc la sémantique Swift du prédicat,
+pas celle du magasin — et un test vert couvrait une app cassée.
+
+Mesuré : en ajoutant `save()` sans corriger le prédicat, **9 tests et 15
+assertions** basculent au rouge. La règle est désormais dans `CLAUDE.md` :
+tout test de `#Predicate` passe par le magasin, `save()` puis `fetch` ou contexte
+neuf, jamais sur du pending. Quand le comportement avant sauvegarde est
+lui-même le sujet — le dédoublonnage intra-lot d'import — le dire dans le nom du
+test et couvrir le chemin SQL ailleurs.
+
+L'audit de tout le dépôt a trouvé trois autres tests dans le même cas :
+`targetsAreDistinct` et `librariesDoNotShareGenres` (`GenreRepositoryTests`),
+`differentSourcesCreateTwoAssets` (`DeduplicationTests`). Chacun jugeait sa
+clause discriminante sur un objet non sauvegardé. Corrigés, ils restent verts :
+ils étaient mal testés, pas cassés. Le plus inquiétant des trois était
+`librariesDoNotShareGenres` — rien ne prouvait que `library?.id` *discrimine* en
+SQL, seulement qu'il peut matcher, et un genre qui fuit d'une bibliothèque à
+l'autre serait exactement la même classe de bug.
+
+**Filtre par bibliothèque**
+
+Ajouté maintenant, avant que le prompt 18 n'introduise le multi-bibliothèque : la
+grille ne filtrait sur aucune `Library` et aurait mélangé les catalogues. Posé
+côté SQL, comme critère le plus sélectif.
+
+Une seule traversée `(title.rel?.id ?? noID) == cible` tient dans le budget de
+vérification de types, pas deux : les ajouter toutes les deux fait échouer les
+*deux* prédicats sur `unable to type-check this expression in reasonable time`.
+La collection est donc passée en filtrage mémoire, et rejoint les quatre autres
+critères déjà là. Quatre tests nouveaux couvrent ce qui n'en avait aucun : la
+recherche vide, la clause de bibliothèque (avec contrôle négatif sur une
+bibliothèque inconnue), la collection depuis son nouvel emplacement, et la
+**parité des deux prédicats**.
+
+Ce dernier vient de la revue, et il comblait un trou réel : tous les autres tests
+laissent la recherche vide, donc seule la branche du `guard` était exercée.
+Vérifié en vidant le second littéral de ses quatre clauses de visibilité — la
+suite restait entièrement verte. Autrement dit la duplication assumée des deux
+prédicats venait de recréer, à côté du bug qu'on corrigeait, la même possibilité
+de suite verte sur app cassée : un titre à la corbeille, archivé, privé ou d'une
+autre bibliothèque réapparaissait dès qu'un terme était tapé. Le test compare
+maintenant le résultat sous un terme qui matche tout au résultat sans recherche,
+et il mord.
+
+**Colors.swift : 46 chaînes pour 23 tokens**
+
+Les accesseurs sémantiques étaient écrits à la main **deux fois** — une sur
+`extension ShapeStyle where Self == Color`, une sur `extension Color`. Swift
+préfère le membre du type concret au membre d'extension de protocole, donc le
+`switch` généré ne traversait que la seconde, alors que `.background(.bgCanvas)`
+emprunte la première. Vérifié par expérience : une faute de frappe dans la
+version `ShapeStyle` passait tous les tests.
+
+Les deux extensions sont maintenant générées par `scripts/generate-colors.py`
+depuis `colors.tokens.json`, et délèguent à un bloc `extension ColorTokens` qui
+est le **seul** endroit où la chaîne d'un token résout une couleur. Les deux
+chemins d'appel restent ergonomiques (`Color.bgCanvas` et `.background(.bgCanvas)`),
+et le `.xcassets` régénéré est identique au précédent.
+
+**Polices : le handler qui avalait tout**
+
+`CTFontManagerRegisterFontURLs` ne retourne rien ; son seul canal d'erreur est le
+`registrationHandler`, dont le code jetait le tableau `errors` — et retournait
+`false`, ce qui d'après le header CoreText **arrête** l'opération. Il retourne
+maintenant `true`, remonte les erreurs dans un `RegistrationReport` lisible, et
+les journalise (`subsystem == "fr.feltrin.CineShelf.DesignSystem"`).
+
+Un test échoue si un `.ttf` est absent ou refusé. Vérifié en tronquant
+`Archivo-Bold.ttf` : `CTFontManagerErrorDomain 103 : The file is not a
+recognized or supported font file format.` Ce qui prouve au passage que le
+risque du `false` n'était pas théorique — CoreText appelle bien le handler avec
+une erreur.
+
+Le rapport porte aussi `isComplete`, sur remarque de revue. Le header dit que le
+handler est appelé « as errors are discovered or upon completion » et « may be
+called multiple times » : lire `errors` sans vérifier le `done` reviendrait à
+parier sur un appel synchrone. C'est bien ce qui se passe sur macOS, mais ce
+n'est pas contractuel, et un rapport lu trop tôt serait vide plutôt que propre.
+
+La police, elle, n'était pas cassée : les quatre fontes s'enregistrent, les
+familles résolues sont `Archivo` et `Archivo SemiExpanded`, mesurées à la largeur
+de rendu contre deux contrôles négatifs qui tombent tous deux sur
+`.AppleSystemUIFont`. Ce qui donnait l'impression de Helvetica, c'est qu'Archivo
+n'est appliquée qu'à six endroits, et que les onze titres d'écran passent par
+`.navigationTitle`, que `Font.custom` n'atteint pas — comportement voulu, et
+maintenant écrit dans `docs/01` §B.2.
+
+**Les couleurs n'étaient pas cassées non plus**
+
+Vérifié de bout en bout : `.process` correct, `actool` exécuté, `Assets.car`
+produit et embarqué (macOS et iOS), namespaces préservés, 59/59 noms alignés,
+`Bundle.module` résolu, 59/59 couleurs résolues in-process avec les bonnes
+composantes. Le fait utile : un token absent ne rend pas « une couleur par
+défaut », il rend **transparent**. Donc un fond système visible à l'écran n'est
+pas la signature d'un asset non résolu — c'est un conteneur natif qui peint
+par-dessus, et `.scrollContentBackground(.hidden)` n'apparaît nulle part dans le
+dépôt. À reprendre écran par écran, pas en masse.
+
+**Le reste**
+
+`Profile.accentToken` était une `String` libre que rien ne validait, et
+`ProfileSession` retombait silencieusement sur l'accent par défaut dès qu'elle ne
+correspondait à rien. Typée par `ProfileAccent`, persistée en `accentRaw` :
+le `switch` de `accentColor` est désormais exhaustif. Le repli n'a pas disparu
+pour autant — il a changé de place, et c'est mieux ainsi : il est dans
+`Profile.accent`, seul point d'entrée d'une valeur venue du magasin, et il ne
+peut plus se déclencher que sur un enregistrement écrit par une version future
+et rapatrié par CloudKit. Le commentaire le dit maintenant, au lieu de prétendre
+qu'un jeton invalide n'existe plus.
+
+Deux cas seulement dans l'énumération, et `accent/soft` en est exclu : c'est un
+lavis de fond à alpha 0,10 en clair, jusqu'à 0,22 en contraste élevé. Comme
+`ProfileAccent` est `CaseIterable` et qu'un `Picker` sur `allCases` est
+exactement ce que le prompt 18 va construire, l'y laisser aurait livré un
+réglage « teinte douce » qui rend l'accent invisible. Si de vraies couleurs par
+profil sont voulues, il faudra étendre la palette dans `colors.tokens.json`, pas
+détourner les rôles existants — c'est au tableau des écarts.
+
+Changement visible à signaler : sans profil ouvert, la teinte passe de
+`accentText` à `accentSolid`. C'est le défaut du modèle (`ProfileAccent.solid`),
+donc l'écran de sélection montre désormais la teinte qu'un profil neuf portera.
+
+Règle de version de schéma écrite dans `docs/02` §7 et `CLAUDE.md` :
+`versionIdentifier` reste à `1.0.0` pendant tout le développement, tout
+changement de modèle est libre, le magasin est effaçable. Le gel a lieu au
+prompt 20, à l'import des vraies données, et devient un point de contrôle de ce
+prompt. La commande `swift-format` de `CLAUDE.md` passe par `xcrun` : elle
+n'était pas exécutable telle quelle.
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| Tests `CineShelf` (macOS) | 45 tests (42 avant) |
+| Tests `DesignSystemCatalog` | 25 tests (24 avant) |
+| `swift test` Core / DesignSystem / MediaKit | 79 / 24 / 38 |
+| `swiftlint --strict` | 0 violation / 129 fichiers |
+| `xcrun swift-format lint` | 0 avertissement |
+| Preuve d'échec — `save()` sans corriger le prédicat | 9 tests, 15 assertions au rouge |
+| Preuve d'échec — faute de frappe dans un accesseur de couleur | 4 assertions, les deux chemins |
+| Preuve d'échec — `.ttf` tronqué | erreur CoreText 103 remontée |
+| Preuve d'échec — second prédicat vidé de ses clauses | corbeille, archivé, privé et autre bibliothèque fuient |
+
+**Revue**
+
+Une revue du diff a trouvé cinq points importants, tous corrigés : la branche
+« recherche non vide » non couverte, deux affirmations fausses que j'avais
+ajoutées à `docs/01` (« toutes les vues forcent `.inline` » — quatre ne le font
+pas ; et §B.1 montrait encore les accesseurs écrits à la main avec un `.ds()` qui
+n'existe plus), `accent/soft` inutilisable en teinte, et deux commentaires du
+même diff qui se contredisaient sur le repli d'`accentToken`. Plus le nommage
+`accentTokenRaw` aligné sur la convention maison (`accentRaw`/`accent`, comme
+`kindRaw`/`kind`), les messages d'échec de `ColorAssetTests` qui citaient encore
+`Colors.swift`, et les journaux CoreText repassés en ASCII pur.
+
+**Reste ouvert**
+
+Deux points reportés au tableau des écarts. L'icône de l'app : `AppIcon` déclare
+onze emplacements sans un seul fichier, donc `actool` ne produit rien et l'app
+n'a pas d'icône — avant le prompt 25.
+
+Et `Typo.sectionTitle`, qui reste inutilisé dans `App/`. L'inventaire a montré
+qu'**aucun** en-tête de section n'est sans style : les quatre en-têtes de contenu
+de `TitleDetailView` portent déjà `railLabelStyle()`, et tout le reste est du
+`Section` natif de `Form`, `List` ou `Menu`, que le système stylise et qu'il ne
+faut pas toucher. Les promouvoir ne serait donc pas un branchement mais un
+changement de hiérarchie visuelle. Décision actée : on attend le prompt 16, qui
+écrit Accueil, Collections et Genres, et on posera alors le rôle une fois dans un
+`sectionTitleStyle()` plutôt que sur chaque appelant.
+
+**Suite**
+
+Prompt 12 — Recherche + Spotlight.

@@ -28,6 +28,7 @@ struct TitlesView: View {
         TitlesGrid(
             filter: navigation.titleFilter,
             hidingPrivate: session.current?.hidesPrivateContent ?? false,
+            libraryID: session.current?.library?.id,
             display: display,
             onEdit: { editedTitle = $0 },
             onCreate: createTitle

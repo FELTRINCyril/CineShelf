@@ -37,6 +37,11 @@ struct DeduplicationTests {
         let first = try repository.findOrCreate(
             try ingestor.ingest(data: try TestImage.makePNGData(width: 600, height: 400)).draft
         )
+        // Sauvegarder entre les deux appels : sinon le second juge le premier
+        // asset en mémoire et la comparaison de `checksum` du prédicat n'est
+        // jamais traduite en SQL. Le cas du dédoublonnage *avant* sauvegarde a
+        // son propre test juste en dessous, c'est là qu'il est le sujet.
+        try context.save()
         let second = try repository.findOrCreate(
             try ingestor.ingest(data: try TestImage.makePNGData(width: 601, height: 400)).draft
         )

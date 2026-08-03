@@ -48,14 +48,23 @@ final class ProfileSession {
         self.lastProfileID = defaults.string(forKey: Self.lastProfileKey).flatMap(UUID.init(uuidString:))
     }
 
-    /// La teinte de l'app suit le profil : `Profile.accentToken` porte un nom de
-    /// jeu sémantique, résolu par le design system. Repli sur l'accent par
-    /// défaut si le jeu n'existe pas — un profil ne doit pas casser l'app.
+    /// La teinte de l'app suit le profil.
+    ///
+    /// Le `switch` est exhaustif : `Profile.accent` est une énumération, donc
+    /// cette vue ne peut plus recevoir un jeton qu'elle ne sait pas résoudre.
+    /// Le repli sur un jeton inconnu n'a pas disparu pour autant, il a changé de
+    /// place — il est dans `Profile.accent`, seul point d'entrée d'une valeur
+    /// venue du magasin.
+    ///
+    /// `.none` est « aucun profil ouvert », pas une erreur : le sélecteur n'a pas
+    /// encore tranché. Le défaut y est `accentSolid`, le même que
+    /// `ProfileAccent.solid` du modèle — l'écran de sélection montre donc la
+    /// teinte qu'un profil neuf portera.
     var accentColor: Color {
-        guard let token = current?.accentToken,
-            let color = ColorTokens.typedAccessor(for: token)
-        else { return .accentText }
-        return color
+        switch current?.accent {
+        case .solid, .none: .accentSolid
+        case .text: .accentText
+        }
     }
 
     // MARK: Ouverture

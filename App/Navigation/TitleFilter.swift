@@ -146,10 +146,19 @@ extension TitleFilter {
     /// réduisent réellement le nombre de lignes lues. Les critères optionnels
     /// et les traversées to-many partent dans `matches(_:)`, appliqué en
     /// mémoire sur le résultat.
-    func predicate(hidingPrivate: Bool) -> Predicate<Title> {
+    ///
+    /// - Parameters:
+    ///   - hidingPrivate: le profil actif masque les entités privées.
+    ///   - libraryID: la bibliothèque du profil actif. `nil` ne filtre pas, et
+    ///     recouvre deux cas : aucun profil ouvert (le sélecteur n'a pas encore
+    ///     tranché), ou un profil sans bibliothèque — théorique aujourd'hui,
+    ///     `ProfileRepository.create` en affecte toujours une, mais la relation
+    ///     est optionnelle et `move(_:to:)` existe. Dans les deux cas, mieux vaut
+    ///     tout montrer que rien.
+    /// - Returns: le prédicat à passer à un `@Query` ou un `FetchDescriptor`.
+    func predicate(hidingPrivate: Bool, libraryID: UUID?) -> Predicate<Title> {
         let showsArchived = showsArchived
-        // Une recherche vide donne `contains("")`, toujours vrai : pas besoin
-        // d'un test supplémentaire.
+
         // `Title.searchText` est replié par `refreshDerived()` (sans accents,
         // sans casse) : le terme cherché doit l'être aussi, sinon « Âme » ne
         // trouve rien alors que « ame » trouve tout.
@@ -158,29 +167,63 @@ extension TitleFilter {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
 
-        // L'identifiant de collection est dénormalisé en `Bool` + `UUID` non
-        // optionnel : comparer un `UUID?` capturé à une colonne `UUID` oblige le
+        // L'identifiant est dénormalisé en `Bool` + `UUID` non optionnel :
+        // comparer un `UUID?` capturé à une colonne `UUID` oblige le
         // vérificateur de types à explorer toutes les promotions d'optionnel.
+        // Une seule traversée de ce genre tient dans le budget, pas deux —
+        // mesuré : ajouter la collection à côté de la bibliothèque fait échouer
+        // les *deux* prédicats. La collection est donc filtrée en mémoire.
         let noID = UUID()
-        let hasCollection = collectionID != nil
-        let collectionTarget = collectionID ?? noID
+        let hasLibrary = libraryID != nil
+        let libraryTarget = libraryID ?? noID
+
+        // ATTENTION — deux prédicats, et non un seul avec une clause gardée.
+        //
+        // `String.contains("")` est **vrai** en Swift, mais un `#Predicate` n'est
+        // pas évalué en Swift : SwiftData le traduit en SQL, et `CONTAINS ''`
+        // n'y matche **aucune** ligne. Mettre la clause de recherche dans le
+        // prédicat quand le terme est vide vide donc la grille en permanence,
+        // pour tout le monde. C'est le bug qu'on a eu, et le commentaire
+        // d'origine affirmait exactement le contraire.
+        //
+        // Le garde ne peut pas vivre à l'intérieur du `#Predicate` : ajouter
+        // `search.isEmpty || …` à la chaîne dépasse le budget de vérification de
+        // types, pour la raison décrite plus haut. D'où la duplication, assumée.
+        guard search.isEmpty == false else {
+            return #Predicate<Title> { title in
+                title.deletedAt == nil
+                    && (showsArchived || title.isArchived == false)
+                    && (hidingPrivate == false || title.isPrivate == false)
+                    && (hasLibrary == false || (title.library?.id ?? noID) == libraryTarget)
+            }
+        }
 
         return #Predicate<Title> { title in
             title.deletedAt == nil
                 && (showsArchived || title.isArchived == false)
                 && (hidingPrivate == false || title.isPrivate == false)
+                && (hasLibrary == false || (title.library?.id ?? noID) == libraryTarget)
                 && title.searchText.contains(search)
-                && (hasCollection == false || (title.collection?.id ?? noID) == collectionTarget)
         }
     }
 
-    /// Ce que le prédicat ne prend pas en charge : genre, personne, durée, note.
+    /// Ce que le prédicat ne prend pas en charge : collection, genre, personne,
+    /// durée, note.
     ///
     /// Un titre sans durée (ou sans note) est exclu dès qu'une borne est posée,
     /// et gardé quand il n'y en a aucune.
     func matches(_ title: Title) -> Bool {
-        matchesGenre(title) && matchesPeople(title) && matchesRuntime(title)
-            && matchesRating(title)
+        matchesCollection(title) && matchesGenre(title) && matchesPeople(title)
+            && matchesRuntime(title) && matchesRating(title)
+    }
+
+    /// Filtré ici et non dans le prédicat : la bibliothèque a pris la seule
+    /// place disponible pour une traversée de relation optionnelle (voir
+    /// `predicate(hidingPrivate:libraryID:)`). Une collection demandée exclut
+    /// les titres qui n'en portent aucune.
+    private func matchesCollection(_ title: Title) -> Bool {
+        guard let collectionID else { return true }
+        return title.collection?.id == collectionID
     }
 
     private func matchesPeople(_ title: Title) -> Bool {

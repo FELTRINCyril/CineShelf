@@ -128,6 +128,20 @@ def write_token_list(primitives: list[str], semantics: list[str]) -> None:
             f'        case "{name}": Color.{accessor_name(name)}' for name in names
         )
 
+    def swift_sources(names: list[str]) -> str:
+        """Le seul endroit ou la chaine d'un token apparait, une fois."""
+        return "\n".join(
+            f'    static var {accessor_name(name)}: Color {{ color(for: "{name}") }}'
+            for name in names
+        )
+
+    def swift_delegates(names: list[str]) -> str:
+        return "\n".join(
+            f"    public static var {accessor_name(name)}: Color "
+            f"{{ ColorTokens.{accessor_name(name)} }}"
+            for name in names
+        )
+
     GENERATED.write_text(
         f'''// Fichier genere par scripts/generate-colors.py — ne pas editer a la main.
 // Source de verite : Resources/colors.tokens.json
@@ -163,9 +177,8 @@ public enum ColorTokens {{
 
     /// L'accesseur type correspondant a un jeu semantique.
     ///
-    /// Ce `switch` est ce qui relie la source de verite JSON aux accesseurs
-    /// ecrits a la main dans Colors.swift : ajouter un jeu semantique au JSON
-    /// sans lui ecrire son accesseur casse la compilation, pas seulement un test.
+    /// Ce `switch` relie la source de verite JSON aux accesseurs publics :
+    /// il traverse `extension Color`, donc il en verifie le cablage.
     public static func typedAccessor(for token: String) -> Color? {{
         switch token {{
 {swift_switch(semantics)}
@@ -174,6 +187,44 @@ public enum ColorTokens {{
     }}
 
     // swiftlint:enable cyclomatic_complexity
+}}
+
+// MARK: - Source unique des jeux semantiques
+//
+// La chaine d'un token n'apparait qu'ici, une seule fois. Les deux extensions
+// publiques ci-dessous s'y referent : c'est ce qui rend impossible la faute de
+// frappe qui existait quand les 23 tokens etaient ecrits a la main deux fois.
+
+extension ColorTokens {{
+{swift_sources(semantics)}
+}}
+
+// MARK: - Acces typé aux jeux semantiques
+//
+// Niveau 2 uniquement : aucune vue ne reference une primitive (Graphite/900…),
+// et aucune couleur litterale n'existe hors du package.
+// Clair / sombre / contraste eleve sont resolus par les apparences du catalogue,
+// jamais par du code conditionnel.
+//
+// Deux extensions, parce que les deux chemins d'appel existent et doivent tous
+// deux rester ergonomiques :
+//
+//   - `extension ShapeStyle where Self == Color` sert `.background(.bgCanvas)`,
+//     `.foregroundStyle(.textPrimary)` — la forme implicite, celle que les vues
+//     ecrivent le plus ;
+//   - `extension Color` sert la ou le contexte n'infere pas un `ShapeStyle` :
+//     `Color` stocke dans un modele, `.tint(Color)`, interpolations.
+//
+// Swift prefere le membre du type concret au membre d'extension de protocole :
+// `Color.bgCanvas` atteint donc toujours la seconde, et seule la forme implicite
+// atteint la premiere. C'est pour ca que ColorAssetTests les couvre separement.
+
+extension ShapeStyle where Self == Color {{
+{swift_delegates(semantics)}
+}}
+
+extension Color {{
+{swift_delegates(semantics)}
 }}
 '''
     )

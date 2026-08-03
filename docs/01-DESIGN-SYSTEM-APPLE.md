@@ -72,7 +72,7 @@ Implémentation : `ScrollView(.horizontal)` + `.scrollPosition` (ou `onScrollGeo
 | Rôle | Famille | Justification |
 |---|---|---|
 | UI + corps | **SF Pro** (système) | Dynamic Type, optical sizing, toutes les graisses, zéro octet à embarquer, familier |
-| Display | **Archivo** (embarquée) | Grotesque d'archive, en deux chasses : normale et SemiExpanded. Réservée au hero, aux titres de section et aux libellés de rail. |
+| Display | **Archivo** (embarquée) | Grotesque d'archive, en deux chasses : normale et SemiExpanded. Réservée au hero, aux **titres de contenu**, aux titres de section et aux libellés de rail. |
 | Données | **SF Mono** (système) | Années, durées, notes, compteurs. Ou SF Pro + `.monospacedDigit()` — souvent suffisant et plus léger visuellement. |
 
 On abandonne DM Sans, Lora et IBM Plex Mono. **Une seule police embarquée**, employée avec parcimonie : c'est ce qui rend l'identité perceptible sans casser l'impression native.
@@ -151,29 +151,47 @@ En variante **High Contrast**, remonter `text/secondary` et `text/tertiary` d'un
 
 #### Accès typé
 
+Les accesseurs sont **générés** par `scripts/generate-colors.py` dans
+`ColorTokens.generated.swift`, depuis `colors.tokens.json`. Ils ne s'écrivent pas
+à la main : ils l'ont été, en double, et une faute de frappe y était indétectable
+(voir plus bas).
+
 ```swift
-public extension ShapeStyle where Self == Color {
-    static var bgCanvas: Color        { .ds("bg/canvas") }
-    static var bgSurface: Color       { .ds("bg/surface") }
-    static var bgSurfaceRaised: Color { .ds("bg/surfaceRaised") }
-    static var bgInset: Color         { .ds("bg/inset") }
-    static var bgSelected: Color      { .ds("bg/selected") }
-    static var textPrimary: Color     { .ds("text/primary") }
-    static var textSecondary: Color   { .ds("text/secondary") }
-    static var textTertiary: Color    { .ds("text/tertiary") }
-    static var borderSubtle: Color    { .ds("border/subtle") }
-    static var borderDefault: Color   { .ds("border/default") }
-    static var accentText: Color      { .ds("accent/text") }
-    static var accentSolid: Color     { .ds("accent/solid") }
-    static var accentSoft: Color      { .ds("accent/soft") }
-    static var statusDanger: Color    { .ds("status/danger") }
+// Le seul endroit ou la chaine d'un token resout une couleur.
+extension ColorTokens {
+    static var bgCanvas: Color { color(for: "bg/canvas") }
+    static var bgSurface: Color { color(for: "bg/surface") }
+    // … les 23 jeux semantiques
+}
+
+// Sert `.background(.bgCanvas)`, `.foregroundStyle(.textPrimary)` — la forme
+// implicite, celle que les vues ecrivent le plus.
+extension ShapeStyle where Self == Color {
+    public static var bgCanvas: Color { ColorTokens.bgCanvas }
     // …
 }
 
-private extension Color {
-    static func ds(_ name: String) -> Color { Color(name, bundle: .designSystem) }
+// Sert la ou le contexte n'infere pas un ShapeStyle : `Color` stocke dans un
+// modele, `.tint(Color)`, interpolations.
+extension Color {
+    public static var bgCanvas: Color { ColorTokens.bgCanvas }
+    // …
 }
 ```
+
+**Pourquoi deux extensions, et pourquoi la génération.** Swift préfère le membre
+du type concret au membre d'extension de protocole : `Color.bgCanvas` atteint
+toujours `extension Color`, et seule la forme implicite atteint
+`extension ShapeStyle`. Les deux chemins existent donc réellement, et doivent
+tous deux rester ergonomiques.
+
+Quand les deux jeux d'accesseurs étaient écrits à la main — 46 chaînes pour 23
+tokens — le `switch` de `typedAccessor(for:)` n'en traversait qu'un. Une faute de
+frappe dans la version `ShapeStyle` compilait, laissait la liste de tokens juste,
+et faisait rendre du **transparent** à toutes les vues sans qu'un seul test
+bronche. C'est le mode de défaillance de `Color(_:bundle:)`, qui ne signale
+jamais un jeu absent. `ColorAssetTests` couvre maintenant les deux chemins
+séparément, et la sonde est l'alpha.
 
 Une règle SwiftLint interdit `Color(red:green:blue:)` et `Color(hex:)` hors du module DesignSystem.
 
@@ -195,13 +213,45 @@ Chaque rôle est déclaré **relativement à un `Font.TextStyle`**, jamais en ta
 | `dataValue` | `.callout` | 16 | 12 | SF Mono | 400 |
 | `caption` | `.caption` | 12 | 10 | SF Pro | 400 |
 
+#### À quoi chaque rôle en Archivo s'applique
+
+Le tableau ci-dessus donne des tailles, pas des emplois. Les emplois :
+
+| Rôle | S'applique à | Ne s'applique **pas** à |
+|---|---|---|
+| `heroTitle` | le hero d'un écran d'accueil ou de sélection (« Qui regarde ? ») | un titre de fiche |
+| `pageTitle` | un **titre de contenu** : le nom de l'œuvre en tête d'une fiche détail, le titre d'une feuille présentée en pleine page | **`.navigationTitle`** |
+| `sectionTitle` | l'en-tête d'un groupe de contenu dans un `ScrollView` ou un `VStack` maison | l'en-tête d'une `Section` de `Form` ou de `List` |
+| `railLabel` | le libellé d'un rail d'étagère, via `railLabelStyle()` | un en-tête de section de contenu |
+
+**`.navigationTitle` reste en SF Pro, et ce n'est pas un oubli.** Trois raisons :
+
+1. La barre de navigation n'est pas stylable proprement. Se battre contre elle
+   casse l'animation de repli du grand titre sur iOS et le titre de fenêtre sur
+   macOS. Un titre système en SF Pro est le comportement **correct** sur les
+   plateformes Apple, pas un défaut à corriger : c'est ce qui fait qu'une app ne
+   se lit pas comme un design porté depuis le web.
+2. Le titre système n'a pas de taille stable à imiter. Les écrans poussés dans
+   une pile forcent `.navigationBarTitleDisplayMode(.inline)` sur iOS, où le
+   titre se rend à `.headline` ; les écrans racines en compact (« Catalogue »,
+   « Plus ») le laissent en grand titre. Un même rôle typographique ne peut pas
+   couvrir les deux, et le système le fait déjà correctement.
+3. `.navigationTitle` porte aussi le nom de fenêtre, la liste des fenêtres et
+   l'étiquette d'accessibilité. On le garde pour ça, et on met `pageTitle` dans
+   le contenu, sous la barre. Les deux coexistent, ils ne se remplacent pas.
+
+Les en-têtes de `Section` d'un `Form` ou d'une `List` en style natif gardent eux
+aussi leur style plateforme (petit, gris, majuscules sur iOS) : le système les
+réagence seul avec Dynamic Type, et y poser Archivo casserait l'apparence
+attendue d'un écran de réglages.
+
 #### L'axe de chasse ne concerne que les rôles en Archivo
 
 `wdth` est un axe de la police Archivo. Il n'a **aucun sens pour les rôles en SF
 Pro ou SF Mono** — `cardTitle`, `body`, `cardMeta` et les autres n'ont pas de
 chasse à régler, et une largeur ne s'y applique pas.
 
-Trois rôles seulement sont en Archivo à chasse normale (`pageTitle`,
+Quatre rôles seulement sont en Archivo, à chasse normale (`pageTitle`,
 `sectionTitle`) ou élargie (`heroTitle`, `railLabel`).
 
 **Chasse élargie = SemiExpanded, pas Expanded.** L'axe `wdth` d'Archivo a six

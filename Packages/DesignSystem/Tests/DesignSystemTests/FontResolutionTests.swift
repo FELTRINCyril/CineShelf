@@ -37,6 +37,33 @@ func embeddedFontFilesArePresent() {
     }
 }
 
+@Test("L'enregistrement des polices ne remonte aucune erreur")
+func registrationReportsNoError() throws {
+    // Le test ci-dessus vérifie que les fichiers sont là ; celui-ci vérifie que
+    // CoreText les a **acceptés**. Un .ttf tronqué, corrompu ou dans un format
+    // refusé est présent dans le bundle et échoue quand même à s'enregistrer :
+    // sans ce test, le seul symptôme serait une typographie absente à l'écran.
+    DesignSystemFonts.register()
+
+    let report = try #require(
+        DesignSystemFonts.registrationReport,
+        "register() n'a produit aucun compte rendu"
+    )
+
+    #expect(
+        report.missingFiles.isEmpty,
+        "Fichiers de police introuvables : \(report.missingFiles.joined(separator: ", "))"
+    )
+    #expect(
+        report.errors.isEmpty,
+        "CoreText a refusé des polices : \(report.errors.joined(separator: " | "))"
+    )
+    // Sans ce contrôle, un rapport lu trop tôt — CoreText n'ayant pas encore
+    // signalé la fin — passerait pour propre alors qu'il est seulement vide.
+    #expect(report.isComplete, "CoreText n'a pas signalé la fin de l'enregistrement")
+    #expect(report.isClean)
+}
+
 @Test(
     "Chaque police custom se résout sur sa vraie famille",
     arguments: DesignSystemFonts.Face.allCases

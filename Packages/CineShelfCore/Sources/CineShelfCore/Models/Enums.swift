@@ -22,6 +22,28 @@ public enum CreditRole: String, Codable, CaseIterable, Sendable {
     case cast, director, writer, producer, composer, crew
 }
 
+/// La teinte d'un profil, par jeton sémantique du design system.
+///
+/// Typée plutôt que laissée en `String` libre : `accentToken` était une chaîne
+/// que rien ne validait, et la vue qui la résolvait retombait silencieusement
+/// sur l'accent par défaut dès que le jeton n'existait pas. Un jeton invalide
+/// doit être impossible à écrire, pas avalé à la lecture.
+///
+/// Le `rawValue` **est** le nom du jeu de couleurs : c'est ce qui permet à
+/// `CineShelfCore` de rester ignorant du design system (il n'importe ni SwiftUI
+/// ni `DesignSystem`) tout en désignant une couleur réelle.
+///
+/// Deux cas seulement, et `accent/soft` n'en fait volontairement pas partie :
+/// c'est un lavis de fond, à alpha 0,10 en clair et jusqu'à 0,22 en contraste
+/// élevé. Employé en teinte d'app, il rendrait l'accent quasi invisible. Comme
+/// l'énumération est `CaseIterable` et qu'un `Picker` sur `allCases` est
+/// exactement ce que le prompt 18 va construire, l'y laisser aurait livré un
+/// réglage qui casse l'interface.
+public enum ProfileAccent: String, Codable, CaseIterable, Sendable {
+    case solid = "accent/solid"
+    case text = "accent/text"
+}
+
 public enum GenreTarget: String, Codable, CaseIterable, Sendable {
     case title, person, savedLink, collection
 }

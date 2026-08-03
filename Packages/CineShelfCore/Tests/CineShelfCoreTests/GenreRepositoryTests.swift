@@ -53,6 +53,11 @@ struct GenreRepositoryTests {
         let repository = GenreRepository(context: context)
 
         let forTitles = try repository.findOrCreate(name: "Drame", target: .title, in: library)
+        // Sauvegarder **entre** les deux appels, sinon le second juge le premier
+        // en mémoire, côté Swift, et la traduction SQL du prédicat n'est jamais
+        // exercée : le test resterait vert même si `targetRaw` ne discriminait
+        // rien en base.
+        try context.save()
         let forPeople = try repository.findOrCreate(name: "Drame", target: .person, in: library)
         try context.save()
 
@@ -69,6 +74,12 @@ struct GenreRepositoryTests {
 
         let repository = GenreRepository(context: context)
         let main = try repository.findOrCreate(name: "Action", in: library)
+        // Sauvegarder ici est ce qui donne sa valeur au test : c'est la seule
+        // façon d'exercer en SQL la traversée `library?.id` du prédicat de
+        // `find`. Sans ce `save()`, le second appel juge le premier genre en
+        // mémoire, et une traversée qui ne discriminerait rien en base — un
+        // genre fuyant d'une bibliothèque à l'autre — passerait inaperçue.
+        try context.save()
         let other = try repository.findOrCreate(name: "Action", in: sandbox)
         try context.save()
 

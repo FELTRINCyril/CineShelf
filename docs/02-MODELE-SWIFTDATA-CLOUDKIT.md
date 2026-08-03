@@ -118,6 +118,18 @@ public enum CreditRole: String, Codable, CaseIterable, Sendable {
     case cast, director, writer, producer, composer, crew
 }
 
+/// La teinte d'un profil. Le `rawValue` est le nom du jeu de couleurs, ce qui
+/// permet à `CineShelfCore` de désigner une couleur réelle sans importer le
+/// design system.
+///
+/// Deux cas seulement : ce sont les deux seuls jetons d'accent à alpha 1.
+/// `accent/soft` en est volontairement exclu — lavis de fond à alpha 0,10 à
+/// 0,22, il rendrait l'accent invisible en teinte d'app.
+public enum ProfileAccent: String, Codable, CaseIterable, Sendable {
+    case solid = "accent/solid"
+    case text = "accent/text"
+}
+
 public enum GenreTarget: String, Codable, CaseIterable, Sendable {
     case title, person, savedLink, collection
 }
@@ -186,7 +198,9 @@ public final class Profile {
     public var name: String = ""
     public var avatarSymbol: String = "person.crop.circle"   // SF Symbol
     public var avatarEmoji: String?                          // alternative
-    public var accentToken: String = "accent/solid"          // jeton, jamais un hex
+    // Jeton, jamais un hex. Persisté en rawValue, lu et écrit via `accent`
+    // (extension, comme kindRaw/kind ou targetRaw/target).
+    public var accentRaw: String = ProfileAccent.solid.rawValue
     public var isDefault: Bool = false
     public var sortIndex: Int = 0
 
@@ -850,6 +864,29 @@ Le champ `searchText` est dénormalisé et **déjà replié** (sans accents, en 
 ## 7. Migration depuis l'app web
 
 Le web est retiré, donc **une seule passe, un seul sens**.
+
+### Étape 0 — Version du schéma : quand elle gèle
+
+`CineShelfSchemaV1.versionIdentifier` reste à **`1.0.0` pendant tout le
+développement**, et `CineShelfMigrationPlan.stages` reste vide.
+
+Tant que le seul contenu du magasin est le catalogue de démonstration, tout
+changement de modèle est **libre** : pas d'étape de migration à écrire, pas de
+version à incrémenter. Si un changement rend le magasin local illisible, on
+l'efface — il ne contient rien d'irremplaçable.
+
+**Le gel a lieu au prompt 20**, à l'import des vraies données décrit ci-dessous.
+À partir de ce moment, le magasin contient des données que personne ne peut
+recréer, et la règle s'inverse :
+
+- `versionIdentifier` suit désormais toute modification du modèle ;
+- tout changement de modèle exige une étape dans `CineShelfMigrationPlan` ;
+- une migration légère (ajout d'attribut optionnel ou à valeur par défaut) doit
+  être **vérifiée sur une copie du magasin réel** avant d'être committée, pas
+  seulement sur un magasin neuf : un magasin vide s'ouvre toujours.
+
+C'est un **point de contrôle du prompt 20** : geler la version fait partie de la
+tâche d'import, pas d'un ménage ultérieur.
 
 ### Étape 1 — Dump final depuis le serveur Express
 

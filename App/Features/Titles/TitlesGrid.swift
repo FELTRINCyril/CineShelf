@@ -25,6 +25,7 @@ struct TitlesGrid: View {
     init(
         filter: TitleFilter,
         hidingPrivate: Bool,
+        libraryID: UUID?,
         display: CardDisplaySetting,
         onEdit: @escaping (Title) -> Void,
         onCreate: @escaping () -> Void
@@ -34,7 +35,7 @@ struct TitlesGrid: View {
         self.onEdit = onEdit
         self.onCreate = onCreate
         _titles = Query(
-            filter: filter.predicate(hidingPrivate: hidingPrivate),
+            filter: filter.predicate(hidingPrivate: hidingPrivate, libraryID: libraryID),
             sort: filter.descriptors
         )
     }

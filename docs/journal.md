@@ -926,3 +926,66 @@ boutons quand il le faut.
 **Suite**
 
 Prompt 12 — Recherche + Spotlight.
+
+---
+
+## 2026-08-03 (5) — Entitlements par SDK, et le test qui manquait sur les couleurs
+
+Deux changements isolés dans leur propre commit, avant les correctifs de fond :
+tous deux vérifiés, donc autant les sortir du lot pour que la bissection reste
+simple si la suite tourne mal.
+
+**Fait**
+
+`project.yml` : `CODE_SIGN_ENTITLEMENTS` devient
+`CODE_SIGN_ENTITLEMENTS[sdk=macosx*]`. `CineShelf.entitlements` ne contient que
+des clés `com.apple.security.*`, qui n'ont aucun sens sur iOS, et un fichier
+d'entitlements non vide y force une vérification de provisioning que le profil
+gratuit ne satisfait pas. Vérifié sur les binaires : côté iOS plus aucune
+entitlement, côté macOS les quatre attendues.
+
+`ColorAssetTests` : quatre tests de plus, qui échouent si une couleur sémantique
+retombe sur un défaut. Ils comblent un trou réel. Les tests existants
+vérifiaient que les 59 *noms* de `ColorTokens.all` existent dans le catalogue
+compilé ; ils ne vérifiaient pas les chaînes écrites à la main dans les
+accesseurs de `Colors.swift`. Une faute de frappe y compilait, laissait la liste
+de tokens juste, et faisait rendre du transparent à toutes les vues sans qu'un
+seul test bronche.
+
+La sonde est l'alpha : `Color(_:bundle:)` ne signale jamais un jeu absent, mais
+un jeu absent rend transparent (mesuré : `0.0000/0.0000/0.0000 a=0.00`). Le
+second filet compare l'accesseur au jeu résolu par son nom, dans le même
+process donc sous la même apparence — la comparaison ne dépend ni du thème ni du
+contraste élevé.
+
+Et c'est en écrivant ce test qu'un défaut de `Colors.swift` est apparu : les 23
+tokens y sont déclarés **deux fois**, une fois sur
+`extension ShapeStyle where Self == Color`, une fois sur `extension Color`. Le
+`switch` de `ColorTokens.generated.swift` n'atteint que la seconde — Swift
+préfère le membre du type concret au membre d'extension de protocole. Or
+`.background(.bgCanvas)`, ce que les vues écrivent, emprunte la première. 46
+chaînes à la main pour 23 tokens, dont 23 que rien ne vérifiait. Le test couvre
+maintenant les deux chemins ; la déduplication elle-même est le sujet du commit
+suivant.
+
+**Vérifications**
+
+Preuve d'échec, en injectant une faute dans les deux accesseurs de `bgCanvas` :
+
+| Contrôle | Résultat |
+|---|---|
+| Faute injectée sur les deux chemins | 4 échecs, les deux tests mordent |
+| `Colors.swift` restauré | identique à `HEAD` |
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| Entitlements du binaire iOS / macOS | aucune / les quatre attendues |
+| Tests `CineShelf` (macOS) | 42 tests |
+| Tests `DesignSystemCatalog` | 24 tests (20 avant) |
+| `swift test` Core / DesignSystem / MediaKit | 79 / 23 / 38 |
+| `swiftlint --strict` | 0 violation |
+| `swift-format lint` | 0 avertissement |
+
+**Suite**
+
+Les correctifs arbitrés : la clause de recherche de `TitleFilter` (la grille est
+vide en permanence), l'audit des tests de `#Predicate`, la déduplication de
+`Colors.swift`.

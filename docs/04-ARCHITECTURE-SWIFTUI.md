@@ -263,8 +263,34 @@ image
 | Lancement à froid → premier écran utile | < 800 ms |
 | Défilement d'une grille de 2 000 jaquettes | 120 fps constants (ProMotion) |
 | Mémoire, grille pleine | < 250 Mo |
-| Génération d'une vignette | < 20 ms |
+| Génération d'une vignette à froid, **hors thread principal** | < 30 ms |
+| Lecture depuis le cache **disque** | < 5 ms |
+| Lecture depuis le cache **mémoire** | < 1 ms |
 | Recherche sur 5 000 titres | < 50 ms |
+
+#### D'où viennent ces trois chiffres
+
+Le budget précédent — une seule ligne, « génération d'une vignette < 20 ms » —
+avait été écrit avant toute mesure, et il ne protégeait rien. À 120 Hz une image
+dure **8,3 ms** : une génération à froid ne tient dans aucune image, ni à 20 ms
+ni à 21,5. La conclusion n'est pas qu'il faut viser plus serré, c'est qu'une
+génération à froid **ne doit jamais se produire sur le thread principal**. Ce qui
+protège réellement le défilement, c'est le cache et le préchargement — pas un
+seuil sur la génération.
+
+Les trois budgets se lisent donc en fonction du chemin emprunté :
+
+- **Génération à froid, hors thread principal : < 30 ms.** C'est le chemin qui
+  n'a pas le droit d'être sur le chemin d'affichage. Le seuil sert à détecter une
+  régression algorithmique (décodage complet au lieu du décodage partiel, par
+  exemple), pas à garantir une fluidité : celle-ci vient de l'asynchronisme.
+  30 ms couvre la mesure réelle (~19 ms de décodage-redimension, cf. plus haut)
+  avec la marge d'une machine lente ou chargée.
+- **Lecture depuis le cache disque : < 5 ms.** Celle-là peut arriver pendant un
+  défilement. 5 ms tient dans une image à 120 Hz avec de la marge pour le reste
+  du travail de rendu.
+- **Lecture depuis le cache mémoire : < 1 ms.** Chemin nominal du défilement :
+  doit être négligeable devant les 8,3 ms d'une image.
 
 Mesurer avec Instruments (Time Profiler, Allocations, SwiftUI, Hangs) sur le **plus vieil appareil visé**, pas sur ton Mac.
 

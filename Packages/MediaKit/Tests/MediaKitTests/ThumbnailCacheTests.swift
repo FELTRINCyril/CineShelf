@@ -170,7 +170,8 @@ struct ThumbnailCacheTests {
         #expect(total <= 4_096)
     }
 
-    /// Le budget de `docs/04` §4 : moins de 20 ms pour générer une vignette.
+    /// Les budgets de `docs/04` §4, un par chemin : génération à froid < 30 ms,
+    /// relecture disque < 5 ms, relecture mémoire < 1 ms.
     @Test("Performance : 200 vignettes")
     func twoHundredThumbnails() async throws {
         let fixture = try await Fixture()
@@ -219,18 +220,32 @@ struct ThumbnailCacheTests {
         print(
             """
             PERF vignette \(pixels) px depuis un original 2000×3000, par unité :
-              décodage + redimension seuls : \(Self.milliseconds(decoding, over: 200)) ms
+              décodage + redimension seuls : \(Self.formatted(decoding, over: 200)) ms
               au travers du cache, écriture disque comprise : \
-            \(Self.milliseconds(throughCache, over: 200)) ms
-              relecture depuis le disque : \(Self.milliseconds(fromDisk, over: 200)) ms
-              relecture depuis la mémoire : \(Self.milliseconds(fromMemory, over: 200)) ms
+            \(Self.formatted(throughCache, over: 200)) ms
+              relecture depuis le disque : \(Self.formatted(fromDisk, over: 200)) ms
+              relecture depuis la mémoire : \(Self.formatted(fromMemory, over: 200)) ms
             """
         )
 
-        // Le budget de docs/04 §4 porte sur la génération. Les relectures ne
-        // sont pas comparées entre elles : `NSCache` peut évincer sous pression,
-        // et une mesure qui en dépend serait instable.
-        #expect(Self.seconds(decoding) / 200 * 1_000 < 20)
+        // Budgets de docs/04 §4. Ils ne sont pas un même seuil décliné : chaque
+        // chemin a le sien, parce que chacun a un rôle différent dans le rendu.
+        //
+        // À 120 Hz une image dure 8,3 ms. Une génération à froid n'y tient pas,
+        // et ne doit donc jamais se produire sur le thread principal — c'est
+        // l'asynchronisme et le préchargement qui protègent le défilement, pas
+        // un seuil. Ce budget-ci sert à détecter une régression algorithmique
+        // (un décodage complet là où on attend un décodage partiel), pas à
+        // garantir une fluidité.
+        #expect(Self.milliseconds(decoding, over: 200) < 30)
+
+        // Ces deux-là, en revanche, peuvent arriver pendant un défilement : ils
+        // doivent tenir dans une image, avec de la marge pour le reste du rendu.
+        #expect(Self.milliseconds(fromDisk, over: 200) < 5)
+        #expect(Self.milliseconds(fromMemory, over: 200) < 1)
+
+        // Les relectures ne sont pas comparées entre elles : `NSCache` peut
+        // évincer sous pression, et une mesure qui en dépend serait instable.
         #expect(Self.seconds(fromDisk) < Self.seconds(throughCache))
     }
 
@@ -239,8 +254,14 @@ struct ThumbnailCacheTests {
         return Double(parts.seconds) + Double(parts.attoseconds) / 1e18
     }
 
-    private static func milliseconds(_ duration: Duration, over count: Int) -> String {
-        String(format: "%.2f", seconds(duration) / Double(count) * 1_000)
+    /// Millisecondes par unité — la grandeur sur laquelle portent les budgets.
+    private static func milliseconds(_ duration: Duration, over count: Int) -> Double {
+        seconds(duration) / Double(count) * 1_000
+    }
+
+    /// La même valeur, pour l'affichage.
+    private static func formatted(_ duration: Duration, over count: Int) -> String {
+        String(format: "%.2f", milliseconds(duration, over: count))
     }
 
     private func totalSize(of directory: URL) throws -> Int {

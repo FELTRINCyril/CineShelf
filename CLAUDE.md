@@ -47,7 +47,19 @@ xcodebuild test -scheme CineShelfUITests -destination 'platform=iOS Simulator,na
 for p in CineShelfCore DesignSystem MediaKit; do (cd "Packages/$p" && swift test); done
 
 swiftlint --strict
-swift-format lint --recursive App Packages Tests
+swift-format lint --recursive App Catalog Packages Tests
+```
+
+Catalogue du design system — c'est aussi le seul endroit où les tests d'assets
+et de rendu tournent avec un `Colors.xcassets` compilé (`swift test` ne lance pas
+`actool`) :
+
+```bash
+xcodebuild -scheme DesignSystemCatalog -destination 'platform=macOS' build
+xcodebuild test -scheme DesignSystemCatalog -destination 'platform=macOS'
+open ~/Library/Developer/Xcode/DerivedData/CineShelf-*/Build/Products/Debug/DesignSystemCatalog.app
+
+python3 scripts/generate-colors.py   # après toute modif de colors.tokens.json
 ```
 
 ## Déroulé attendu de chaque tâche

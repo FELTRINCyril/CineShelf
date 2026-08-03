@@ -72,10 +72,14 @@ Implémentation : `ScrollView(.horizontal)` + `.scrollPosition` (ou `onScrollGeo
 | Rôle | Famille | Justification |
 |---|---|---|
 | UI + corps | **SF Pro** (système) | Dynamic Type, optical sizing, toutes les graisses, zéro octet à embarquer, familier |
-| Display | **Archivo Variable** (embarquée) | Grotesque d'archive, axe de chasse `wdth`. Réservée au hero, aux titres de section et aux libellés de rail. |
+| Display | **Archivo** (embarquée) | Grotesque d'archive, en deux chasses : normale et SemiExpanded. Réservée au hero, aux titres de section et aux libellés de rail. |
 | Données | **SF Mono** (système) | Années, durées, notes, compteurs. Ou SF Pro + `.monospacedDigit()` — souvent suffisant et plus léger visuellement. |
 
 On abandonne DM Sans, Lora et IBM Plex Mono. **Une seule police embarquée**, employée avec parcimonie : c'est ce qui rend l'identité perceptible sans casser l'impression native.
+
+Embarquée en fichiers **statiques**, pas en police variable : `Font.custom`
+n'expose aucun axe de variation, et y accéder par `CTFont` ferait perdre Dynamic
+Type. Détail des chasses et des noms PostScript en §B.2.
 
 ---
 
@@ -179,10 +183,10 @@ Chaque rôle est déclaré **relativement à un `Font.TextStyle`**, jamais en ta
 
 | Rôle | TextStyle | Base iOS | Base macOS | Police | Graisse |
 |---|---|---:|---:|---|---|
-| `heroTitle` | `.largeTitle` | 34 | 26 | Archivo (`wdth` 112) | 800 |
+| `heroTitle` | `.largeTitle` | 34 | 26 | Archivo SemiExpanded | 800 |
 | `pageTitle` | `.title` | 28 | 22 | Archivo | 700 |
 | `sectionTitle` | `.title3` | 20 | 15 | Archivo | 600 |
-| `railLabel` | `.caption` | 12 | 10 | Archivo (`wdth` 112), majuscules, `tracking` 0.08em | 600 |
+| `railLabel` | `.caption` | 12 | 10 | Archivo SemiExpanded, majuscules, `tracking` 0.08em | 600 |
 | `cardTitle` | `.subheadline` | 15 | 11 | SF Pro | 500 |
 | `cardMeta` | `.caption2` | 11 | 10 | SF Mono | 400 |
 | `body` | `.body` | 17 | 13 | SF Pro | 400 |
@@ -191,13 +195,36 @@ Chaque rôle est déclaré **relativement à un `Font.TextStyle`**, jamais en ta
 | `dataValue` | `.callout` | 16 | 12 | SF Mono | 400 |
 | `caption` | `.caption` | 12 | 10 | SF Pro | 400 |
 
+#### L'axe de chasse ne concerne que les rôles en Archivo
+
+`wdth` est un axe de la police Archivo. Il n'a **aucun sens pour les rôles en SF
+Pro ou SF Mono** — `cardTitle`, `body`, `cardMeta` et les autres n'ont pas de
+chasse à régler, et une largeur ne s'y applique pas.
+
+Trois rôles seulement sont en Archivo à chasse normale (`pageTitle`,
+`sectionTitle`) ou élargie (`heroTitle`, `railLabel`).
+
+**Chasse élargie = SemiExpanded, pas Expanded.** L'axe `wdth` d'Archivo a six
+crans : 62, 75, 87,5, 100, **112,5**, 125. La valeur 112 visée pour `heroTitle`
+et `railLabel` est donc le cran 112,5, dont le nom de famille est **« Archivo
+SemiExpanded »**. « Archivo Expanded » est le cran 125 — nettement plus large que
+l'intention.
+
+`Font.custom` n'adresse une police que par son nom PostScript et n'expose aucun
+axe de variation : les deux chasses sont embarquées comme **deux familles
+statiques distinctes**, et non comme un réglage de la police variable. Passer par
+`CTFont` pour régler l'axe ferait perdre `relativeTo:`, donc Dynamic Type.
+
 ```swift
 public enum Typo {
-    public static let heroTitle    = Font.custom("Archivo", size: 34, relativeTo: .largeTitle).weight(.heavy)
-    public static let pageTitle    = Font.custom("Archivo", size: 28, relativeTo: .title).weight(.bold)
-    public static let sectionTitle = Font.custom("Archivo", size: 20, relativeTo: .title3).weight(.semibold)
-    public static let railLabel    = Font.custom("Archivo", size: 12, relativeTo: .caption).weight(.semibold)
+    // Noms PostScript réels, relevés sur les fichiers embarqués —
+    // « Archivo » tout court n'en est pas un.
+    public static let heroTitle    = Font.custom("ArchivoSemiExpanded-ExtraBold", size: 34, relativeTo: .largeTitle)
+    public static let pageTitle    = Font.custom("Archivo-Bold", size: 28, relativeTo: .title)
+    public static let sectionTitle = Font.custom("Archivo-SemiBold", size: 20, relativeTo: .title3)
+    public static let railLabel    = Font.custom("ArchivoSemiExpanded-SemiBold", size: 12, relativeTo: .caption)
 
+    // SF Pro et SF Mono : ni police custom, ni chasse.
     public static let cardTitle    = Font.subheadline.weight(.medium)
     public static let body         = Font.body
     public static let fieldLabel   = Font.footnote.weight(.medium)

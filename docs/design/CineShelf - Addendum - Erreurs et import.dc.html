@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Archivo+Narrow:wght@400;500;600;700&family=Bebas+Neue&family=Public+Sans:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: oklch(0.125 0 0); }
+  a { color: oklch(0.84 0.14 66); text-decoration: none; }
+  a:hover { color: oklch(0.92 0.1 66); }
+</style>
+</helmet>
+
+<section style="display:flex;flex-direction:column;gap:52px;padding:64px;font-family:'Public Sans',system-ui,sans-serif;color:oklch(0.95 0 0)">
+
+  <div style="display:flex;flex-direction:column;gap:14px;max-width:1060px">
+    <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+      <span style="font:500 12px/1 'IBM Plex Mono',monospace;letter-spacing:0.2em;padding:6px 10px;background:oklch(0.84 0.14 66);color:oklch(0.11 0 0)">ADDENDUM</span>
+      <h1 style="margin:0;font:600 40px/1.05 Archivo,sans-serif;letter-spacing:-0.02em">Erreurs de champ et récupération à l'import</h1>
+    </div>
+    <p style="margin:0;font:300 16px/1.6 'Public Sans',sans-serif;color:oklch(0.72 0 0);text-wrap:pretty">Deux points ouverts de la section 10 du handoff, dessinés. Les huit planches ne sont pas touchées. Tous les tokens viennent de la planche 8 ; les quatre valeurs qui manquaient au système sont listées en bas de page, sans qu'aucun token n'ait été inventé pour les remplacer.</p>
+    <p style="margin:0;font:300 14px/1.6 'Public Sans',sans-serif;color:oklch(0.58 0 0)"><a href="#11a">11a</a> anatomie d'un champ en erreur · <a href="#11b">11b</a> les deux densités · <a href="#11c">11c</a> formulaire refusé à la validation · <a href="#11d">11d</a> correspondance des colonnes · <a href="#11e">11e</a> aperçu à forte proportion d'erreurs · <a href="#11f">11f</a> correction en masse · <a href="#11g">11g</a> abandon à mi-parcours · <a href="#11i">11i</a> champ redevenu valide · <a href="#11j">11j</a> fin d'import · <a href="#11h">11h</a> tokens manquants</p>
+  </div>
+
+  <!-- 11a ANATOMIE -->
+  <div id="11a" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">11a</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Anatomie · quatre marques, jamais plus</h2></div>
+    <div style="display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start">
+      <div style="width:520px;background:oklch(0.155 0 0);padding:20px 22px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.68 0.19 25)">Année</span>
+          <div style="height:38px;box-sizing:border-box;background:oklch(0.28 0 0);border:1px solid oklch(0.68 0.19 25);border-radius:2px;display:flex;align-items:center;padding:0 12px;gap:10px">
+            <span style="flex:1;font:400 14px/1 Archivo,sans-serif;color:oklch(0.97 0 0)">20211</span>
+            <span style="width:14px;height:14px;flex:none;background:oklch(0.68 0.19 25);clip-path:polygon(50% 0,100% 100%,0 100%)"></span>
+          </div>
+          <span style="font:400 11px/1.4 'IBM Plex Mono',monospace;color:oklch(0.68 0.19 25)">Année attendue entre 1888 et 2030</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;padding-top:2px">
+          <sc-for list="{{ anatomy }}" as="a" hint-placeholder-count="4">
+            <div style="display:flex;gap:12px;align-items:baseline">
+              <span style="width:16px;flex:none;font:500 11px/1.5 'IBM Plex Mono',monospace;color:oklch(0.84 0.14 66)">{{ a.n }}</span>
+              <span style="font:300 13px/1.5 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">{{ a.body }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="width:520px;background:oklch(0.155 0 0);padding:20px 22px;display:flex;flex-direction:column;gap:9px">
+        <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Les règles qui vont avec</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Le message dit quoi faire, pas ce qui est faux : « Année attendue entre 1888 et 2030 », pas « Année invalide ». Il remplace le texte d'aide s'il y en avait un, il ne s'ajoute pas.</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">L'erreur apparaît à la sortie du champ, jamais pendant la frappe — sauf dépassement de bornes, signalé immédiatement. Elle disparaît dès que la saisie redevient valide, en <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">dur.fast</span>.</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Un champ requis vide n'est pas en erreur tant que l'utilisateur n'a pas tenté de valider : il porte la mention <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">Requis</span> en <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">text.tertiary</span>, et bascule en danger au refus.</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Aucun fond coloré. Le système n'a pas de teinte de remplissage d'état, et je n'en ai pas créé — le champ garde <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">bg.fill</span>.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11b DEUX DENSITES -->
+  <div id="11b" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">11b</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Les quatre cas, dans les deux densités</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">erreur de format, requis vide, hors bornes, valeur refusée par une autre valeur</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Dense · champ 28, espacement 10, message en regard</span>
+        <div data-screen-label="11b — Champs dense" style="width:660px;box-sizing:border-box;background:oklch(0.135 0 0);padding:22px 24px;display:flex;flex-direction:column;gap:16px">
+          <span style="font:400 22px/1 'Bebas Neue',sans-serif;letter-spacing:0.03em;color:oklch(0.97 0 0)">MODIFIER LE TITRE</span>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ fields }}" as="f" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:start">
+                <span style="padding-top:7px;font:600 11px/1.3 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:{{ f.labelColor }};text-align:right">{{ f.label }}</span>
+                <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                  <div style="height:28px;box-sizing:border-box;background:oklch(0.28 0 0);border:1px solid {{ f.borderColor }};border-radius:2px;display:flex;align-items:center;padding:0 10px;gap:8px">
+                    <span style="flex:1;min-width:0;font:400 13px/1 Archivo,sans-serif;color:{{ f.valueColor }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.value }}</span>
+                    <sc-if value="{{ f.bad }}" hint-placeholder-val="{{ false }}">
+                      <span style="width:12px;height:12px;flex:none;background:oklch(0.68 0.19 25);clip-path:polygon(50% 0,100% 100%,0 100%)"></span>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ f.msg }}" hint-placeholder-val="{{ true }}">
+                    <span style="font:400 10px/1.4 'IBM Plex Mono',monospace;color:{{ f.msgColor }}">{{ f.msg }}</span>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:2px">
+            <span style="padding:8px 14px;background:oklch(1 0 0 / 0.1);color:oklch(0.92 0 0);font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Annuler</span>
+            <span style="padding:8px 14px;background:oklch(0.99 0 0);color:oklch(0.12 0 0);font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Enregistrer</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Ample · champ 38, espacement 20, libellé au-dessus</span>
+        <div data-screen-label="11b — Champs ample" style="width:460px;box-sizing:border-box;background:oklch(0.13 0 0);padding:26px 26px 24px;display:flex;flex-direction:column;gap:22px">
+          <span style="font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.03em;color:oklch(0.97 0 0)">MODIFIER LE TITRE</span>
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <sc-for list="{{ fields }}" as="f" hint-placeholder-count="6">
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:{{ f.labelColor }}">{{ f.label }}</span>
+                <div style="height:38px;box-sizing:border-box;background:oklch(0.28 0 0);border:1px solid {{ f.borderColor }};border-radius:2px;display:flex;align-items:center;padding:0 12px;gap:10px">
+                  <span style="flex:1;min-width:0;font:400 14px/1 Archivo,sans-serif;color:{{ f.valueColor }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.value }}</span>
+                  <sc-if value="{{ f.bad }}" hint-placeholder-val="{{ false }}">
+                    <span style="width:14px;height:14px;flex:none;background:oklch(0.68 0.19 25);clip-path:polygon(50% 0,100% 100%,0 100%)"></span>
+                  </sc-if>
+                </div>
+                <sc-if value="{{ f.msg }}" hint-placeholder-val="{{ true }}">
+                  <span style="font:400 11px/1.45 'IBM Plex Mono',monospace;color:{{ f.msgColor }}">{{ f.msg }}</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:10px;padding-top:2px">
+            <span style="flex:1;height:44px;background:oklch(0.99 0 0);color:oklch(0.12 0 0);font:600 12px/44px 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase;text-align:center">Enregistrer</span>
+            <span style="flex:none;padding:0 20px;height:44px;background:oklch(1 0 0 / 0.1);color:oklch(0.92 0 0);font:400 12px/44px 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Annuler</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11c FORMULAIRE REFUSE -->
+  <div id="11c" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">11c</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Refus à la validation · plusieurs champs invalides</h2></div>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Dense · l'utilisateur a appuyé sur Enregistrer</span>
+        <div data-screen-label="11c — Formulaire refusé" style="width:660px;box-sizing:border-box;background:oklch(0.135 0 0);padding:22px 24px;display:flex;flex-direction:column;gap:16px">
+          <span style="font:400 22px/1 'Bebas Neue',sans-serif;letter-spacing:0.03em;color:oklch(0.97 0 0)">MODIFIER LE TITRE</span>
+          <div style="background:oklch(0.185 0 0);border-left:2px solid oklch(0.68 0.19 25);padding:12px 14px;display:flex;flex-direction:column;gap:7px">
+            <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.68 0.19 25)">3 champs à corriger avant d'enregistrer</span>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <sc-for list="{{ refused }}" as="r" hint-placeholder-count="3">
+                <span style="padding:5px 9px;background:oklch(0.28 0 0);border:1px solid oklch(0.68 0.19 25 / 0.55);border-radius:2px;font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.9 0 0)">{{ r }}</span>
+              </sc-for>
+            </div>
+            <span style="font:400 10px/1.4 'IBM Plex Mono',monospace;color:oklch(0.6 0 0)">Chaque nom est un lien : il place le curseur dans le champ. Le premier a déjà le focus.</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ refusedFields }}" as="f" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:start">
+                <span style="padding-top:7px;font:600 11px/1.3 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:{{ f.labelColor }};text-align:right">{{ f.label }}</span>
+                <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                  <div style="height:28px;box-sizing:border-box;background:oklch(0.28 0 0);border:1px solid {{ f.borderColor }};border-radius:2px;outline:{{ f.focus }};outline-offset:2px;display:flex;align-items:center;padding:0 10px;gap:8px">
+                    <span style="flex:1;min-width:0;font:400 13px/1 Archivo,sans-serif;color:{{ f.valueColor }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.value }}</span>
+                    <sc-if value="{{ f.bad }}" hint-placeholder-val="{{ false }}">
+                      <span style="width:12px;height:12px;flex:none;background:oklch(0.68 0.19 25);clip-path:polygon(50% 0,100% 100%,0 100%)"></span>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ f.msg }}" hint-placeholder-val="{{ true }}">
+                    <span style="font:400 10px/1.4 'IBM Plex Mono',monospace;color:{{ f.msgColor }}">{{ f.msg }}</span>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;padding-top:2px">
+            <span style="margin-right:auto;font:400 10px/1.4 'IBM Plex Mono',monospace;color:oklch(0.58 0 0)">Rien n'a été perdu · la saisie reste telle quelle</span>
+            <span style="padding:8px 14px;background:oklch(1 0 0 / 0.1);color:oklch(0.92 0 0);font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Annuler</span>
+            <span style="padding:8px 14px;background:oklch(0.28 0 0);color:oklch(0.6 0 0);font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Enregistrer</span>
+          </div>
+        </div>
+      </div>
+      <div style="width:460px;background:oklch(0.155 0 0);padding:20px 22px;display:flex;flex-direction:column;gap:9px">
+        <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Ce que le refus fait, et ne fait pas</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Il ne ferme rien, ne perd rien, ne remet aucune valeur à zéro. Le bouton Enregistrer devient inerte — même géométrie, <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">bg.fill</span> à la place du blanc et <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">text.tertiary</span> à la place du noir — jusqu'à ce que le dernier champ soit corrigé.</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Le récapitulatif se pose en haut du formulaire, pas en notification : il fait partie du contenu, il défile avec lui. Il disparaît quand il ne reste plus rien à corriger.</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Le trait de 2 px à gauche du récapitulatif est le seul endroit du système où un trait dépasse <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">stroke.hairline</span>. Je le signale ; à défaut, un aplat <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">bg.surface</span> sans trait ferait le même travail avec un signal plus faible.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11d CORRESPONDANCE COLONNES -->
+  <div id="11d" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">11d</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Import · étape 1, la correspondance des colonnes</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">l'écran qui manquait complètement</span></div>
+    <div data-screen-label="11d — Import correspondance" style="position:relative;width:1280px;height:760px;overflow:hidden;background:oklch(0.11 0 0);display:flex;flex-direction:column">
+      <div style="height:44px;flex:none;display:flex;align-items:center;gap:20px;padding:0 26px">
+        <span style="font:400 17px/1 'Bebas Neue',sans-serif;letter-spacing:0.14em;color:oklch(0.84 0.14 66)">CINESHELF</span>
+        <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.96 0 0)">Importer</span>
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.6 0 0)">collection-2019.csv · 1 284 lignes · 14 colonnes</span>
+        <span style="margin-left:auto;font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.72 0 0)">Abandonner</span>
+      </div>
+      <div style="flex:none;display:flex;align-items:center;gap:0;padding:0 26px 16px">
+        <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+          <span style="display:flex;align-items:center;gap:10px;padding-right:16px">
+            <span style="font:500 11px/1 'IBM Plex Mono',monospace;color:{{ s.color }}">{{ s.n }}</span>
+            <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:{{ s.color }}">{{ s.label }}</span>
+            <span style="width:26px;height:1px;background:oklch(0.2 0 0)"></span>
+          </span>
+        </sc-for>
+      </div>
+      <div style="flex:1;min-height:0;display:flex;gap:1px;background:oklch(0.2 0 0)">
+        <div style="flex:1;min-width:0;background:oklch(0.135 0 0);display:flex;flex-direction:column">
+          <div style="display:grid;grid-template-columns:210px 1fr 250px;gap:1px;background:oklch(0.2 0 0);flex:none">
+            <div style="background:oklch(0.11 0 0);padding:10px 14px;font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.6 0 0)">Colonne du fichier</div>
+            <div style="background:oklch(0.11 0 0);padding:10px 14px;font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.6 0 0)">Trois premières valeurs</div>
+            <div style="background:oklch(0.11 0 0);padding:10px 14px;font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.6 0 0)">Champ CineShelf</div>
+          </div>
+          <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:1px;background:oklch(0.2 0 0);overflow:hidden">
+            <sc-for list="{{ mapping }}" as="m" hint-placeholder-count="14">
+              <div style="background:oklch(0.135 0 0);display:grid;grid-template-columns:210px 1fr 250px;gap:1px;align-items:center;height:34px;flex:none">
+                <span style="padding:0 14px;font:500 12px/1 'IBM Plex Mono',monospace;color:oklch(0.92 0 0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.col }}</span>
+                <span style="padding:0 14px;font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.6 0 0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.sample }}</span>
+                <span style="padding:0 14px;display:flex;align-items:center;gap:8px">
+                  <span style="flex:1;min-width:0;height:24px;box-sizing:border-box;background:oklch(0.28 0 0);border:1px solid {{ m.border }};border-radius:2px;display:flex;align-items:center;justify-content:space-between;padding:0 8px">
+                    <span style="font:400 12px/1 'Archivo Narrow',sans-serif;color:{{ m.color }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.field }}</span>
+                    <span style="font:400 9px/1 'IBM Plex Mono',monospace;color:oklch(0.6 0 0)">▾</span>
+                  </span>
+                  <span style="width:44px;flex:none;font:400 9px/1.2 'IBM Plex Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;color:{{ m.tagColor }}">{{ m.tag }}</span>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="width:320px;flex:none;background:oklch(0.135 0 0);padding:18px 20px;display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.9 0 0)">État de la correspondance</span>
+            <sc-for list="{{ mapStats }}" as="s" hint-placeholder-count="4">
+              <div style="display:flex;align-items:baseline;gap:10px">
+                <span style="width:40px;flex:none;font:500 20px/1 'IBM Plex Mono',monospace;color:{{ s.color }}">{{ s.n }}</span>
+                <span style="font:300 12px/1.4 'Public Sans',sans-serif;color:oklch(0.72 0 0)">{{ s.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height:1px;background:oklch(0.2 0 0)"></div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.68 0.19 25)">Trois colonnes non reconnues</span>
+            <span style="font:300 12px/1.5 'Public Sans',sans-serif;color:oklch(0.76 0 0);text-wrap:pretty">Elles ne sont pas une erreur : par défaut elles sont ignorées, et l'import peut avancer sans y toucher. Les affecter est un choix, pas une obligation.</span>
+            <span style="font:300 12px/1.5 'Public Sans',sans-serif;color:oklch(0.76 0 0);text-wrap:pretty">Une colonne non reconnue peut aussi devenir un champ libre : le menu propose « Créer un champ · <span style="font-family:'IBM Plex Mono',monospace;font-size:11px">note perso</span> » en dernière entrée.</span>
+          </div>
+          <div style="height:1px;background:oklch(0.2 0 0)"></div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.9 0 0)">Mémoriser</span>
+            <span style="display:flex;align-items:center;gap:9px;font:400 12px/1.3 'Archivo Narrow',sans-serif;color:oklch(0.88 0 0)"><span style="width:14px;height:14px;flex:none;background:oklch(0.84 0.14 66);border-radius:2px"></span>Réutiliser cette correspondance pour les prochains fichiers de même en-tête</span>
+          </div>
+          <div style="margin-top:auto;display:flex;flex-direction:column;gap:9px">
+            <span style="height:38px;background:oklch(0.99 0 0);color:oklch(0.12 0 0);font:600 12px/38px 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase;text-align:center">Analyser les 1 284 lignes</span>
+            <span style="font:400 10px/1.4 'IBM Plex Mono',monospace;color:oklch(0.58 0 0);text-align:center">Aucune donnée n'est écrite à cette étape</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11e APERCU FORTE PROPORTION D'ERREURS -->
+  <div id="11e" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">11e</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Import · étape 2, un fichier majoritairement en erreur</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">417 lignes sur 1 284, groupées par cause et pas par ligne</span></div>
+    <div data-screen-label="11e — Import aperçu erreurs" style="position:relative;width:1280px;height:760px;overflow:hidden;background:oklch(0.11 0 0);display:flex;flex-direction:column">
+      <div style="height:44px;flex:none;display:flex;align-items:center;gap:20px;padding:0 26px">
+        <span style="font:400 17px/1 'Bebas Neue',sans-serif;letter-spacing:0.14em;color:oklch(0.84 0.14 66)">CINESHELF</span>
+        <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.96 0 0)">Importer · aperçu</span>
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.6 0 0)">collection-2019.csv</span>
+        <span style="margin-left:auto;font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.72 0 0)">Abandonner</span>
+      </div>
+      <div style="flex:none;padding:0 26px 14px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.6 0 0)">1 284 lignes analysées</span>
+          <span style="flex:1;height:6px;background:oklch(0.28 0 0);display:flex;overflow:hidden">
+            <span style="width:60%;background:oklch(0.78 0.15 150)"></span>
+            <span style="width:32.5%;background:oklch(0.68 0.19 25)"></span>
+            <span style="width:7.5%;background:oklch(0.6 0 0)"></span>
+          </span>
+          <span style="font:500 11px/1 'IBM Plex Mono',monospace;color:oklch(0.78 0.15 150)">771 prêtes</span>
+          <span style="font:500 11px/1 'IBM Plex Mono',monospace;color:oklch(0.68 0.19 25)">417 en erreur</span>
+          <span style="font:500 11px/1 'IBM Plex Mono',monospace;color:oklch(0.7 0 0)">96 doublons</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+            <span style="padding:7px 12px;background:{{ f.bg }};border:1px solid {{ f.border }};border-radius:2px;font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase;color:{{ f.color }}">{{ f.label }}</span>
+          </sc-for>
+          <span style="margin-left:auto;font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.6 0 0);align-self:center">Tri : par cause ▾</span>
+        </div>
+      </div>
+      <div style="flex:1;min-height:0;display:flex;gap:1px;background:oklch(0.2 0 0)">
+        <div style="flex:1;min-width:0;background:oklch(0.135 0 0);display:flex;flex-direction:column;overflow:hidden">
+          <div style="display:grid;grid-template-columns:52px 1fr 78px 96px 108px 1fr;gap:1px;background:oklch(0.2 0 0);flex:none">
+            <sc-for list="{{ previewHead }}" as="h" hint-placeholder-count="6">
+              <div style="background:oklch(0.11 0 0);padding:9px 12px;font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.6 0 0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ h }}</div>
+            </sc-for>
+          </div>
+          <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:1px;background:oklch(0.2 0 0);overflow:hidden">
+            <sc-for list="{{ rows }}" as="r" hint-placeholder-count="16">
+              <div style="background:{{ r.bg }};display:grid;grid-template-columns:52px 1fr 78px 96px 108px 1fr;gap:1px;align-items:center;height:28px;flex:none">
+                <span style="padding:0 12px;font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.56 0 0)">{{ r.n }}</span>
+                <span style="padding:0 12px;font:400 12px/1 Archivo,sans-serif;color:oklch(0.92 0 0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.title }}</span>
+                <span style="padding:0 12px;font:500 12px/1 'IBM Plex Mono',monospace;color:{{ r.yearColor }}">{{ r.year }}</span>
+                <span style="padding:0 12px;font:400 11px/1 'Archivo Narrow',sans-serif;color:{{ r.supportColor }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.support }}</span>
+                <span style="padding:0 12px;font:500 12px/1 'IBM Plex Mono',monospace;color:{{ r.durColor }}">{{ r.dur }}</span>
+                <span style="padding:0 12px;display:flex;align-items:center;gap:7px;overflow:hidden">
+                  <sc-if value="{{ r.bad }}" hint-placeholder-val="{{ true }}">
+                    <span style="width:10px;height:10px;flex:none;background:{{ r.markColor }};clip-path:polygon(50% 0,100% 100%,0 100%)"></span>
+                  </sc-if>
+                  <span style="font:400 11px/1 'IBM Plex Mono',monospace;color:{{ r.msgColor }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.msg }}</span>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="width:340px;flex:none;background:oklch(0.135 0 0);padding:18px 20px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.9 0 0)">417 erreurs, six causes</span>
+            <span style="font:300 12px/1.5 'Public Sans',sans-serif;color:oklch(0.66 0 0);text-wrap:pretty">On ne corrige pas 417 lignes, on corrige six causes. Chaque cause a son action de masse.</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:1px;background:oklch(0.2 0 0)">
+            <sc-for list="{{ causes }}" as="c" hint-placeholder-count="6">
+              <div style="background:oklch(0.155 0 0);padding:10px 12px;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:baseline;gap:9px">
+                  <span style="font:500 13px/1 'IBM Plex Mono',monospace;color:oklch(0.68 0.19 25)">{{ c.n }}</span>
+                  <span style="font:400 12px/1.35 'Archivo Narrow',sans-serif;color:oklch(0.92 0 0);flex:1">{{ c.label }}</span>
+                </div>
+                <span style="align-self:flex-start;padding:5px 9px;background:oklch(0.28 0 0);border-radius:2px;font:600 10px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase;color:oklch(0.84 0.14 66)">{{ c.action }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top:auto;display:flex;flex-direction:column;gap:9px">
+            <span style="height:38px;background:oklch(0.99 0 0);color:oklch(0.12 0 0);font:600 12px/38px 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase;text-align:center">Importer les 771 lignes prêtes</span>
+            <span style="height:34px;background:oklch(1 0 0 / 0.1);color:oklch(0.92 0 0);font:400 12px/34px 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase;text-align:center">Tout importer, erreurs en brouillon</span>
+            <span style="font:400 10px/1.45 'IBM Plex Mono',monospace;color:oklch(0.58 0 0);text-align:center">Les lignes en erreur restent dans le fichier de reprise</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11f CORRECTION EN MASSE -->
+  <div id="11f" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">11f</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Correction en masse depuis l'aperçu</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">une cause, une décision, un aperçu de l'effet avant de l'appliquer</span></div>
+    <div data-screen-label="11f — Correction en masse" style="position:relative;width:1280px;height:620px;overflow:hidden;background:oklch(0.11 0 0)">
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:26px;gap:10px;opacity:0.35">
+        <span style="font:400 17px/1 'Bebas Neue',sans-serif;letter-spacing:0.14em;color:oklch(0.84 0.14 66)">CINESHELF</span>
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="12">
+          <div style="height:26px;flex:none;background:oklch(0.16 0 0);display:flex;align-items:center;padding:0 12px;gap:16px">
+            <span style="font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.5 0 0)">{{ r.n }}</span>
+            <span style="font:400 12px/1 Archivo,sans-serif;color:oklch(0.7 0 0)">{{ r.title }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="position:absolute;inset:0;background:oklch(0 0 0 / 0.62)"></div>
+      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:620px;background:oklch(0.24 0 0);border-radius:10px;overflow:hidden;display:flex;flex-direction:column">
+        <div style="padding:20px 24px 0;display:flex;flex-direction:column;gap:7px">
+          <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.68 0.19 25)">Cause · 214 lignes</span>
+          <span style="font:400 30px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em;color:oklch(0.98 0 0)">ANNÉE ABSENTE</span>
+          <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">La colonne <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">year</span> est vide sur 214 lignes. L'année est requise pour créer un titre.</span>
+        </div>
+        <div style="padding:18px 24px;display:flex;flex-direction:column;gap:1px;background:oklch(0.2 0 0);margin:18px 24px 0">
+          <sc-for list="{{ bulkOptions }}" as="o" hint-placeholder-count="4">
+            <div style="background:oklch(0.185 0 0);padding:12px 14px;display:flex;align-items:flex-start;gap:12px">
+              <span style="width:14px;height:14px;flex:none;margin-top:2px;border-radius:50%;background:{{ o.dot }};box-shadow:inset 0 0 0 1px oklch(1 0 0 / 0.3)"></span>
+              <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                <span style="font:600 12px/1.3 'Archivo Narrow',sans-serif;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.95 0 0)">{{ o.label }}</span>
+                <span style="font:300 12px/1.45 'Public Sans',sans-serif;color:oklch(0.7 0 0);text-wrap:pretty">{{ o.body }}</span>
+              </div>
+              <span style="margin-left:auto;flex:none;font:500 11px/1.3 'IBM Plex Mono',monospace;color:{{ o.countColor }};text-align:right">{{ o.count }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin:18px 24px 0;padding:14px 16px;background:oklch(0.185 0 0);display:flex;flex-direction:column;gap:8px">
+          <span style="font:600 10px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.66 0 0)">Aperçu de l'effet · trois premières lignes concernées</span>
+          <sc-for list="{{ bulkPreview }}" as="b" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="width:36px;flex:none;font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.56 0 0)">{{ b.n }}</span>
+              <span style="flex:1;min-width:0;font:400 12px/1 Archivo,sans-serif;color:oklch(0.9 0 0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ b.title }}</span>
+              <span style="width:74px;flex:none;font:500 12px/1 'IBM Plex Mono',monospace;color:oklch(0.68 0.19 25)">{{ b.before }}</span>
+              <span style="width:14px;flex:none;font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.56 0 0)">→</span>
+              <span style="width:74px;flex:none;font:500 12px/1 'IBM Plex Mono',monospace;color:oklch(0.78 0.15 150)">{{ b.after }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="padding:20px 24px 22px;display:flex;align-items:center;gap:10px">
+          <span style="font:400 10px/1.4 'IBM Plex Mono',monospace;color:oklch(0.62 0 0);flex:1">Réversible jusqu'à l'import · chaque correction de masse est annulable une par une</span>
+          <span style="padding:11px 16px;background:oklch(1 0 0 / 0.1);color:oklch(0.92 0 0);font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Annuler</span>
+          <span style="padding:11px 16px;background:oklch(0.99 0 0);color:oklch(0.12 0 0);font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Appliquer aux 214 lignes</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11g ABANDON -->
+  <div id="11g" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">11g</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Abandon à mi-parcours, et reprise</h2></div>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Le dialogue · trois issues, aucune destructrice par défaut</span>
+        <div data-screen-label="11g — Abandon import" style="position:relative;width:620px;height:430px;overflow:hidden;background:oklch(0.11 0 0)">
+          <div style="position:absolute;inset:0;background:oklch(0 0 0 / 0.62)"></div>
+          <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:480px;background:oklch(0.24 0 0);border-radius:10px;padding:24px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <span style="font:400 28px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em;color:oklch(0.98 0 0)">ABANDONNER L'IMPORT ?</span>
+              <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Tu as corrigé 3 causes sur 6. 771 lignes sont prêtes, 203 restent en erreur. Rien n'a encore été écrit dans la bibliothèque.</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <sc-for list="{{ abandon }}" as="a" hint-placeholder-count="3">
+                <div style="background:{{ a.bg }};padding:13px 15px;display:flex;flex-direction:column;gap:4px">
+                  <span style="font:600 12px/1.2 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase;color:{{ a.title }}">{{ a.label }}</span>
+                  <span style="font:300 12px/1.45 'Public Sans',sans-serif;color:{{ a.body }};text-wrap:pretty">{{ a.desc }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <span style="font:400 10px/1.4 'IBM Plex Mono',monospace;color:oklch(0.6 0 0)">Fermer la fenêtre ou quitter l'app équivaut à « Reprendre plus tard ».</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Au retour · le bandeau de reprise, sur l'écran Titres</span>
+        <div data-screen-label="11g — Reprise import" style="position:relative;width:620px;height:430px;overflow:hidden;background:oklch(0.11 0 0);display:flex;flex-direction:column">
+          <div style="height:44px;flex:none;display:flex;align-items:center;gap:18px;padding:0 24px">
+            <span style="font:400 17px/1 'Bebas Neue',sans-serif;letter-spacing:0.14em;color:oklch(0.84 0.14 66)">CINESHELF</span>
+            <span style="font:400 22px/1 'Bebas Neue',sans-serif;letter-spacing:0.03em;color:oklch(0.97 0 0)">TITRES</span>
+            <span style="font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.6 0 0)">2 055</span>
+          </div>
+          <div style="flex:none;margin:0 24px 14px;background:oklch(0.185 0 0);padding:12px 14px;display:flex;align-items:center;gap:14px">
+            <span style="width:12px;height:12px;flex:none;background:oklch(0.84 0.14 66);clip-path:polygon(50% 0,100% 100%,0 100%)"></span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <span style="font:600 11px/1.2 'Archivo Narrow',sans-serif;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.95 0 0)">Import en attente · collection-2019.csv</span>
+              <span style="font:400 10px/1.4 'IBM Plex Mono',monospace;color:oklch(0.66 0 0)">203 lignes en erreur · 3 causes non traitées · abandonné le 02/08 à 21 h 14</span>
+            </div>
+            <span style="flex:none;padding:8px 12px;background:oklch(0.99 0 0);color:oklch(0.12 0 0);font:600 10px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Reprendre</span>
+            <span style="flex:none;padding:8px 12px;background:oklch(1 0 0 / 0.1);color:oklch(0.9 0 0);font:400 10px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Supprimer</span>
+          </div>
+          <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;gap:14px;padding:0 24px;align-content:flex-start;overflow:hidden">
+            <sc-for list="{{ ghosts }}" as="g" hint-placeholder-count="12">
+              <span style="flex:none;width:92px;height:138px;background:oklch(0.16 0 0)"></span>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:520px;background:oklch(0.155 0 0);padding:20px 22px;display:flex;flex-direction:column;gap:9px">
+        <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Ce que garantit le parcours</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Rien n'est écrit dans la bibliothèque avant l'appui final. Les corrections de masse s'appliquent au brouillon d'import, pas aux titres.</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Le brouillon survit à la fermeture de l'app : il contient le fichier, la correspondance des colonnes et les corrections déjà décidées. Le reprendre rouvre l'aperçu exactement où il s'est arrêté.</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Un seul brouillon d'import à la fois. Déposer un nouveau fichier alors qu'un brouillon existe demande lequel garder — ce dialogue n'est pas dessiné ici.</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">« Tout abandonner » est la seule action destructrice de l'écran : elle passe par la confirmation destructive standard de la planche 6, en <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">danger</span>.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11i CHAMP CORRIGE -->
+  <div id="11i" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">11i</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Le champ redevenu valide</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">trois temps, en dur.fast</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start">
+      <div style="display:flex;gap:22px;background:oklch(0.135 0 0);padding:24px 26px">
+        <sc-for list="{{ fixed }}" as="s" hint-placeholder-count="3">
+          <div style="width:280px;display:flex;flex-direction:column;gap:9px">
+            <span style="font:400 10px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">{{ s.step }}</span>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:{{ s.labelColor }}">Année</span>
+              <div style="height:38px;box-sizing:border-box;background:oklch(0.28 0 0);border:1px solid {{ s.borderColor }};border-radius:2px;display:flex;align-items:center;padding:0 12px;gap:10px">
+                <span style="flex:1;font:400 14px/1 Archivo,sans-serif;color:oklch(0.97 0 0)">{{ s.value }}</span>
+                <sc-if value="{{ s.mark }}" hint-placeholder-val="{{ true }}">
+                  <span style="width:14px;height:14px;flex:none;background:{{ s.markColor }};clip-path:{{ s.markShape }}"></span>
+                </sc-if>
+              </div>
+              <sc-if value="{{ s.msg }}" hint-placeholder-val="{{ true }}">
+                <span style="font:400 11px/1.45 'IBM Plex Mono',monospace;color:{{ s.msgColor }}">{{ s.msg }}</span>
+              </sc-if>
+            </div>
+            <span style="font:300 12px/1.5 'Public Sans',sans-serif;color:oklch(0.7 0 0);text-wrap:pretty">{{ s.note }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="width:440px;background:oklch(0.155 0 0);padding:18px 20px;display:flex;flex-direction:column;gap:9px">
+        <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Ce qui disparaît, dans quel ordre</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Le message et le triangle partent ensemble dès que la valeur devient valide. Le libellé et le trait reviennent au neutre en même temps. La coche <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">success</span> reste 1,2 s puis s'efface — elle confirme, elle ne décore pas.</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Dans le récapitulatif de refus (11c), le nom du champ corrigé disparaît de la liste au même instant. Quand la liste est vide, le bandeau s'en va et Enregistrer redevient blanc.</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">La coche est le seul emploi de <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">success</span> dans un formulaire. Un champ valide au repos n'a jamais de marque : l'absence d'erreur est l'état normal, elle ne se signale pas.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11j FIN D'IMPORT -->
+  <div id="11j" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">11j</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Fin d'import · ce qui est passé, ce qui a été écarté</h2></div>
+    <div data-screen-label="11j — Fin d'import" style="position:relative;width:1280px;height:760px;overflow:hidden;background:oklch(0.11 0 0);display:flex;flex-direction:column">
+      <div style="height:44px;flex:none;display:flex;align-items:center;gap:20px;padding:0 26px">
+        <span style="font:400 17px/1 'Bebas Neue',sans-serif;letter-spacing:0.14em;color:oklch(0.84 0.14 66)">CINESHELF</span>
+        <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.96 0 0)">Importer · terminé</span>
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.6 0 0)">collection-2019.csv · 4 min 12 s</span>
+      </div>
+      <div style="flex:1;min-height:0;display:flex;gap:1px;background:oklch(0.2 0 0)">
+        <div style="flex:1;min-width:0;background:oklch(0.135 0 0);padding:30px 34px;display:flex;flex-direction:column;gap:26px">
+          <div style="display:flex;align-items:flex-end;gap:26px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font:400 84px/0.86 'Bebas Neue',sans-serif;letter-spacing:0.01em;color:oklch(0.78 0.15 150)">1 081</span>
+              <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.9 0 0)">titres ajoutés à la bibliothèque</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:4px">
+              <span style="font:400 54px/0.86 'Bebas Neue',sans-serif;letter-spacing:0.01em;color:oklch(0.68 0.19 25)">203</span>
+              <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.78 0 0)">lignes écartées</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:4px">
+              <span style="font:400 54px/0.86 'Bebas Neue',sans-serif;letter-spacing:0.01em;color:oklch(0.7 0 0)">96</span>
+              <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.78 0 0)">doublons fusionnés</span>
+            </div>
+          </div>
+          <div style="height:8px;background:oklch(0.28 0 0);display:flex;overflow:hidden">
+            <span style="width:84.2%;background:oklch(0.78 0.15 150)"></span>
+            <span style="width:15.8%;background:oklch(0.68 0.19 25)"></span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.9 0 0)">Ce qui a été écarté, par cause</span>
+            <div style="display:flex;flex-direction:column;gap:1px;background:oklch(0.2 0 0)">
+              <sc-for list="{{ discarded }}" as="d" hint-placeholder-count="4">
+                <div style="background:oklch(0.155 0 0);padding:12px 14px;display:flex;align-items:center;gap:16px">
+                  <span style="width:46px;flex:none;font:500 15px/1 'IBM Plex Mono',monospace;color:oklch(0.68 0.19 25)">{{ d.n }}</span>
+                  <span style="flex:1;min-width:0;font:400 13px/1.4 Archivo,sans-serif;color:oklch(0.92 0 0)">{{ d.label }}</span>
+                  <span style="flex:none;font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.62 0 0)">{{ d.why }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.9 0 0)">Ce qui a été décidé en masse, et reste annulable</span>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <sc-for list="{{ applied }}" as="a" hint-placeholder-count="3">
+                <span style="padding:8px 12px;background:oklch(0.28 0 0);border-radius:2px;font:400 11px/1.3 'IBM Plex Mono',monospace;color:oklch(0.86 0 0)">{{ a }}</span>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="width:340px;flex:none;background:oklch(0.135 0 0);padding:24px 22px;display:flex;flex-direction:column;gap:14px">
+          <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.9 0 0)">Et maintenant</span>
+          <sc-for list="{{ endActions }}" as="a" hint-placeholder-count="4">
+            <div style="background:{{ a.bg }};padding:13px 15px;display:flex;flex-direction:column;gap:4px">
+              <span style="font:600 12px/1.2 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase;color:{{ a.title }}">{{ a.label }}</span>
+              <span style="font:300 12px/1.45 'Public Sans',sans-serif;color:{{ a.body }};text-wrap:pretty">{{ a.desc }}</span>
+            </div>
+          </sc-for>
+          <span style="margin-top:auto;font:400 10px/1.5 'IBM Plex Mono',monospace;color:oklch(0.58 0 0)">Si l'app était en arrière-plan à la fin de l'import, ce bilan arrive aussi en notification — plan layer.notification, planche 8 bloc 10h.</span>
+        </div>
+      </div>
+    </div>
+    <span style="max-width:1080px;font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.72 0 0);text-wrap:pretty">Le rapport des lignes écartées est un CSV au format du fichier d'origine, avec une colonne <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">cineshelf_erreur</span> ajoutée en fin de ligne. Corrigé dans un tableur, il se redépose tel quel : la correspondance des colonnes est déjà mémorisée, l'import repart directement à l'aperçu.</span>
+  </div>
+
+  <!-- 11h TOKENS MANQUANTS -->
+  <div id="11h" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">11h</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Quatre tokens manquants, aucun inventé</h2></div>
+    <div style="display:flex;flex-direction:column;gap:1px;background:oklch(0.2 0 0);max-width:1280px">
+      <sc-for list="{{ missing }}" as="m" hint-placeholder-count="4">
+        <div style="background:oklch(0.135 0 0);padding:14px 16px;display:grid;grid-template-columns:250px 1fr;gap:20px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <span style="font:600 11px/1.2 'Archivo Narrow',sans-serif;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.68 0.19 25)">{{ m.what }}</span>
+            <span style="font:400 11px/1.4 'IBM Plex Mono',monospace;color:oklch(0.6 0 0)">{{ m.where }}</span>
+          </div>
+          <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">{{ m.body }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin:0;max-width:1080px;font:300 14px/1.6 'Public Sans',sans-serif;color:oklch(0.7 0 0);text-wrap:pretty">Les quatre manques sont des décisions, pas des oublis de ma part : ajouter une teinte d'état, un jaune d'avertissement, un trait d'état ou une piste de progression change le système de couleur de la planche 8. Dis-moi lesquels tu veux, je les ajoute à la planche 8 et je propage ; sinon les contournements ci-dessus tiennent tels quels.</p>
+  </div>
+
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const D = "oklch(0.68 0.19 25)", OK = "oklch(0.4 0 0)", TXT = "oklch(0.97 0 0)",
+      LBL = "oklch(0.72 0 0)", TER = "oklch(0.6 0 0)", DIM = "oklch(0.62 0 0)";
+
+    const anatomy = [
+      { n: "1", body: "Le libellé passe en danger. C'est la marque qu'on voit en balayant un formulaire long." },
+      { n: "2", body: "Le champ prend un trait de 1 px en danger — stroke.hairline, couleur danger. Le système n'a pas de trait d'état ; c'est une combinaison de deux tokens existants, pas un token nouveau." },
+      { n: "3", body: "Un triangle en danger à droite dans le champ, à la place de tout autre accessoire. Dans l'app : exclamationmark.triangle." },
+      { n: "4", body: "Le message sous le champ, en micro, couleur danger. Une ligne, jamais deux." },
+    ];
+
+    const F = (label, value, msg, bad, req) => ({
+      label, value, msg,
+      bad: !!bad,
+      labelColor: bad ? D : LBL,
+      borderColor: bad ? D : "oklch(0.28 0 0)",
+      valueColor: value === "—" ? TER : TXT,
+      msgColor: bad ? D : (req ? TER : TER),
+      focus: "none",
+    });
+
+    const fields = [
+      F("Titre", "Blade Runner 2049", "", false),
+      F("Année", "20211", "Année attendue entre 1888 et 2030", true),
+      F("Durée · minutes", "2h35", "Minutes attendues · 155", true),
+      F("Support", "—", "Requis", false, true),
+      F("Étagère", "B · 14", "", false),
+      F("Note", "★ ★ ★ ★ ☆", "", false),
+    ];
+
+    const refusedFields = [
+      F("Titre", "Blade Runner 2049", "", false),
+      Object.assign(F("Année", "20211", "Année attendue entre 1888 et 2030", true), { focus: "1px solid oklch(0.84 0.14 66)" }),
+      F("Durée · minutes", "2h35", "Minutes attendues · 155", true),
+      F("Support", "—", "Requis pour enregistrer", true),
+      F("Étagère", "B · 14", "", false),
+      F("Note", "★ ★ ★ ★ ☆", "", false),
+    ];
+    const refused = ["Année", "Durée · minutes", "Support"];
+
+    const steps = [
+      { n: "1", label: "Colonnes", color: "oklch(0.84 0.14 66)" },
+      { n: "2", label: "Aperçu", color: TER },
+      { n: "3", label: "Corrections", color: TER },
+      { n: "4", label: "Import", color: TER },
+    ];
+
+    const M = (col, sample, field, tag) => {
+      const ignored = tag === "ignorée";
+      const guessed = tag === "déduite";
+      return {
+        col, sample, field, tag,
+        border: ignored ? "oklch(0.28 0 0)" : "oklch(0.28 0 0)",
+        color: ignored ? TER : "oklch(0.95 0 0)",
+        tagColor: ignored ? D : (guessed ? "oklch(0.84 0.14 66)" : "oklch(0.78 0.15 150)"),
+      };
+    };
+    const mapping = [
+      M("title", "Blade Runner 2049 · Dune · Tenet", "Titre", "sûre"),
+      M("year", "2017 · 2021 · (vide)", "Année", "sûre"),
+      M("runtime_min", "163 · 155 · 2h30", "Durée · minutes", "déduite"),
+      M("media", "BD · DVD · 4K", "Support", "déduite"),
+      M("shelf_ref", "B14 · B15 · A02", "Étagère", "déduite"),
+      M("my_score", "9 · 8 · 7", "Note · sur 10", "déduite"),
+      M("dir", "Villeneuve · Villeneuve · Nolan", "Réalisation", "sûre"),
+      M("cast_1", "Ryan Gosling · Timothée Chalamet", "Distribution", "déduite"),
+      M("genre_raw", "sci-fi/thriller · sci-fi", "Genres", "déduite"),
+      M("bought_at", "Fnac · Amazon · Cultura", "—", "ignorée"),
+      M("price_eur", "24,99 · 19,90 · 34,00", "—", "ignorée"),
+      M("notes_perso", "édition steelbook · prêté à Marc", "—", "ignorée"),
+      M("added", "2019-04-02 · 2021-11-18", "Ajouté le", "sûre"),
+      M("watched_count", "3 · 1 · 0", "Vu · nombre de fois", "déduite"),
+    ];
+    const mapStats = [
+      { n: "5", label: "colonnes reconnues avec certitude", color: "oklch(0.78 0.15 150)" },
+      { n: "6", label: "correspondances déduites du contenu, à vérifier", color: "oklch(0.84 0.14 66)" },
+      { n: "3", label: "colonnes non reconnues, ignorées par défaut", color: D },
+      { n: "0", label: "champ requis sans colonne", color: TER },
+    ];
+
+    const filters = [
+      { label: "Toutes · 1 284", bg: "oklch(0.28 0 0)", border: "oklch(0.28 0 0)", color: "oklch(0.9 0 0)" },
+      { label: "En erreur · 417", bg: "oklch(0.28 0 0)", border: D, color: "oklch(0.95 0 0)" },
+      { label: "Doublons · 96", bg: "oklch(0.28 0 0)", border: "oklch(0.28 0 0)", color: "oklch(0.8 0 0)" },
+      { label: "Prêtes · 771", bg: "oklch(0.28 0 0)", border: "oklch(0.28 0 0)", color: "oklch(0.8 0 0)" },
+    ];
+    const previewHead = ["Ligne", "Titre", "Année", "Support", "Durée", "État"];
+    const R = (n, title, year, support, dur, msg, kind) => {
+      const bad = kind === "err", dup = kind === "dup";
+      return {
+        n, title, year, support, dur, msg,
+        bad: bad || dup,
+        bg: "oklch(0.135 0 0)",
+        markColor: dup ? "oklch(0.7 0 0)" : D,
+        msgColor: bad ? D : (dup ? "oklch(0.78 0 0)" : "oklch(0.78 0.15 150)"),
+        yearColor: (msg + "").indexOf("Ann") === 0 || year === "(vide)" || year === "20211" ? D : "oklch(0.88 0 0)",
+        supportColor: support === "—" ? D : "oklch(0.82 0 0)",
+        durColor: dur === "2h30" || dur === "—" ? D : "oklch(0.88 0 0)",
+      };
+    };
+    const rows = [
+      R("0001", "Blade Runner 2049", "2017", "BD", "163", "Prête", "ok"),
+      R("0002", "Dune", "2021", "4K", "155", "Prête", "ok"),
+      R("0003", "Tenet", "(vide)", "BD", "150", "Année absente", "err"),
+      R("0004", "Interstellar", "2014", "—", "169", "Support inconnu · « bluray25 »", "err"),
+      R("0005", "Oppenheimer", "2023", "4K", "2h30", "Durée non numérique", "err"),
+      R("0006", "Barbie", "2023", "BD", "114", "Prête", "ok"),
+      R("0007", "Nope", "20211", "BD", "130", "Année hors bornes", "err"),
+      R("0008", "Elvis", "2022", "DVD", "159", "Doublon de la ligne 0412", "dup"),
+      R("0009", "Tár", "(vide)", "BD", "158", "Année absente", "err"),
+      R("0010", "Aftersun", "2022", "—", "102", "Support inconnu · vide", "err"),
+      R("0011", "Minari", "2020", "DVD", "115", "Prête", "ok"),
+      R("0012", "Past Lives", "(vide)", "BD", "105", "Année absente", "err"),
+      R("0013", "The Menu", "2022", "BD", "107", "Doublon de la ligne 0788", "dup"),
+      R("0014", "Soul", "2020", "4K", "100", "Prête", "ok"),
+      R("0015", "The Northman", "2022", "BD", "2h17", "Durée non numérique", "err"),
+      R("0016", "First Cow", "(vide)", "DVD", "122", "Année absente", "err"),
+    ];
+    const causes = [
+      { n: "214", label: "Année absente", action: "Corriger en masse" },
+      { n: "96", label: "Doublon d'un titre déjà en bibliothèque", action: "Choisir la règle" },
+      { n: "54", label: "Durée non numérique · format « 2h30 »", action: "Convertir en masse" },
+      { n: "31", label: "Support inconnu · 7 valeurs distinctes", action: "Faire correspondre" },
+      { n: "14", label: "Note sur 10 hors bornes", action: "Ramener aux bornes" },
+      { n: "8", label: "Titre vide", action: "Voir les lignes" },
+    ];
+
+    const bulkOptions = [
+      { label: "Déduire l'année du titre quand elle y figure", body: "« Dune (1984) » → 1984. Ne touche pas les lignes sans indice.", count: "38 lignes", countColor: "oklch(0.78 0.15 150)", dot: "oklch(0.84 0.14 66)" },
+      { label: "Chercher l'année dans la fiche existante", body: "Compare titre et réalisation avec les titres déjà en bibliothèque.", count: "22 lignes", countColor: "oklch(0.78 0.15 150)", dot: "oklch(0.28 0 0)" },
+      { label: "Saisir une année pour toutes", body: "Une seule valeur appliquée aux 214 lignes. À réserver aux fichiers homogènes.", count: "214 lignes", countColor: "oklch(0.8 0 0)", dot: "oklch(0.28 0 0)" },
+      { label: "Importer sans année, en brouillon", body: "Les titres sont créés mais restent en brouillon jusqu'à ce que l'année soit renseignée.", count: "214 lignes", countColor: "oklch(0.8 0 0)", dot: "oklch(0.28 0 0)" },
+    ];
+    const bulkPreview = [
+      { n: "0003", title: "Tenet", before: "(vide)", after: "2020" },
+      { n: "0009", title: "Tár", before: "(vide)", after: "2022" },
+      { n: "0012", title: "Past Lives", before: "(vide)", after: "2023" },
+    ];
+
+    const abandon = [
+      { label: "Reprendre plus tard", desc: "Le brouillon est conservé : fichier, correspondance des colonnes et corrections déjà appliquées. Rien n'entre en bibliothèque.", bg: "oklch(0.99 0 0)", title: "oklch(0.12 0 0)", body: "oklch(0.3 0 0)" },
+      { label: "Importer les 771 lignes prêtes", desc: "Les lignes valides entrent maintenant. Les 203 en erreur restent dans un brouillon reprenable.", bg: "oklch(0.185 0 0)", title: "oklch(0.95 0 0)", body: "oklch(0.72 0 0)" },
+      { label: "Tout abandonner", desc: "Le brouillon, les corrections et la correspondance sont supprimés. Le fichier source n'est pas touché.", bg: "oklch(0.185 0 0)", title: D, body: "oklch(0.7 0 0)" },
+    ];
+    const ghosts = new Array(12).fill(0).map((_, i) => i);
+
+    const missing = [
+      { what: "Teinte de remplissage d'état", where: "champ en erreur, ligne en erreur", body: "Aucun token de fond coloré léger n'existe, et la règle « zéro translucidité sur surface opaque » interdit un danger à 12 %. Contournement retenu : le champ garde bg.fill et la ligne garde bg.surface ; l'état passe par le libellé, le trait et le message. Sur une table de 417 lignes fautives, c'est moins repérable qu'un fond teinté — c'est le prix de la règle." },
+      { what: "Couleur d'avertissement", where: "colonnes non reconnues, correspondances déduites", body: "Le système a danger et success, pas d'intermédiaire. Une colonne non reconnue n'est pas une erreur : elle est traitée en danger dans le compteur (parce qu'elle demande une décision) et en accent quand la correspondance est seulement déduite. Deux usages pour deux tokens qui n'ont pas été faits pour ça. Un token warning réglerait proprement les deux." },
+      { what: "Trait d'état", where: "champ en erreur, récapitulatif de refus", body: "stroke.hairline est défini avec la couleur separator uniquement. J'utilise le même trait en couleur danger, sans créer de token, et un trait de 2 px pour le récapitulatif — seule entorse de l'addendum à l'épaisseur unique du système." },
+      { what: "Piste de progression", where: "barre 771 / 417 / 96 de l'aperçu", body: "Aucun token de piste ni de remplissage. J'utilise bg.fill pour la piste et success, danger, text.tertiary pour les segments. Ça fonctionne, mais toute future barre de progression devra reprendre cette convention sans qu'elle soit écrite dans la planche 8." },
+    ];
+
+    const TRI = "polygon(50% 0,100% 100%,0 100%)";
+    const CHK = "polygon(14% 52%, 38% 76%, 88% 22%, 100% 36%, 40% 96%, 2% 62%)";
+    const fixed = [
+      { step: "1 · en erreur", value: "20211", labelColor: D, borderColor: D, mark: true, markColor: D, markShape: TRI,
+        msg: "Année attendue entre 1888 et 2030", msgColor: D,
+        note: "État de départ : libellé, trait, triangle et message." },
+      { step: "2 · corrigé · 1,2 s", value: "2021", labelColor: LBL, borderColor: "oklch(0.78 0.15 150)", mark: true, markColor: "oklch(0.78 0.15 150)", markShape: CHK,
+        msg: "", msgColor: TER,
+        note: "Message et triangle partis, trait en success, coche brève. Le libellé est déjà revenu au neutre." },
+      { step: "3 · au repos", value: "2021", labelColor: LBL, borderColor: "oklch(0.28 0 0)", mark: false, markColor: "oklch(0.28 0 0)", markShape: TRI,
+        msg: "", msgColor: TER,
+        note: "Aucune marque. Un champ valide ne se signale pas." },
+    ];
+
+    const discarded = [
+      { n: "118", label: "Titre déjà présent avec une édition différente", why: "décision reportée" },
+      { n: "54", label: "Support inconnu après correspondance", why: "7 valeurs non résolues" },
+      { n: "23", label: "Année absente et introuvable", why: "aucun indice" },
+      { n: "8", label: "Titre vide", why: "ligne inexploitable" },
+    ];
+    const applied = [
+      "Année déduite du titre · 38 lignes",
+      "Durée « 2h30 » convertie en minutes · 54 lignes",
+      "Note sur 10 ramenée aux bornes · 14 lignes",
+      "Doublons fusionnés sur titre + réalisation · 96 lignes",
+    ];
+    const endActions = [
+      { label: "Voir les 1 081 titres ajoutés", desc: "Ouvre Titres filtré sur cet import. Le filtre reste disponible 30 jours.", bg: "oklch(0.99 0 0)", title: "oklch(0.12 0 0)", body: "oklch(0.3 0 0)" },
+      { label: "Exporter le rapport des 203 écartées", desc: "CSV au format du fichier d'origine, avec la cause en dernière colonne.", bg: "oklch(0.185 0 0)", title: "oklch(0.95 0 0)", body: "oklch(0.72 0 0)" },
+      { label: "Reprendre les 203 maintenant", desc: "Rouvre l'aperçu sur ces seules lignes, corrections déjà appliquées conservées.", bg: "oklch(0.185 0 0)", title: "oklch(0.95 0 0)", body: "oklch(0.72 0 0)" },
+      { label: "Annuler tout l'import", desc: "Retire les 1 081 titres et rétablit les 96 doublons fusionnés. Disponible tant que l'app n'a pas été quittée.", bg: "oklch(0.185 0 0)", title: D, body: "oklch(0.7 0 0)" },
+    ];
+
+    return { anatomy, fields, refusedFields, refused, steps, mapping, mapStats,
+      filters, previewHead, rows, causes, bulkOptions, bulkPreview, abandon, ghosts, missing,
+      fixed, discarded, applied, endActions };
+  }
+}
+</script>
+</body>
+</html>

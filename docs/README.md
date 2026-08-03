@@ -64,3 +64,28 @@ symboles décrivent l'intention retenue pour chaque fonctionnalité, pas l'avanc
 division par trois vient de la suppression du backend en double, de
 l'authentification, de la fusion acteur/social, et du fait que sync, hors-ligne,
 accessibilité, thèmes et virtualisation sont fournis par la plateforme.
+
+---
+
+## Les livraisons de design s'extraient, elles ne s'ajoutent pas
+
+Le paquet de design vit dans [`design/`](./design/), **en fichiers**, pas en archive.
+
+La première livraison est arrivée en `.zip` et a été extraite le 2026-08-03 ; l'archive
+a été retirée du dépôt. Les suivantes suivent le même chemin, pour trois raisons :
+
+- un binaire ne se **diffe** pas — on ne voit ni ce qui a changé d'une livraison à
+  l'autre, ni ce qu'une correction a touché ;
+- chaque archive resterait dans l'historique **pour toujours**, à 400 Ko pièce ;
+- le `README.md` du paquet **est la spécification** : il doit rester lisible,
+  cherchable, et corrigeable sur place. Il l'a déjà été — voir l'encadré en tête du
+  fichier.
+
+**Ce qui se retire à l'extraction** : les copies de documents que `docs/` porte déjà.
+Le paquet embarquait `03-FONCTIONNALITES-NATIF.md` et `06-BRIEF-DESIGN.md` ; elles
+étaient identiques aux nôtres au moment de la livraison et auraient cessé de l'être au
+premier changement. Une seconde source de vérité ne se surveille pas, elle s'élimine :
+les renvois pointent vers `docs/`.
+
+**Ce qui se corrige sur place** : ce qui contredit le modèle. Les corrections sont
+signalées à l'endroit où elles portent, avec la raison — pas silencieusement.

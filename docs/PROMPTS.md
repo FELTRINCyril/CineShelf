@@ -74,24 +74,28 @@ de découpage sur sa fiche.
 > **Suivi de l'avancement : ce document uniquement.** `docs/03` garde ses symboles (✅ ♻️ 🔀 ⛔ ⏸ ➕) — ils décrivent *l'intention* pour chaque fonctionnalité, pas l'état d'avancement. Ne pas mélanger les deux.
 > À la fin de chaque tâche : cocher sa ligne, ici et dans le tableau des tâches `L`, avec le hash du commit.
 
-> **Le handoff de design est dans le dépôt** — `docs/CineShelf design system-handoff.zip`,
-> direction « 2a Plein cadre ». Ses copies de `03` et `06` sont **identiques** aux nôtres,
-> vérifié : pas de seconde source de vérité pour l'instant, mais elles se figeront le
-> jour où l'un des deux documents bougera. Ne jamais les lire à la place de `docs/`.
+> **Le handoff de design est dans le dépôt, extrait en fichiers** — [`docs/design/`](./design/),
+> direction « 2a Plein cadre ». L'archive `.zip` a été retirée : un binaire ne se diffe
+> pas, chaque livraison en laisserait un dans l'historique pour toujours, et le README du
+> paquet **est la spécification**, donc il doit rester lisible et corrigeable sur place.
+> La règle pour les livraisons suivantes est dans [`docs/README.md`](./README.md).
 >
-> **Deux erreurs à corriger dedans, au même endroit du modèle.** Son §7 « Comportements »
-> écrit « **Contenu privé** : géré au niveau du **profil**, pas du titre. Un titre est
-> privé parce qu'il appartient à un profil verrouillé par Face ID », et son §10 le
-> répète dans les décisions arrêtées (« contenu privé au niveau du profil »). C'est faux
-> dans notre modèle : `isPrivate` est porté **par l'entité**, un `Title` appartient à une
-> `Library` et jamais à un `Profile`, et c'est `Profile.hidesPrivateContent` qui décide
-> de l'**affichage**. La conséquence est concrète — suivre le handoff rendrait un titre
-> privé visible dès qu'un profil permissif est ouvert, et le rendrait indexable dans
-> Spotlight, dont l'index est unique pour l'appareil. Règle et argument dans `docs/04` §6.
+> **Deux corrections y ont été appliquées, signalées à l'endroit où elles portent :**
 >
-> Ce que le handoff dit du **rendu** reste valable : géométrie exacte de l'affiche,
-> aplat `private.mask`, `eye.slash` sur la vignette masquée. C'est le *déclencheur* qui
-> est faux, pas l'apparence.
+> 1. **Le contenu privé, au §7 et au §10.** Le paquet livré écrivait « géré au niveau du
+>    **profil**, pas du titre » — faux dans notre modèle. `isPrivate` est porté par
+>    l'entité, un `Title` appartient à une `Library` et jamais à un `Profile`, et c'est
+>    `Profile.hidesPrivateContent` qui décide de l'**affichage**. Suivre la formulation
+>    d'origine rendrait un titre privé visible dès qu'un profil permissif est ouvert, et
+>    indexable dans Spotlight, dont l'index est unique pour l'appareil — la fuite fermée
+>    par `L3`. Corriger le §7 seul n'aurait pas suffi : le §10 fait autorité, c'est la
+>    liste des décisions arrêtées. Ce que le paquet dit du **rendu** reste valable —
+>    géométrie exacte de l'affiche, aplat `private.mask`, `eye.slash` sur la vignette
+>    masquée. C'est le déclencheur qui était faux, pas l'apparence.
+> 2. **Les copies de `03` et `06` que le paquet embarquait sont retirées**, remplacées
+>    par des renvois vers `docs/`. Elles étaient identiques aux nôtres à la livraison et
+>    auraient cessé de l'être au premier changement : une seconde source de vérité ne se
+>    surveille pas, elle s'élimine.
 
 > **Prochaine passe transverse : la fermeture du schéma, avant `L10`.** La fenêtre de
 > gratuité se referme à `L13`, et un champ manquant découvert après le gel coûte un plan

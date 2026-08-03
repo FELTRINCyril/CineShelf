@@ -105,8 +105,14 @@ public struct MediaThumbnail: View {
     ///
     /// Avec, le calcul reproduit exactement `CropGeometry.sourceRect` : l'image est
     /// posée à sa taille « couvrir », multipliée par le zoom, puis décalée du jeu
-    /// restant au prorata de `focus`. Les deux chemins doivent rester d'accord — c'est
-    /// la même arithmétique, écrite une fois en pixels source et une fois en points.
+    /// restant au prorata de `focus`. C'est la même arithmétique, écrite une fois en
+    /// pixels source et une fois en points.
+    ///
+    /// > **Leur accord est vérifié, pas espéré.**
+    /// > `CropRenderingAgreementTests.bothImplementationsAgree` recopie ces quatre
+    /// > lignes et affirme qu'elles désignent le même morceau d'image que
+    /// > `CropGeometry.sourceRect`, sur un balayage de positions, de zooms et de
+    /// > ratios. Modifier ce corps sans modifier l'autre casse ce test.
     @ViewBuilder
     private func cropped(_ image: Image) -> some View {
         if let sourceAspect = crop.sourceAspect, sourceAspect > 0 {

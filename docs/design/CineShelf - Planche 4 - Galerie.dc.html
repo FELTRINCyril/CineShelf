@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Narrow:wght@400;500;600;700&family=Bebas+Neue&family=Inter+Tight:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=Public+Sans:wght@300;400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: oklch(0.125 0 0); }
+  a { color: oklch(0.8 0.1 72); text-decoration: none; }
+  a:hover { color: oklch(0.9 0.1 72); }
+</style>
+</helmet>
+
+<section style="display:flex;flex-direction:column;gap:18px;padding:64px 64px 0;font-family:'Public Sans',system-ui,sans-serif;color:oklch(0.95 0 0);max-width:1100px">
+  <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+    <span style="font:500 12px/1 'IBM Plex Mono',monospace;letter-spacing:0.2em;padding:6px 10px;background:oklch(0.84 0.14 66);color:oklch(0.11 0 0)">PLANCHE 4 / 8</span>
+    <h1 style="margin:0;font:600 40px/1.05 Archivo,sans-serif;letter-spacing:-0.02em">La galerie et sa matrice de tailles</h1>
+  </div>
+  <p style="margin:0;font:300 16px/1.6 'Public Sans',sans-serif;color:oklch(0.72 0 0);text-wrap:pretty">Étape 4 telle quelle : les six combinaisons de taille et de forme, le comportement en colonnes, la visionneuse, le mode immersif, le recadrage et la sélection multiple.</p>
+  <div style="display:flex;flex-direction:column;gap:12px;padding:22px 24px;background:oklch(0.155 0 0)">
+    <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Ordre de lecture</span>
+    <p style="margin:0;font:300 14px/1.6 'Public Sans',sans-serif;color:oklch(0.76 0 0)"><a href="#6a">6a</a> matrice des six tailles · <a href="#6b">6b</a> colonnes · <a href="#6c">6c</a> visionneuse · <a href="#6d">6d</a> immersif · <a href="#6e">6e</a> recadrage · <a href="#6f">6f</a> sélection multiple.</p>
+  </div>
+</section>
+<section style="display:flex;flex-direction:column;gap:52px;padding:64px;font-family:'Public Sans',system-ui,sans-serif;color:oklch(0.95 0 0)">
+
+  <div style="display:flex;flex-direction:column;gap:14px;max-width:1000px">
+    <div style="font:500 12px/1 'IBM Plex Mono',monospace;letter-spacing:0.24em;text-transform:uppercase;color:oklch(0.62 0 0)">Étape 4 · La galerie en détail</div>
+    <h1 style="margin:0;font:600 44px/1.05 Archivo,sans-serif;letter-spacing:-0.02em">La matrice, la visionneuse, le recadrage</h1>
+    <p style="margin:0;font:300 17px/1.6 'Public Sans',sans-serif;color:oklch(0.72 0 0);text-wrap:pretty">Les six combinaisons <span style="font-family:'IBM Plex Mono',monospace;font-size:14px">layout × size</span> rendues à leur taille réelle, les colonnes du masonry selon la largeur de fenêtre, la visionneuse plein écran, le défilement immersif, l'éditeur de recadrage et la sélection multiple. Le recadrage est le premier endroit où le registre de gestion apparaît : panneau dense, chiffres en chasse fixe, mêmes tokens.</p>
+  </div>
+
+  <!-- 6a MATRICE -->
+  <div id="6a" style="display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:baseline;gap:12px"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">6a</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">La matrice complète · portrait | paysage × compacte | moyenne | grande</h2></div>
+    <p style="margin:0;max-width:1000px;font:300 15px/1.55 'Public Sans',sans-serif;color:oklch(0.66 0 0)">Réglable indépendamment sur les huit contextes : Accueil, Titres, Personnes, Collections, Fiche titre, Fiche collection, Galerie, Ma liste. Rendus ci-dessous à l'échelle 1:1, tels qu'ils apparaîtront.</p>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px 22px;background:oklch(0.11 0 0);padding:26px">
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0"><span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.62 0 0)">portrait · compacte <span style="color:oklch(0.44 0 0)">110 × 165</span></span><div style="display:flex;gap:8px;overflow:hidden"><sc-for list="{{ railA1 }}" as="f" hint-placeholder-count="6"><div style="flex:none;width:110px;height:165px;background:oklch(0.16 0 0);overflow:hidden"><img src="{{ f.u }}" alt="{{ f.t }}" style="width:100%;height:100%;object-fit:cover;display:block"></div></sc-for></div></div>
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0"><span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.62 0 0)">portrait · moyenne <span style="color:oklch(0.44 0 0)">160 × 240</span></span><div style="display:flex;gap:12px;overflow:hidden"><sc-for list="{{ railA2 }}" as="f" hint-placeholder-count="4"><div style="flex:none;width:160px;height:240px;background:oklch(0.16 0 0);overflow:hidden"><img src="{{ f.u }}" alt="{{ f.t }}" style="width:100%;height:100%;object-fit:cover;display:block"></div></sc-for></div></div>
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0"><span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.62 0 0)">portrait · grande <span style="color:oklch(0.44 0 0)">220 × 330</span></span><div style="display:flex;gap:14px;overflow:hidden"><sc-for list="{{ railB1 }}" as="f" hint-placeholder-count="3"><div style="flex:none;width:220px;height:330px;background:oklch(0.16 0 0);overflow:hidden"><img src="{{ f.u }}" alt="{{ f.t }}" style="width:100%;height:100%;object-fit:cover;display:block"></div></sc-for></div></div>
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0"><span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.62 0 0)">paysage · compacte <span style="color:oklch(0.44 0 0)">200 × 112</span></span><div style="display:flex;flex-direction:column;gap:8px;overflow:hidden"><div style="display:flex;gap:8px"><sc-for list="{{ railC1 }}" as="f" hint-placeholder-count="3"><div style="flex:none;width:200px;height:112px;background:oklch(0.16 0 0);overflow:hidden"><img src="{{ f.u }}" alt="{{ f.t }}" style="width:100%;height:100%;object-fit:cover;object-position:50% 28%;display:block"></div></sc-for></div></div></div>
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0"><span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.62 0 0)">paysage · moyenne <span style="color:oklch(0.44 0 0)">280 × 157</span></span><div style="display:flex;gap:12px;overflow:hidden"><sc-for list="{{ railC2 }}" as="f" hint-placeholder-count="3"><div style="flex:none;width:280px;height:157px;background:oklch(0.16 0 0);overflow:hidden"><img src="{{ f.u }}" alt="{{ f.t }}" style="width:100%;height:100%;object-fit:cover;object-position:50% 28%;display:block"></div></sc-for></div></div>
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0"><span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.62 0 0)">paysage · grande <span style="color:oklch(0.44 0 0)">380 × 214</span></span><div style="display:flex;gap:14px;overflow:hidden"><sc-for list="{{ railA1 }}" as="f" hint-placeholder-count="2"><div style="flex:none;width:380px;height:214px;background:oklch(0.16 0 0);overflow:hidden"><img src="{{ f.u }}" alt="{{ f.t }}" style="width:100%;height:100%;object-fit:cover;object-position:50% 26%;display:block"></div></sc-for></div></div>
+    </div>
+  </div>
+
+  <!-- 6b COLONNES -->
+  <div id="6b" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">6b</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Masonry · colonnes selon la largeur</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">iPhone 3 · iPad 5 · Mac large 8 · au-delà d'AX1, bascule en liste</span></div>
+    <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:10px"><span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">393 px · 3 colonnes</span><div style="width:393px;height:420px;overflow:hidden;background:oklch(0.11 0 0);padding:14px;display:flex;gap:8px;align-items:flex-start"><sc-for list="{{ gal3 }}" as="col" hint-placeholder-count="3"><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px"><sc-for list="{{ col }}" as="g" hint-placeholder-count="5"><div style="background:oklch(0.16 0 0);overflow:hidden;aspect-ratio: {{ g.r }}"><img src="{{ g.u }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div></sc-for></div></sc-for></div></div>
+      <div style="display:flex;flex-direction:column;gap:10px"><span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">1194 px · 5 colonnes</span><div style="width:1194px;height:420px;overflow:hidden;background:oklch(0.11 0 0);padding:18px;display:flex;gap:12px;align-items:flex-start"><sc-for list="{{ gal5 }}" as="col" hint-placeholder-count="5"><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px"><sc-for list="{{ col }}" as="g" hint-placeholder-count="4"><div style="background:oklch(0.16 0 0);overflow:hidden;aspect-ratio: {{ g.r }}"><img src="{{ g.u }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div></sc-for></div></sc-for></div></div>
+      <div style="display:flex;flex-direction:column;gap:10px"><span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">1920 px · 8 colonnes</span><div style="width:1920px;height:420px;overflow:hidden;background:oklch(0.11 0 0);padding:20px;display:flex;gap:14px;align-items:flex-start"><sc-for list="{{ gal8 }}" as="col" hint-placeholder-count="8"><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px"><sc-for list="{{ col }}" as="g" hint-placeholder-count="4"><div style="background:oklch(0.16 0 0);overflow:hidden;aspect-ratio: {{ g.r }}"><img src="{{ g.u }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div></sc-for></div></sc-for></div></div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:44px;align-items:flex-start">
+
+    <!-- 6c VISIONNEUSE -->
+    <div id="6c" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:12px"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">6c</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Visionneuse plein écran</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">zoom, balayage, partage · chrome qui s'efface</span></div>
+      <div data-screen-label="6c — Visionneuse" style="position:relative;width:1280px;height:760px;overflow:hidden;background:oklch(0.07 0 0)">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><img src="{{ heroB.u }}" alt="image" style="height:100%;width:auto;object-fit:contain;display:block"></div>
+        <div style="position:absolute;top:0;left:0;right:0;height:64px;display:flex;align-items:center;gap:18px;padding:0 28px;background:linear-gradient(to bottom, oklch(0.07 0 0 / 0.8), transparent)">
+          <span style="font:400 12px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.9 0 0)">✕ Fermer</span>
+          <span style="font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.68 0 0)">12 / 47</span>
+          <span style="font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.62 0 0)">Oppenheimer · affiche · 2000 × 3000</span>
+          <span style="margin-left:auto;display:flex;gap:20px;font:400 12px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.9 0 0)"><span style="color:oklch(0.8 0.14 66)">♥ Favori</span><span>Recadrer</span><span>Partager</span><span>Quick Look</span><span>···</span></span>
+        </div>
+        <div style="position:absolute;left:28px;top:50%;width:44px;height:44px;background:oklch(1 0 0 / 0.1);display:flex;align-items:center;justify-content:center;font:400 20px/1 'Archivo Narrow',sans-serif;color:oklch(0.95 0 0)">‹</div>
+        <div style="position:absolute;right:28px;top:50%;width:44px;height:44px;background:oklch(1 0 0 / 0.1);display:flex;align-items:center;justify-content:center;font:400 20px/1 'Archivo Narrow',sans-serif;color:oklch(0.95 0 0)">›</div>
+        <div style="position:absolute;left:28px;bottom:104px;padding:7px 11px;background:oklch(0.07 0 0 / 0.7);font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.86 0 0)">180 % · double-clic pour ajuster</div>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:88px;display:flex;align-items:center;gap:8px;padding:0 28px;background:linear-gradient(to top, oklch(0.07 0 0 / 0.85), transparent)">
+          <sc-for list="{{ gallery }}" as="g" hint-placeholder-count="14">
+            <div style="flex:none;width:44px;height:56px;background:oklch(0.16 0 0);overflow:hidden;opacity:0.55"><img src="{{ g.u }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6d IMMERSIF -->
+    <div id="6d" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:12px"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">6d</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Défilement immersif</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">une image par écran, aucun chrome, la suivante affleure</span></div>
+      <div data-screen-label="6d — Immersif" style="position:relative;width:1280px;height:760px;overflow:hidden;background:oklch(0.07 0 0)">
+        <div style="position:absolute;top:0;left:0;right:0;height:640px;overflow:hidden"><img src="{{ heroC.u }}" alt="image" style="width:100%;height:100%;object-fit:cover;object-position:50% 30%;display:block"></div>
+        <div style="position:absolute;top:596px;left:0;right:0;height:44px;background:linear-gradient(to top, oklch(0.07 0 0), transparent)"></div>
+        <div style="position:absolute;left:36px;bottom:152px;display:flex;flex-direction:column;gap:8px">
+          <span style="font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.8 0.14 66)">The Batman · galerie</span>
+          <span style="font:400 34px/1 'Bebas Neue',sans-serif;color:oklch(0.98 0 0)">Image 14 sur 47</span>
+        </div>
+        <div style="position:absolute;top:648px;left:0;right:0;height:112px;overflow:hidden"><img src="{{ heroA.u }}" alt="image suivante" style="width:100%;height:640px;object-fit:cover;object-position:50% 20%;display:block"></div>
+      </div>
+    </div>
+
+    <!-- 6e RECADRAGE -->
+    <div id="6e" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:12px"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">6e</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Éditeur de recadrage · par contexte</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">premier panneau du registre de gestion</span></div>
+      <div data-screen-label="6e — Recadrage" style="position:relative;width:1280px;height:760px;overflow:hidden;background:oklch(0.09 0 0);display:flex">
+        <div style="flex:1;min-width:0;position:relative;display:flex;align-items:center;justify-content:center;padding:40px">
+          <div style="position:relative;height:100%;display:flex;align-items:center">
+            <img src="{{ heroA.u }}" alt="image" style="height:100%;width:auto;object-fit:contain;display:block">
+            <div style="position:absolute;left:8%;top:16%;width:74%;height:52%;outline:1px solid oklch(0.99 0 0);box-shadow:0 0 0 9999px oklch(0.09 0 0 / 0.68)">
+              <span style="position:absolute;left:-4px;top:-4px;width:8px;height:8px;background:oklch(0.99 0 0)"></span>
+              <span style="position:absolute;right:-4px;top:-4px;width:8px;height:8px;background:oklch(0.99 0 0)"></span>
+              <span style="position:absolute;left:-4px;bottom:-4px;width:8px;height:8px;background:oklch(0.99 0 0)"></span>
+              <span style="position:absolute;right:-4px;bottom:-4px;width:8px;height:8px;background:oklch(0.99 0 0)"></span>
+              <span style="position:absolute;left:0;right:0;top:33.33%;height:1px;background:oklch(1 0 0 / 0.28)"></span>
+              <span style="position:absolute;left:0;right:0;top:66.66%;height:1px;background:oklch(1 0 0 / 0.28)"></span>
+              <span style="position:absolute;top:0;bottom:0;left:33.33%;width:1px;background:oklch(1 0 0 / 0.28)"></span>
+              <span style="position:absolute;top:0;bottom:0;left:66.66%;width:1px;background:oklch(1 0 0 / 0.28)"></span>
+            </div>
+          </div>
+          <span style="position:absolute;left:40px;bottom:30px;font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.55 0 0)">glisser pour déplacer · pincer ou molette pour zoomer</span>
+        </div>
+        <div style="width:340px;flex:none;background:oklch(0.13 0 0);padding:26px 24px;display:flex;flex-direction:column;gap:24px">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font:400 26px/1 'Bebas Neue',sans-serif;color:oklch(0.98 0 0)">Recadrage</span>
+            <span style="font:400 11px/1.4 'IBM Plex Mono',monospace;color:oklch(0.55 0 0)">Dune (2021) · image 3 sur 14<br>3840 × 2160 · JPEG · 2,4 Mo</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <span style="font:600 10px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Contexte</span>
+            <div style="display:flex;gap:6px">
+              <span style="padding:8px 11px;background:oklch(0.8 0.14 66);color:oklch(0.14 0 0);font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Hero</span>
+              <span style="padding:8px 11px;background:oklch(1 0 0 / 0.1);color:oklch(0.88 0 0);font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Carte</span>
+              <span style="padding:8px 11px;background:oklch(1 0 0 / 0.1);color:oklch(0.88 0 0);font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Latéral</span>
+              <span style="padding:8px 11px;background:oklch(1 0 0 / 0.1);color:oklch(0.88 0 0);font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Vignette</span>
+            </div>
+            <span style="font:400 10px/1.4 'IBM Plex Mono',monospace;color:oklch(0.5 0 0)">chaque contexte garde son propre cadrage</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <span style="font:600 10px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Rapport</span>
+            <div style="display:flex;gap:6px">
+              <span style="padding:8px 11px;background:oklch(0.8 0.14 66);color:oklch(0.14 0 0);font:600 11px/1 'IBM Plex Mono',monospace">16:9</span>
+              <span style="padding:8px 11px;background:oklch(1 0 0 / 0.1);color:oklch(0.88 0 0);font:400 11px/1 'IBM Plex Mono',monospace">2:3</span>
+              <span style="padding:8px 11px;background:oklch(1 0 0 / 0.1);color:oklch(0.88 0 0);font:400 11px/1 'IBM Plex Mono',monospace">1:1</span>
+              <span style="padding:8px 11px;background:oklch(1 0 0 / 0.1);color:oklch(0.88 0 0);font:400 11px/1 'IBM Plex Mono',monospace">libre</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:11px">
+            <div style="display:flex;justify-content:space-between"><span style="font:600 10px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Zoom</span><span style="font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.84 0.14 66)">142 %</span></div>
+            <div style="position:relative;height:3px;background:oklch(1 0 0 / 0.14)"><span style="position:absolute;left:0;top:0;height:3px;width:42%;background:oklch(0.8 0.14 66)"></span><span style="position:absolute;left:42%;top:-6px;width:15px;height:15px;border-radius:50%;background:oklch(0.98 0 0)"></span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font:600 10px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Décalage X</span><span style="background:oklch(1 0 0 / 0.08);padding:9px 11px;font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.94 0 0)">− 0,08</span></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font:600 10px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Décalage Y</span><span style="background:oklch(1 0 0 / 0.08);padding:9px 11px;font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.94 0 0)">+ 0,21</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <span style="font:600 10px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Aperçu du contexte</span>
+            <div style="display:flex;gap:10px;align-items:flex-end">
+              <div style="width:130px;aspect-ratio:16/9;background:oklch(0.16 0 0);overflow:hidden"><img src="{{ heroA.u }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:50% 30%;display:block"></div>
+              <div style="width:58px;aspect-ratio:2/3;background:oklch(0.16 0 0);overflow:hidden"><img src="{{ heroA.u }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+            </div>
+          </div>
+          <div style="margin-top:auto;display:flex;gap:9px">
+            <span style="flex:1;padding:12px 0;background:oklch(0.99 0 0);color:oklch(0.12 0 0);font:600 12px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase;text-align:center">Appliquer</span>
+            <span style="padding:12px 16px;background:oklch(1 0 0 / 0.1);color:oklch(0.9 0 0);font:400 12px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Réinitialiser</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6f SELECTION -->
+    <div id="6f" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:12px"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">6f</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Sélection multiple</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">barre d'actions en bas, compteur, action destructive à part</span></div>
+      <div data-screen-label="6f — Sélection" style="position:relative;width:1280px;height:760px;overflow:hidden;background:oklch(0.11 0 0);display:flex;flex-direction:column">
+        <div style="height:60px;display:flex;align-items:center;gap:20px;padding:0 36px;flex:none">
+          <span style="font:400 12px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.9 0 0)">Terminé</span>
+          <span style="font:400 30px/1 'Bebas Neue',sans-serif;color:oklch(0.98 0 0)">6 sélectionnées</span>
+          <span style="margin-left:auto;display:flex;gap:20px;font:400 12px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0 0)"><span>Tout sélectionner</span><span>Inverser</span></span>
+        </div>
+        <div style="column-count:6;column-gap:12px;padding:12px 36px 0">
+          <sc-for list="{{ gallerySel }}" as="g" hint-placeholder-count="18">
+            <div style="break-inside:avoid;margin-bottom:12px;position:relative;background:oklch(0.16 0 0);overflow:hidden;aspect-ratio: {{ g.r }}">
+              <img src="{{ g.u }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;opacity: {{ g.o }}">
+              <sc-if value="{{ g.s }}" hint-placeholder-val="{{ false }}">
+                <span style="position:absolute;inset:0;outline:3px solid oklch(0.8 0.14 66);outline-offset:-3px"></span>
+              </sc-if>
+              <sc-if value="{{ g.s }}" hint-placeholder-val="{{ false }}">
+                <span style="position:absolute;top:9px;right:9px;width:24px;height:24px;border-radius:50%;background:oklch(0.8 0.14 66);color:oklch(0.14 0 0);font:600 13px/24px 'Archivo Narrow',sans-serif;text-align:center">✓</span>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:78px;background:oklch(0.16 0 0);display:flex;align-items:center;gap:26px;padding:0 36px">
+          <span style="font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.6 0 0)">6 images · 18,4 Mo</span>
+          <span style="margin-left:auto;display:flex;gap:22px;align-items:center;font:400 12px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.92 0 0)">
+            <span style="color:oklch(0.84 0.14 66)">♥ Favori</span><span>Rattacher à…</span><span>Exporter</span><span>Marquer privées</span><span>Archiver</span>
+          </span>
+          <span style="padding:11px 18px;background:oklch(0.42 0.16 27);color:oklch(0.99 0 0);font:600 12px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Mettre à la corbeille</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <p style="margin:0;max-width:1000px;font:300 15px/1.6 'Public Sans',sans-serif;color:oklch(0.6 0 0)">Étape 4 : <a href="#6a">6a</a> matrice · <a href="#6b">6b</a> colonnes · <a href="#6c">6c</a> visionneuse · <a href="#6d">6d</a> immersif · <a href="#6e">6e</a> recadrage · <a href="#6f">6f</a> sélection.</p>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:22px;padding:20px 64px 80px;font-family:'Public Sans',system-ui,sans-serif;color:oklch(0.95 0 0);max-width:1100px">
+  <h2 style="margin:0;font:600 30px/1.1 Archivo,sans-serif;letter-spacing:-0.02em">Relevé de planche 4 — écarts, décisions, réserves</h2>
+  
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Écarts au brief</span>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">1. La matrice est réglable indépendamment sur huit contextes selon le brief ; les huit contextes sont nommés en légende mais montrés une seule fois, pas huit.</p>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">2. Toutes les images de la galerie sont des affiches 2:3. Une vraie galerie contient des photos de tournage, des jaquettes, des scans de dos de boîtier — donc des ratios mélangés. Le comportement de la maçonnerie avec des ratios mixtes n'est pas démontré.</p>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">3. L'éditeur de recadrage est le premier écran de gestion à apparaître, avant l'étape 5. Il utilise déjà le vocabulaire dense de la console, sans que ce vocabulaire ait été présenté.</p>
+  </div>
+  
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Décisions prises sans validation explicite</span>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">1. Le recadrage propose un cadre libre avec aperçu simultané en 16:9 et en 2:3. Il n'impose pas de ratio ; c'est à l'utilisateur de savoir ce qu'il vise.</p>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">2. La visionneuse plein écran a un fond plus sombre que l'app (0.07 contre 0.11), pour laisser l'image dominer. C'est une deuxième valeur de noir, en contradiction avec la règle « un seul fond ».</p>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">3. La sélection multiple sort une barre d'actions en bas de l'écran, pas une barre d'outils contextuelle en haut comme sur macOS.</p>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">4. Le mode immersif masque tout le chrome et n'affiche qu'un compteur « Image 14 sur 47 ». Il n'y a aucune affordance visible pour sortir.</p>
+  </div>
+  
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Mes réserves — aucune retouche appliquée</span>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">1. <strong style="font-weight:600;color:oklch(0.95 0 0)">Le fond de visionneuse à 0.07 est un écart aux tokens</strong> que je signale sans le corriger : soit on l'accepte comme token dédié, soit on ramène la visionneuse au noir de l'app.</p>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">2. <strong style="font-weight:600;color:oklch(0.95 0 0)">Le mode immersif sans issue visible est risqué</strong> au doigt sur iPad et iPhone. Sur Mac, Échap suffit ; au doigt, il faut un geste que rien n'annonce.</p>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">3. <strong style="font-weight:600;color:oklch(0.95 0 0)">La matrice des six tailles est la partie de tout le système dont je suis le moins sûr</strong> : six tailles réglables sur huit contextes, c'est quarante-huit combinaisons à tenir dans le code, et je ne sais pas si le gain justifie la charge.</p>
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showMeta&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Cartes&quot;},&quot;posterRadius&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:3,&quot;min&quot;:0,&quot;max&quot;:16,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Cartes&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const G = {"Science Fiction":"Science-fiction","Comedy":"Comédie","Drama":"Drame","Action":"Action","Horror":"Horreur","Superhero":"Super-héros","Animated":"Animation","Biography":"Biographie","Fantasy":"Fantastique"};
+    const base = [
+      {t:"Dune",y:2021,g:"Science Fiction",u:"https://upload.wikimedia.org/wikipedia/en/8/8e/Dune_%282021_film%29.jpg"},
+      {t:"Oppenheimer",y:2023,g:"Biography",u:"https://upload.wikimedia.org/wikipedia/en/4/4a/Oppenheimer_%28film%29.jpg"},
+      {t:"Barbie",y:2023,g:"Comedy",u:"https://upload.wikimedia.org/wikipedia/en/0/0b/Barbie_2023_poster.jpg"},
+      {t:"Top Gun: Maverick",y:2022,g:"Action",u:"https://upload.wikimedia.org/wikipedia/en/1/13/Top_Gun_Maverick_Poster.jpg"},
+      {t:"Everything Everywhere All at Once",y:2022,g:"Comedy",u:"https://upload.wikimedia.org/wikipedia/en/1/1e/Everything_Everywhere_All_at_Once.jpg"},
+      {t:"Tenet",y:2020,g:"Action",u:"https://upload.wikimedia.org/wikipedia/en/1/14/Tenet_movie_poster.jpg"},
+      {t:"Nope",y:2022,g:"Horror",u:"https://upload.wikimedia.org/wikipedia/en/e/e6/Nope_%28film%29_poster.jpg"},
+      {t:"The Batman",y:2022,g:"Superhero",u:"https://upload.wikimedia.org/wikipedia/en/f/ff/The_Batman_%28film%29_poster.jpg"},
+      {t:"Nomadland",y:2021,g:"Drama",u:"https://upload.wikimedia.org/wikipedia/en/a/a5/Nomadland_poster.jpeg"},
+      {t:"Soul",y:2020,g:"Animated",u:"https://upload.wikimedia.org/wikipedia/en/3/39/Soul_%282020_film%29_poster.jpg"},
+      {t:"Tár",y:2022,g:"Drama",u:"https://upload.wikimedia.org/wikipedia/en/1/19/T%C3%A1r_poster.jpg"},
+      {t:"The Northman",y:2022,g:"Action",u:"https://upload.wikimedia.org/wikipedia/en/8/8c/The_Northman.png"},
+      {t:"Past Lives",y:2023,g:"Drama",u:"https://upload.wikimedia.org/wikipedia/en/d/da/Past_Lives_film_poster.png"},
+      {t:"Licorice Pizza",y:2021,g:"Comedy",u:"https://upload.wikimedia.org/wikipedia/en/3/3c/LicoricePizzaPoster.jpeg"},
+      {t:"The Banshees of Inisherin",y:2022,g:"Comedy",u:"https://upload.wikimedia.org/wikipedia/en/6/6e/The_Banshees_of_Inisherin.jpg"},
+      {t:"Aftersun",y:2022,g:"Drama",u:"https://upload.wikimedia.org/wikipedia/en/1/11/Aftersun.jpg"},
+      {t:"Spider-Man: Across the Spider-Verse",y:2023,g:"Animated",u:"https://upload.wikimedia.org/wikipedia/en/b/b4/Spider-Man-_Across_the_Spider-Verse_poster.jpg"},
+      {t:"The Menu",y:2022,g:"Comedy",u:"https://upload.wikimedia.org/wikipedia/en/d/db/The_Menu_%282022_film%29.jpg"},
+      {t:"Elvis",y:2022,g:"Drama",u:"https://upload.wikimedia.org/wikipedia/en/7/79/Elvis_2022_poster.jpg"},
+      {t:"Minari",y:2021,g:"Drama",u:"https://upload.wikimedia.org/wikipedia/en/8/8a/Minari_%28film%29.png"},
+      {t:"The Green Knight",y:2021,g:"Fantasy",u:"https://upload.wikimedia.org/wikipedia/en/0/09/The_Green_Knight_poster.jpeg"},
+      {t:"First Cow",y:2020,g:"Drama",u:"https://upload.wikimedia.org/wikipedia/en/4/43/First_Cow_poster.jpeg"}
+    ];
+    const dots = ["\u25CF\u25CF\u25CF\u25CF\u25CF", "\u25CF\u25CF\u25CF\u25CF\u25CB", "\u25CF\u25CF\u25CF\u25CB\u25CB", "\u25CF\u25CF\u25CF\u25CF\u25CB"];
+    const deco = base.map((f, i) => ({
+      t: f.t, y: f.y, u: f.u,
+      g: G[f.g] || f.g,
+      dots: dots[i % dots.length],
+      state: i === 4 ? "Privé" : (i === 12 ? "Archivé" : "")
+    }));
+    const P = t => deco.find(f => f.t === t);
+    const people = [
+      ["Cillian Murphy","9 titres"],["Emily Blunt","6 titres"],["Timothée Chalamet","5 titres"],
+      ["Denis Villeneuve","9 titres"],["Florence Pugh","4 titres"],["Margot Robbie","7 titres"],
+      ["Ryan Gosling","8 titres"],["Robert Downey Jr.","11 titres"],["Greta Gerwig","4 titres"],
+      ["Rebecca Ferguson","5 titres"],["Christopher Nolan","10 titres"],["Michelle Yeoh","6 titres"],
+      ["Colin Farrell","5 titres"],["Cate Blanchett","9 titres"],["Paul Mescal","3 titres"],
+      ["Jordan Peele","3 titres"]
+    ].map(([n, c]) => ({ n, c }));
+    const collections = [
+      ["Denis Villeneuve","9 titres",0],["Science-fiction","148 titres",4],["Vus en 2025","62 titres",8],
+      ["A24","57 titres",12],["Nolan","10 titres",2],["Années 2020","203 titres",6],
+      ["Animation","74 titres",10],["Palme d'or","31 titres",14]
+    ].map(([n, k, i]) => ({
+      n, k,
+      a: deco[i % deco.length].u, b: deco[(i + 1) % deco.length].u,
+      c: deco[(i + 2) % deco.length].u, d: deco[(i + 3) % deco.length].u
+    }));
+    const ratios = ["2/3", "16/9", "3/4", "1/1", "4/5", "2/3", "16/9", "3/4", "1/1", "2/3", "5/4"];
+    const gallery = [...deco, ...deco].map((f, i) => ({ u: f.u, t: f.t, r: ratios[i % ratios.length] }));
+    const bookmarks = [
+      ["Villeneuve sur le tournage de Dune : Part Two", "cahiersducinema.fr", "Denis Villeneuve", "12 mars"],
+      ["Le 70 mm d'Oppenheimer, mode d'emploi", "kodak.com", "Oppenheimer", "9 mars"],
+      ["Entretien : le montage de Tár", "sightandsound.uk", "Tár", "2 mars"],
+      ["Affiches polonaises des années 70", "polishposter.com", "non rattaché", "28 févr."],
+      ["Everything Everywhere : les 12 000 plans truqués", "vfxvoice.com", "Everything Everywhere", "24 févr."],
+      ["Où voir First Cow en salle", "lacinetek.com", "First Cow", "20 févr."],
+      ["Le dossier de presse de Nope", "universal.com", "Nope", "14 févr."]
+    ].map(([t, d, e, j], i) => ({ t, d, e, j, u: deco[i % deco.length].u }));
+    const feedToday = [
+      ["21:02", "Note modifiée", "Tár passe de ★★★★ à ★★★★★", 10],
+      ["20:41", "Ajouté", "Past Lives (2023) — rayon Drame", 12],
+      ["19:58", "Recadrage", "Nouvelle image en hero sur Nope", 6],
+      ["18:12", "Archivé", "The Northman quitte la grille principale", 11]
+    ].map(([h, k, x, i]) => ({ h, k, x, u: deco[i % deco.length].u }));
+    const feedYesterday = [
+      ["23:14", "Import", "42 titres depuis Movix.csv — 3 en attente de correction", 3],
+      ["22:30", "Fusion", "Deux fiches de Colin Farrell réunies en une", 14],
+      ["21:07", "Vu", "The Banshees of Inisherin marqué vu", 14],
+      ["20:15", "Collection", "Rayon « Palme d'or » créé avec 31 titres", 16]
+    ].map(([h, k, x, i]) => ({ h, k, x, u: deco[i % deco.length].u }));
+    const split = (n, take) => {
+      const cols = Array.from({ length: n }, () => []);
+      gallery.slice(0, take).forEach((g, i) => cols[i % n].push(g));
+      return cols;
+    };
+    const gal3 = split(3, 12), gal5 = split(5, 20), gal8 = split(8, 32);
+    const rows = deco.map((f, i) => ({
+      t: f.t, y: f.y, g: f.g, u: f.u,
+      d: ["12 mars", "9 mars", "2 mars", "28 févr.", "24 févr.", "20 févr.", "14 févr."][i % 7],
+      m: [148, 181, 114, 131, 139, 150, 130, 176, 107, 100, 158, 137, 105, 133, 114, 101, 140, 107, 159, 115, 130, 122][i],
+      n: [5, 5, 4, 4, 5, 3, 4, 4, 4, 5, 5, 3, 5, 4, 4, 4, 5, 3, 4, 4, 4, 4][i],
+      s: i === 4 ? "Privé" : (i === 12 ? "Archivé" : "Visible"),
+      v: i % 3 === 0 ? "Vu" : (i % 3 === 1 ? "À voir" : "—"),
+      sel: [1, 2, 5, 8, 13].includes(i)
+    }));
+    const importRows = [
+      ["Perfect Days", "2023", "Drame", "ok", "—"],
+      ["The Substance", "2024", "Horreur", "ok", "—"],
+      ["Anatomie d'une chute", "2023", "Drame", "corriger", "durée illisible : « 2h32 »"],
+      ["Challengers", "2024", "Drame", "doublon", "existe déjà — fusionner ?"],
+      ["Civil War", "2024", "Action", "ok", "—"],
+      ["The Brutalist", "2024", "Drame", "corriger", "genre inconnu : « Épique »"],
+      ["Sinners", "2025", "Horreur", "ok", "—"],
+      ["Furiosa", "2024", "Action", "doublon", "existe déjà — fusionner ?"],
+      ["Une vie", "2023", "Biographie", "ok", "—"]
+    ].map(([t, y, g, st, msg], i) => ({
+      t, y, g, msg, u: deco[i % deco.length].u, l: 1002 + i,
+      st: st === "ok" ? "Prête" : (st === "doublon" ? "Doublon" : "À corriger"),
+      act: st === "ok" ? "" : (st === "doublon" ? "Fusionner" : "Corriger"),
+      c: st === "ok" ? "oklch(0.82 0.14 145)" : (st === "doublon" ? "oklch(0.86 0.1 66)" : "oklch(0.82 0.14 35)")
+    }));
+    const mergeFields = [
+      ["Nom", "Colin Farrell", "Colin J. Farrell", "a"],
+      ["Nom de tri", "Farrell, Colin", "farrell colin", "a"],
+      ["Naissance", "31 mai 1976", "1976", "a"],
+      ["Lieu", "Dublin, Irlande", "—", "a"],
+      ["Biographie", "412 caractères", "1 108 caractères", "b"],
+      ["Photo", "portrait 2019", "portrait 2023", "b"],
+      ["Titres liés", "5", "3", "both"],
+      ["Comptes sociaux", "1", "2", "both"]
+    ].map(([f, a, b, pick]) => {
+      const aOn = pick === "a" || pick === "both", bOn = pick === "b" || pick === "both";
+      return { f, a, b,
+        aBg: aOn ? "oklch(0.8 0.14 66 / 0.12)" : "transparent",
+        bBg: bOn ? "oklch(0.8 0.14 66 / 0.12)" : "transparent",
+        aDot: aOn ? "oklch(0.8 0.14 66)" : "oklch(1 0 0 / 0.16)",
+        bDot: bOn ? "oklch(0.8 0.14 66)" : "oklch(1 0 0 / 0.16)" };
+    });
+    const entities = [
+      ["Titres", "1 284"], ["Personnes", "3 902"], ["Collections", "38"], ["Genres", "62"],
+      ["Casting", "14 118"], ["Images", "7 411"], ["Liens", "204"], ["Signets", "61"],
+      ["Corbeille", "41"], ["Journal", "1 402"]
+    ].map(([n, k]) => ({ n, k }));
+    const AMBER = "oklch(0.8 0.14 66)", OFF = "oklch(1 0 0 / 0.14)", DARK = "oklch(0.14 0 0)", KNOB = "oklch(0.72 0 0)";
+    const exportFields = [
+      ["Titre", 1], ["Année", 1], ["Précision de date", 1], ["Durée", 1], ["Note", 1],
+      ["Genres", 1], ["Collection", 1], ["Privé", 1], ["Date d'ajout", 1],
+      ["Synopsis", 0], ["Casting", 0], ["Liens", 0], ["Image principale", 0], ["Identifiant interne", 0]
+    ].map(([n, on]) => ({ n, bg: on ? AMBER : "oklch(1 0 0 / 0.1)", mark: on ? "✓" : "" }));
+    const profiles = [
+      { i: "N", n: "Noé", lib: "Bibliothèque Maison", stat: "profil courant · 946 vus", color: AMBER,
+        bg: "oklch(0.8 0.14 66 / 0.1)", bio: OFF, bioX: "2px", bioKnob: KNOB, priv: OFF, privX: "2px", privKnob: KNOB,
+        note: "voit tout, y compris les 62 titres privés" },
+      { i: "C", n: "Camille", lib: "Bibliothèque Maison", stat: "catalogue partagé · listes séparées", color: "oklch(0.62 0.14 250)",
+        bg: "oklch(0.135 0 0)", bio: AMBER, bioX: "19px", bioKnob: DARK, priv: OFF, privX: "2px", privKnob: KNOB,
+        note: "même catalogue que Noé, watchlist et notes distinctes" },
+      { i: "I", n: "Invité", lib: "Bibliothèque Bac à sable", stat: "isolé · 128 titres", color: "oklch(0.64 0.13 150)",
+        bg: "oklch(0.135 0 0)", bio: OFF, bioX: "2px", bioKnob: KNOB, priv: AMBER, privX: "19px", privKnob: DARK,
+        note: "ne voit jamais les entités marquées privées" }
+    ];
+    const DIM = "oklch(0.62 0 0)", ON = "oklch(0.84 0.14 66)";
+    const detents = [
+      { label: "petit · 240 px", h: "240px", title: "Dune", sub: "actions rapides",
+        items: [{ n: "Marquer vu", v: "⌘V", c: DIM }, { n: "Ajouter à Ma liste", v: "⌘L", c: DIM }, { n: "Ma note", v: "★★★★☆", c: ON }] },
+      { label: "moyen · 60 %", h: "372px", title: "Modifier Dune", sub: "édition rapide",
+        items: [{ n: "Titre", v: "Dune", c: DIM }, { n: "Sortie", v: "2021", c: DIM }, { n: "Durée", v: "155 min", c: DIM }, { n: "Ma note", v: "★★★★☆", c: ON }, { n: "Privé", v: "activé", c: ON }] },
+      { label: "plein · 100 %", h: "580px", title: "Modifier Dune", sub: "tous les champs",
+        items: [{ n: "Titre", v: "Dune", c: DIM }, { n: "Titre original", v: "—", c: DIM }, { n: "Synopsis", v: "92 car.", c: DIM }, { n: "Sortie", v: "2021", c: DIM }, { n: "Durée", v: "155 min", c: DIM }, { n: "Genres", v: "2", c: DIM }, { n: "Collection", v: "Villeneuve", c: DIM }, { n: "Ma note", v: "★★★★☆", c: ON }, { n: "Privé", v: "activé", c: ON }, { n: "Archivé", v: "désactivé", c: DIM }] }
+    ];
+    const selected = new Set([0, 2, 3, 7, 11, 14]);
+    const gallerySel = gallery.slice(0, 18).map((g, i) => ({
+      ...g, s: selected.has(i), o: selected.has(i) ? 1 : 0.5
+    }));
+    return {
+      people, collections, gallery, gallerySel, bookmarks, feedToday, feedYesterday,
+      gal3, gal5, gal8, rows, importRows, mergeFields, entities, exportFields, profiles, detents,
+      rowsSel: rows.filter(r => r.sel),
+      films: deco.slice(0, 20),
+      filmsC: deco,
+      railA1: deco.slice(0, 9), railA2: deco.slice(9, 18), railA3: deco.slice(13, 22),
+      railB1: deco.slice(2, 12), railB2: deco.slice(12, 22), railB3: deco.slice(0, 10),
+      railC1: deco.slice(0, 7), railC2: deco.slice(7, 14),
+      heroA: P("Dune"), heroB: P("Oppenheimer"), heroC: P("The Batman"),
+      showMeta: this.props.showMeta ?? true,
+      radius: (this.props.posterRadius ?? 3) + "px"
+    };
+  }
+}
+</script>
+</body>
+</html>

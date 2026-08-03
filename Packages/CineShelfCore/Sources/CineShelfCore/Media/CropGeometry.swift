@@ -74,6 +74,13 @@ public enum CropGeometry {
     /// C'est ce que la vue consomme, et ce que `L6` réutilisera pour ses tuiles de
     /// mosaïque : une tuile est un cadre comme un autre.
     ///
+    /// > **Le même calcul existe une seconde fois**, en points cette fois, dans
+    /// > `MediaThumbnail.cropped`. Les deux décrivent la même géométrie vue de deux
+    /// > côtés, et leur accord est **vérifié** par
+    /// > `CropRenderingAgreementTests.bothImplementationsAgree`, qui balaie positions,
+    /// > zooms et ratios. Modifier l'un sans l'autre casse ce test — c'est le but : une
+    /// > divergence se verrait sinon à l'écran, tard, et sans dire laquelle est fausse.
+    ///
     /// - Returns: `.zero` si la source ou le cadre n'a pas de dimensions exploitables.
     public static func sourceRect(_ crop: CropValues, source: CGSize, frame: CGSize) -> CGRect {
         let cover = coverScale(source: source, frame: frame)

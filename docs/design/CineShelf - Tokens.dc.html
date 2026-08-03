@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Archivo+Narrow:wght@400;500;600;700&family=Bebas+Neue&family=Public+Sans:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: oklch(0.125 0 0); }
+  a { color: oklch(0.84 0.14 66); text-decoration: none; }
+  a:hover { color: oklch(0.92 0.1 66); }
+</style>
+</helmet>
+
+<section style="display:flex;flex-direction:column;gap:56px;padding:64px;font-family:'Public Sans',system-ui,sans-serif;color:oklch(0.95 0 0);max-width:1560px">
+
+  <div style="display:flex;flex-direction:column;gap:14px;max-width:1020px">
+    <div style="font:500 12px/1 'IBM Plex Mono',monospace;letter-spacing:0.24em;text-transform:uppercase;color:oklch(0.62 0 0)">Étape 8 · Les tokens · direction 2a Plein cadre</div>
+    <h1 style="margin:0;font:600 44px/1.05 Archivo,sans-serif;letter-spacing:-0.02em">Les valeurs, une seule fois, pour que le code n'en invente aucune</h1>
+    <p style="margin:0;font:300 17px/1.6 'Public Sans',sans-serif;color:oklch(0.72 0 0);text-wrap:pretty">Tout ce qui est écrit ici est la source unique : les écrans des étapes 1 à 7 n'utilisent rien d'autre. La valeur canonique est l'<span style="font-family:'IBM Plex Mono',monospace;font-size:14px">oklch</span> — le hex est donné pour référence et pour les catalogues d'assets. Les rapports de contraste sont mesurés (WCAG 2.1) contre le fond de leur propre apparence ; le seuil retenu est AA 4,5:1 pour tout texte, y compris le texte secondaire et tertiaire, et 3:1 pour les traits et icônes non textuels.</p>
+  </div>
+
+  <!-- 10a COULEUR -->
+  <div id="10a" style="display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">10a</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Couleur · quatre apparences</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">Sombre par défaut · Sombre contraste élevé · Clair · Clair contraste élevé</span></div>
+
+    <div style="display:grid;grid-template-columns:210px repeat(4, 1fr);gap:1px;background:oklch(0.2 0 0)">
+      <div style="background:oklch(0.11 0 0);padding:12px 14px;font:500 10px/1.3 'IBM Plex Mono',monospace;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.6 0 0)">Token</div>
+      <sc-for list="{{ appearances }}" as="a" hint-placeholder-count="4">
+        <div style="background:oklch(0.11 0 0);padding:12px 14px;display:flex;flex-direction:column;gap:3px">
+          <span style="font:600 11px/1.2 'Archivo Narrow',sans-serif;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.96 0 0)">{{ a.name }}</span>
+          <span style="font:400 10px/1.3 'IBM Plex Mono',monospace;color:oklch(0.52 0 0)">{{ a.api }}</span>
+        </div>
+      </sc-for>
+
+      <sc-for list="{{ colorRows }}" as="r" hint-placeholder-count="14">
+        <div style="background:oklch(0.135 0 0);padding:11px 14px;display:flex;flex-direction:column;gap:3px">
+          <span style="font:500 12px/1.2 'IBM Plex Mono',monospace;color:oklch(0.93 0 0)">{{ r.token }}</span>
+          <span style="font:300 11px/1.35 'Public Sans',sans-serif;color:oklch(0.6 0 0)">{{ r.role }}</span>
+        </div>
+        <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="4">
+          <div style="background:oklch(0.135 0 0);padding:11px 14px;display:flex;align-items:flex-start;gap:10px">
+            <span style="width:26px;height:26px;flex:none;background:{{ c.css }};outline:1px solid oklch(1 0 0 / 0.14);outline-offset:-1px"></span>
+            <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+              <span style="font:400 11px/1.3 'IBM Plex Mono',monospace;color:oklch(0.86 0 0)">{{ c.oklch }}</span>
+              <span style="font:400 10px/1.3 'IBM Plex Mono',monospace;color:oklch(0.54 0 0)">{{ c.hex }}<span style="color:oklch(0.84 0.14 66)"> {{ c.ratio }}</span></span>
+            </div>
+          </div>
+        </sc-for>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:20px;padding-top:6px">
+      <sc-for list="{{ colorRules }}" as="k" hint-placeholder-count="4">
+        <div style="width:360px;background:oklch(0.155 0 0);padding:16px 18px;display:flex;flex-direction:column;gap:7px">
+          <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0.14 66)">{{ k.title }}</span>
+          <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.76 0 0);text-wrap:pretty">{{ k.body }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- 10b TYPO -->
+  <div id="10b" style="display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">10b</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Typographie · l'échelle et son ancrage Dynamic Type</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">taille de base à réglage système par défaut, chaque style ancré par relativeTo:</span></div>
+
+    <div style="display:flex;flex-direction:column;gap:1px;background:oklch(0.2 0 0);min-width:1108px">
+      <div style="display:grid;grid-template-columns:196px 96px 128px 108px 132px minmax(440px,1fr);gap:1px;background:oklch(0.2 0 0);min-width:1108px">
+        <sc-for list="{{ typeHead }}" as="h" hint-placeholder-count="6">
+          <div style="background:oklch(0.11 0 0);padding:11px 14px;font:500 10px/1.3 'IBM Plex Mono',monospace;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.6 0 0)">{{ h }}</div>
+        </sc-for>
+      </div>
+      <sc-for list="{{ typeRows }}" as="t" hint-placeholder-count="11">
+        <div style="display:grid;grid-template-columns:196px 96px 128px 108px 132px minmax(440px,1fr);gap:1px;background:oklch(0.2 0 0);min-width:1108px;align-items:stretch">
+          <div style="background:oklch(0.135 0 0);padding:12px 14px;display:flex;flex-direction:column;gap:3px">
+            <span style="font:500 12px/1.2 'IBM Plex Mono',monospace;color:oklch(0.93 0 0)">{{ t.token }}</span>
+            <span style="font:300 11px/1.35 'Public Sans',sans-serif;color:oklch(0.6 0 0)">{{ t.role }}</span>
+          </div>
+          <div style="background:oklch(0.135 0 0);padding:12px 14px;font:400 12px/1.4 'IBM Plex Mono',monospace;color:oklch(0.88 0 0)">{{ t.size }}</div>
+          <div style="background:oklch(0.135 0 0);padding:12px 14px;font:400 12px/1.4 'IBM Plex Mono',monospace;color:oklch(0.88 0 0)">{{ t.face }}</div>
+          <div style="background:oklch(0.135 0 0);padding:12px 14px;font:400 12px/1.4 'IBM Plex Mono',monospace;color:oklch(0.78 0 0)">{{ t.tracking }}</div>
+          <div style="background:oklch(0.135 0 0);padding:12px 14px;font:400 11px/1.4 'IBM Plex Mono',monospace;color:oklch(0.68 0 0)">{{ t.relative }}</div>
+          <div style="background:oklch(0.135 0 0);padding:10px 16px;display:flex;align-items:center"><span style="{{ t.sample }};white-space:nowrap">{{ t.text }}</span></div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:20px;padding-top:6px">
+      <sc-for list="{{ typeRules }}" as="k" hint-placeholder-count="3">
+        <div style="width:360px;background:oklch(0.155 0 0);padding:16px 18px;display:flex;flex-direction:column;gap:7px">
+          <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0.14 66)">{{ k.title }}</span>
+          <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.76 0 0);text-wrap:pretty">{{ k.body }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- 10c ESPACEMENT -->
+  <div id="10c" style="display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">10c</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Espacement, densité, géométrie</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">base 4 pt, deux densités, une seule série de tailles d'affiche</span></div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start">
+      <div style="width:520px;display:flex;flex-direction:column;gap:10px">
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Échelle d'espacement</span>
+        <div style="display:flex;flex-direction:column;gap:1px;background:oklch(0.2 0 0)">
+          <sc-for list="{{ spacing }}" as="s" hint-placeholder-count="8">
+            <div style="background:oklch(0.135 0 0);padding:9px 14px;display:flex;align-items:center;gap:14px">
+              <span style="width:86px;flex:none;font:500 12px/1 'IBM Plex Mono',monospace;color:oklch(0.93 0 0)">{{ s.token }}</span>
+              <span style="width:42px;flex:none;font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.7 0 0)">{{ s.px }}</span>
+              <span style="height:10px;background:oklch(0.84 0.14 66 / 0.55);width:{{ s.px }};flex:none"></span>
+              <span style="font:300 12px/1.4 'Public Sans',sans-serif;color:oklch(0.62 0 0);text-align:right;margin-left:auto">{{ s.use }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="width:520px;display:flex;flex-direction:column;gap:10px">
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Densité · les deux jeux, appliqués aux mêmes composants</span>
+        <div style="display:grid;grid-template-columns:1fr 88px 88px;gap:1px;background:oklch(0.2 0 0)">
+          <div style="background:oklch(0.11 0 0);padding:10px 14px;font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.6 0 0)">Mesure</div>
+          <div style="background:oklch(0.11 0 0);padding:10px 14px;font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.6 0 0)">Dense</div>
+          <div style="background:oklch(0.11 0 0);padding:10px 14px;font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.6 0 0)">Ample</div>
+          <sc-for list="{{ density }}" as="d" hint-placeholder-count="8">
+            <div style="background:oklch(0.135 0 0);padding:9px 14px;font:300 12px/1.4 'Public Sans',sans-serif;color:oklch(0.86 0 0)">{{ d.label }}</div>
+            <div style="background:oklch(0.135 0 0);padding:9px 14px;font:400 12px/1.4 'IBM Plex Mono',monospace;color:oklch(0.78 0 0)">{{ d.dense }}</div>
+            <div style="background:oklch(0.135 0 0);padding:9px 14px;font:400 12px/1.4 'IBM Plex Mono',monospace;color:oklch(0.78 0 0)">{{ d.roomy }}</div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="width:1062px;display:flex;flex-direction:column;gap:10px">
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Affiches · une seule série, ratio 2:3 verrouillé</span>
+        <div style="display:flex;flex-wrap:wrap;gap:32px 26px;align-items:flex-end;background:oklch(0.135 0 0);padding:22px 24px">
+          <sc-for list="{{ posterSizes }}" as="p" hint-placeholder-count="6">
+            <div style="display:flex;flex-direction:column;gap:8px;flex:none">
+              <span style="width:{{ p.w }};height:{{ p.h }};background:linear-gradient(160deg, oklch(0.3 0.02 66) 0%, oklch(0.18 0 0) 100%)"></span>
+              <span style="font:500 11px/1.3 'IBM Plex Mono',monospace;color:oklch(0.9 0 0)">{{ p.token }}</span>
+              <span style="font:400 10px/1.3 'IBM Plex Mono',monospace;color:oklch(0.6 0 0)">{{ p.dim }}</span>
+              <span style="font:300 11px/1.35 'Public Sans',sans-serif;color:oklch(0.58 0 0);max-width:150px;text-wrap:pretty">{{ p.use }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10d RAYONS + MOUVEMENT -->
+  <div id="10d" style="display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">10d</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Rayons, traits, mouvement</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">zéro ombre, zéro translucidité, angles francs</span></div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start">
+      <div style="width:520px;display:flex;flex-direction:column;gap:10px">
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Rayons et traits</span>
+        <div style="display:flex;flex-direction:column;gap:1px;background:oklch(0.2 0 0)">
+          <sc-for list="{{ radii }}" as="r" hint-placeholder-count="6">
+            <div style="background:oklch(0.135 0 0);padding:10px 14px;display:flex;align-items:center;gap:14px">
+              <span style="width:40px;height:28px;flex:none;background:oklch(0.28 0 0);border-radius:{{ r.px }}"></span>
+              <span style="width:104px;flex:none;font:500 12px/1 'IBM Plex Mono',monospace;color:oklch(0.93 0 0)">{{ r.token }}</span>
+              <span style="width:38px;flex:none;font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.7 0 0)">{{ r.px }}</span>
+              <span style="font:300 12px/1.4 'Public Sans',sans-serif;color:oklch(0.62 0 0);text-wrap:pretty">{{ r.use }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="width:520px;display:flex;flex-direction:column;gap:10px">
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Durées et courbes</span>
+        <div style="display:flex;flex-direction:column;gap:1px;background:oklch(0.2 0 0)">
+          <sc-for list="{{ motion }}" as="m" hint-placeholder-count="6">
+            <div style="background:oklch(0.135 0 0);padding:10px 14px;display:flex;align-items:center;gap:12px">
+              <span style="width:118px;flex:none;font:500 12px/1 'IBM Plex Mono',monospace;color:oklch(0.93 0 0)">{{ m.token }}</span>
+              <span style="width:56px;flex:none;font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.7 0 0)">{{ m.dur }}</span>
+              <span style="width:150px;flex:none;font:400 11px/1.3 'IBM Plex Mono',monospace;color:oklch(0.66 0 0)">{{ m.curve }}</span>
+              <span style="font:300 12px/1.4 'Public Sans',sans-serif;color:oklch(0.6 0 0);text-wrap:pretty">{{ m.use }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10e CODE -->
+  <div id="10e" style="display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">10e</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Ce que le code reçoit</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">catalogue d'assets pour la couleur, une extension pour le reste</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start">
+      <sc-for list="{{ code }}" as="c" hint-placeholder-count="2">
+        <div style="width:520px;display:flex;flex-direction:column;gap:9px">
+          <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">{{ c.title }}</span>
+          <pre style="margin:0;background:oklch(0.1 0 0);padding:18px 20px;font:400 12px/1.65 'IBM Plex Mono',monospace;color:oklch(0.84 0 0);overflow:hidden;white-space:pre-wrap">{{ c.body }}</pre>
+          <span style="font:300 12px/1.5 'Public Sans',sans-serif;color:oklch(0.6 0 0);text-wrap:pretty">{{ c.note }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:1020px;padding-top:8px">
+    <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Trois décisions arrêtées</span>
+    <div style="display:flex;flex-wrap:wrap;gap:20px">
+      <sc-for list="{{ decisions }}" as="d" hint-placeholder-count="3">
+        <div style="width:493px;background:oklch(0.155 0 0);padding:16px 18px;display:flex;flex-direction:column;gap:7px">
+          <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.9 0 0)">{{ d.title }}</span>
+          <span style="font:500 12px/1.4 'IBM Plex Mono',monospace;color:oklch(0.84 0.14 66)">{{ d.value }}</span>
+          <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.72 0 0);text-wrap:pretty">{{ d.body }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const appearances = [
+      { name: "Sombre", api: "dark · défaut" },
+      { name: "Sombre contraste élevé", api: "dark + increaseContrast" },
+      { name: "Clair", api: "light" },
+      { name: "Clair contraste élevé", api: "light + increaseContrast" },
+    ];
+
+    const C = (oklch, hex, ratio) => ({ css: oklch, oklch, hex, ratio: ratio || "" });
+    const row = (token, role, cells) => ({ token, role, cells });
+
+    const colorRows = [
+      row("bg.canvas", "fond de tous les écrans", [
+        C("oklch(0.11 0 0)", "#040404"), C("oklch(0 0 0)", "#000000"),
+        C("oklch(0.985 0 0)", "#fafafa"), C("oklch(1 0 0)", "#ffffff")]),
+      row("bg.surface", "listes denses, panneaux, lignes", [
+        C("oklch(0.185 0 0)", "#131313"), C("oklch(0.145 0 0)", "#0a0a0a"),
+        C("oklch(0.955 0 0)", "#f0f0f0"), C("oklch(0.94 0 0)", "#ebebeb")]),
+      row("bg.raised", "feuilles, popovers, dialogues", [
+        C("oklch(0.24 0 0)", "#1f1f1f"), C("oklch(0.2 0 0)", "#171717"),
+        C("oklch(1 0 0)", "#ffffff"), C("oklch(1 0 0)", "#ffffff")]),
+      row("bg.fill", "champs, jetons, boutons secondaires", [
+        C("oklch(0.28 0 0)", "#2b2b2b"), C("oklch(0.32 0 0)", "#353535"),
+        C("oklch(0.9 0 0)", "#dedede"), C("oklch(0.86 0 0)", "#d1d1d1")]),
+      row("text.primary", "titres, valeurs, corps", [
+        C("oklch(0.97 0 0)", "#f5f5f5", "18,5:1"), C("oklch(1 0 0)", "#ffffff", "21,0:1"),
+        C("oklch(0.2 0 0)", "#161616", "17,3:1"), C("oklch(0.12 0 0)", "#060606", "19,4:1")]),
+      row("text.secondary", "sous-titres, métadonnées", [
+        C("oklch(0.72 0 0)", "#a4a4a4", "8,2:1"), C("oklch(0.84 0 0)", "#cacaca", "12,9:1"),
+        C("oklch(0.44 0 0)", "#525252", "7,4:1"), C("oklch(0.3 0 0)", "#2e2e2e", "13,1:1")]),
+      row("text.tertiary", "libellés, aides, compteurs", [
+        C("oklch(0.6 0 0)", "#7f7f7f", "5,0:1"), C("oklch(0.7 0 0)", "#9e9e9e", "7,9:1"),
+        C("oklch(0.53 0 0)", "#6c6c6c", "5,1:1"), C("oklch(0.42 0 0)", "#4d4d4d", "8,1:1")]),
+      row("accent", "sélection, liens, actif, marque", [
+        C("oklch(0.84 0.14 66)", "#ffb75f", "11,7:1"), C("oklch(0.88 0.13 68)", "#ffc774", "13,7:1"),
+        C("oklch(0.52 0.16 55)", "#ab4700", "5,6:1"), C("oklch(0.5 0.15 55)", "#a14400", "6,0:1")]),
+      row("accent.onAccent", "texte posé sur l'accent", [
+        C("oklch(0.11 0 0)", "#040404", "11,9:1"), C("oklch(0 0 0)", "#000000", "13,7:1"),
+        C("oklch(1 0 0)", "#ffffff", "5,8:1"), C("oklch(1 0 0)", "#ffffff", "6,3:1")]),
+      row("danger", "suppression, échec d'import", [
+        C("oklch(0.68 0.19 25)", "#f75d59", "6,4:1"), C("oklch(0.74 0.18 25)", "#ff7d76", "8,6:1"),
+        C("oklch(0.52 0.2 25)", "#c21725", "5,9:1"), C("oklch(0.46 0.2 25)", "#a90015", "7,3:1")]),
+      row("success", "sync terminée, ligne validée", [
+        C("oklch(0.78 0.15 150)", "#67d283", "10,7:1"), C("oklch(0.84 0.14 150)", "#84e79c", "13,0:1"),
+        C("oklch(0.5 0.13 150)", "#137738", "5,4:1"), C("oklch(0.44 0.13 150)", "#00642a", "6,9:1")]),
+      row("separator", "traits de tableau, 1 px", [
+        C("oklch(0.2 0 0)", "#171717", "3,0:1"), C("oklch(0.3 0 0)", "#2e2e2e", "5,5:1"),
+        C("oklch(0.88 0 0)", "#d9d9d9", "3,1:1"), C("oklch(0.76 0 0)", "#b3b3b3", "5,0:1")]),
+      row("scrim", "voile sous une feuille modale", [
+        C("oklch(0 0 0 / 0.62)", "opacité 62 %"), C("oklch(0 0 0 / 0.78)", "opacité 78 %"),
+        C("oklch(0 0 0 / 0.34)", "opacité 34 %"), C("oklch(0 0 0 / 0.5)", "opacité 50 %")]),
+      row("private.mask", "contenu privé verrouillé", [
+        C("oklch(0.16 0 0)", "#0e0e0e"), C("oklch(0.1 0 0)", "#030303"),
+        C("oklch(0.9 0 0)", "#dedede"), C("oklch(0.84 0 0)", "#cacaca")]),
+    ];
+
+    const colorRules = [
+      { title: "Un seul accent", body: "L'ambre ne sert qu'à trois choses : ce qui est sélectionné, ce qui est cliquable en texte, et le mot CINESHELF. Jamais pour décorer un titre, jamais deux teintes d'accent sur un même écran." },
+      { title: "Les affiches portent la couleur", body: "Aucune affiche n'a de bordure, d'ombre, ni de coin arrondi. La couleur de l'écran vient de l'image ; les surfaces restent neutres pour ne pas concourir avec elle." },
+      { title: "Contraste élevé = plus de lumière, pas plus d'ambre", body: "En contraste élevé on monte les textes et les traits, et on ne touche l'accent que d'un cran. Les traits passent de 3:1 à 5:1, ce qui suffit pour rendre les tableaux denses lisibles." },
+      { title: "Zéro translucidité", body: "Pas de material, pas de blur sur les barres. Les barres passent d'un fond nul à bg.canvas opaque au défilement — c'est le seul changement d'état de la chrome." },
+    ];
+
+    const typeHead = ["Token", "Taille", "Famille", "Interlettrage", "Dynamic Type", "Aperçu"];
+    const T = (token, role, size, face, tracking, relative, sample, text) =>
+      ({ token, role, size, face, tracking, relative, sample, text });
+    const typeRows = [
+      T("display", "titre de héros, chiffre de repère", "56 / 1.0", "Bebas Neue", "+0.02em", ".largeTitle", "font:400 34px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em;color:oklch(0.97 0 0)", "BLADE RUNNER 2049"),
+      T("title.1", "titre d'écran, nom de fiche", "34 / 1.05", "Bebas Neue", "+0.02em", ".title", "font:400 24px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em;color:oklch(0.97 0 0)", "COLLECTIONS"),
+      T("title.2", "titre de rail, de section", "22 / 1.15", "Bebas Neue", "+0.03em", ".title2", "font:400 18px/1 'Bebas Neue',sans-serif;letter-spacing:0.03em;color:oklch(0.95 0 0)", "AJOUTÉS RÉCEMMENT"),
+      T("headline", "titre de ligne, de carte", "15 / 1.3", "Archivo 600", "0", ".headline", "font:600 15px/1.3 Archivo,sans-serif;color:oklch(0.95 0 0)", "Le Samouraï"),
+      T("body", "corps, synopsis, notes", "15 / 1.55", "Public Sans 300", "0", ".body", "font:300 15px/1.55 'Public Sans',sans-serif;color:oklch(0.9 0 0)", "Un tueur à gages solitaire, méthodique, trahi."),
+      T("callout", "valeur de champ, inspecteur", "13 / 1.45", "Archivo 400", "0", ".callout", "font:400 13px/1.45 Archivo,sans-serif;color:oklch(0.9 0 0)", "Jean-Pierre Melville · 1967"),
+      T("label", "libellé de champ, en-tête", "11 / 1", "Archivo Narrow 600", "+0.12em, caps", ".caption", "font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.72 0 0)", "Réalisation"),
+      T("action", "boutons, segments, onglets", "12 / 1", "Archivo Narrow 600", "+0.08em, caps", ".subheadline", "font:600 12px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase;color:oklch(0.95 0 0)", "Ajouter à ma liste"),
+      T("meta", "métadonnée, compteur, chemin", "11 / 1.35", "IBM Plex Mono 400", "+0.02em", ".caption2", "font:400 11px/1.35 'IBM Plex Mono',monospace;color:oklch(0.68 0 0)", "1 284 titres · 96 Go · 4 sources"),
+      T("numeric", "colonnes chiffrées, durées", "12 / 1.3", "IBM Plex Mono 500", "0, tabulaire", ".footnote", "font:500 12px/1.3 'IBM Plex Mono',monospace;color:oklch(0.88 0 0)", "01:45:12   1967   8,4"),
+      T("micro", "aide sous un champ, mention", "10 / 1.4", "IBM Plex Mono 400", "+0.04em", ".caption2", "font:400 10px/1.4 'IBM Plex Mono',monospace;color:oklch(0.56 0 0)", "Année seule acceptée si le mois est inconnu"),
+    ];
+
+    const typeRules = [
+      { title: "Bebas ne descend jamais sous 18 pt", body: "Au-delà d'un cran de Dynamic Type au-dessus de .large, les titres Bebas basculent sur Archivo Narrow 700 : la condensée tient mal les grandes tailles accessibles sur deux lignes." },
+      { title: "Le mono porte les chiffres", body: "Tout ce qui s'aligne en colonne — durées, années, tailles de fichier, notes — est en IBM Plex Mono avec chiffres tabulaires. Aucun chiffre en Public Sans dans un tableau." },
+      { title: "Deux niveaux de caps, pas trois", body: "label pour ce qui nomme un champ, action pour ce qui se clique. Les caps ne servent jamais à un titre de contenu — ce rôle appartient à Bebas." },
+    ];
+
+    const spacing = [
+      { token: "space.1", px: "4px", use: "icône ↔ son libellé" },
+      { token: "space.2", px: "8px", use: "boutons voisins, jetons" },
+      { token: "space.3", px: "12px", use: "champs d'un même groupe" },
+      { token: "space.4", px: "16px", use: "affiches d'un rail" },
+      { token: "space.5", px: "24px", use: "gouttière de grille" },
+      { token: "space.6", px: "32px", use: "marge d'écran, iOS" },
+      { token: "space.7", px: "48px", use: "entre deux rails" },
+      { token: "space.8", px: "64px", use: "marge d'écran, macOS" },
+    ];
+
+    const density = [
+      { label: "Hauteur de ligne de tableau", dense: "28", roomy: "44" },
+      { label: "Hauteur de barre d'outils", dense: "44", roomy: "60" },
+      { label: "Marge horizontale d'écran", dense: "24", roomy: "36" },
+      { label: "Espacement vertical d'un formulaire", dense: "10", roomy: "20" },
+      { label: "Hauteur de champ", dense: "28", roomy: "38" },
+      { label: "Cible tactile minimale", dense: "—", roomy: "44" },
+      { label: "Gouttière de grille d'affiches", dense: "16", roomy: "24" },
+      { label: "Interlignage du corps", dense: "1,45", roomy: "1,6" },
+    ];
+
+    const posterSizes = [
+      { token: "poster.xs", dim: "32 × 48", w: "32px", h: "48px", use: "ligne de tableau, résultat de recherche" },
+      { token: "poster.s", dim: "56 × 84", w: "56px", h: "84px", use: "liste dense, jeton de collection" },
+      { token: "poster.m", dim: "92 × 138", w: "92px", h: "138px", use: "rail iOS, grille compacte" },
+      { token: "poster.l", dim: "140 × 210", w: "140px", h: "210px", use: "rail macOS, grille par défaut" },
+      { token: "poster.xl", dim: "200 × 300", w: "200px", h: "300px", use: "fiche titre, inspecteur" },
+      { token: "poster.xxl", dim: "280 × 420", w: "280px", h: "420px", use: "galerie, visionneuse" },
+    ];
+
+    const radii = [
+      { token: "radius.none", px: "0px", use: "affiches, images, tout ce qui est photographique" },
+      { token: "radius.xs", px: "2px", use: "jetons, champs, boutons" },
+      { token: "radius.s", px: "4px", use: "cartes de collection, vignettes non-affiche" },
+      { token: "radius.m", px: "10px", use: "popover, menu, notification" },
+      { token: "radius.l", px: "14px", use: "feuille modale, coin haut seulement sur iOS" },
+      { token: "stroke.hairline", px: "1px", use: "seul trait autorisé, couleur separator" },
+    ];
+
+    const motion = [
+      { token: "dur.instant", dur: "0 ms", curve: "—", use: "sélection dans un tableau dense" },
+      { token: "dur.fast", dur: "120 ms", curve: "easeOut", use: "survol, focus, bascule d'état" },
+      { token: "dur.base", dur: "220 ms", curve: "easeInOut", use: "apparition d'un panneau, d'un bandeau" },
+      { token: "dur.sheet", dur: "320 ms", curve: "spring(0.86, 0.28)", use: "feuille, changement de palier" },
+      { token: "dur.zoom", dur: "380 ms", curve: "spring(0.9, 0.3)", use: "affiche → visionneuse plein écran" },
+      { token: "dur.slow", dur: "600 ms", curve: "easeInOut", use: "fondu du héros au changement de titre" },
+    ];
+
+    const code = [
+      { title: "Couleur · catalogue d'assets",
+        note: "Une entrée par token, quatre variantes par entrée (Any/Dark × Normal/High Contrast). Aucun Color(hex:) dans le code applicatif — le catalogue est le seul point d'entrée, ce qui rend le basculement d'apparence gratuit.",
+        body: "Assets.xcassets/\n  Colors/\n    bg.canvas        Any · Dark · Any HC · Dark HC\n    bg.surface\n    bg.raised\n    bg.fill\n    text.primary\n    text.secondary\n    text.tertiary\n    accent           (aussi AccentColor)\n    accent.onAccent\n    danger\n    success\n    separator\n    private.mask\n\nColor.bgCanvas   // généré, pas écrit à la main" },
+      { title: "Le reste · une extension, des constantes",
+        note: "Espacement, rayons et durées sont des constantes statiques : pas d'environnement, pas d'injection. La densité est la seule valeur dynamique, lue depuis un EnvironmentValue posé une fois par plateforme.",
+        body: "enum Space { static let s1: CGFloat = 4, s2 = 8, s3 = 12,\n  s4 = 16, s5 = 24, s6 = 32, s7 = 48, s8 = 64 }\n\nenum Radius { static let none: CGFloat = 0, xs = 2,\n  s = 4, m = 10, l = 14 }\n\nenum Poster {\n  case xs, s, m, l, xl, xxl\n  var width: CGFloat { ... }          // hauteur = width * 1.5\n}\n\nextension Font {\n  static let display = Font.custom(\"BebasNeue-Regular\",\n    size: 56, relativeTo: .largeTitle)\n  static let headline = Font.custom(\"Archivo-SemiBold\",\n    size: 15, relativeTo: .headline)\n  // …\n}\n\n@Environment(\\.density) var density  // .dense | .roomy" },
+    ];
+
+    const decisions = [
+      { title: "Densité sur iPad",
+        value: "ample par défaut, dense si un pointeur est connecté",
+        body: "L'iPad se pilote au doigt la plupart du temps : les cibles restent à 44 pt et les marges à 36 pt. Dès qu'un clavier Magic Keyboard ou un trackpad est détecté, l'app passe au jeu dense — mêmes écrans, lignes à 28 pt — parce que la précision du curseur le permet. La bascule est animée en dur.base et reste réversible dans les préférences." },
+      { title: "Taille de texte au premier lancement",
+        value: "réglage système sur iPhone et iPad, taille fixe sur Mac",
+        body: "Sur iOS l'app suit Dynamic Type dès le départ : un utilisateur qui a choisi du grand texte partout le retrouve ici, et les grilles denses cèdent la place au jeu ample au-delà de .large. Sur Mac il n'y a pas d'équivalent système fiable, donc la typo est fixe et la seule variable est la densité." },
+      { title: "Ambre en apparence claire",
+        value: "ambre foncé #ab4700, même rôle qu'en sombre",
+        body: "L'accent reste une couleur unique dans les quatre apparences : mieux vaut un ambre qui vire au brun-orange qu'un mode clair sans accent, qui obligerait à réinventer sélection, liens et état actif. 5,6:1 sur fond clair, blanc lisible dessus à 5,8:1." },
+    ];
+
+    return { appearances, colorRows, colorRules, typeHead, typeRows, typeRules,
+      spacing, density, posterSizes, radii, motion, code, decisions };
+  }
+}
+</script>
+</body>
+</html>

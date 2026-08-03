@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Narrow:wght@400;500;600;700&family=Bebas+Neue&family=Inter+Tight:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=Public+Sans:wght@300;400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: oklch(0.125 0 0); }
+  a { color: oklch(0.8 0.1 72); text-decoration: none; }
+  a:hover { color: oklch(0.9 0.1 72); }
+</style>
+</helmet>
+
+<section style="display:flex;flex-direction:column;gap:18px;padding:64px 64px 0;font-family:'Public Sans',system-ui,sans-serif;color:oklch(0.95 0 0);max-width:1100px">
+  <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+    <span style="font:500 12px/1 'IBM Plex Mono',monospace;letter-spacing:0.2em;padding:6px 10px;background:oklch(0.84 0.14 66);color:oklch(0.11 0 0)">PLANCHE 6 / 8</span>
+    <h1 style="margin:0;font:600 40px/1.05 Archivo,sans-serif;letter-spacing:-0.02em">Les formulaires et les surfaces superposées</h1>
+  </div>
+  <p style="margin:0;font:300 16px/1.6 'Public Sans',sans-serif;color:oklch(0.72 0 0);text-wrap:pretty">Étape 6 telle quelle : le même jeu de champs rendu en dense et en ample, puis les feuilles, popovers, dialogues, menus, notifications et panneaux latéraux.</p>
+  <div style="display:flex;flex-direction:column;gap:12px;padding:22px 24px;background:oklch(0.155 0 0)">
+    <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Ordre de lecture</span>
+    <p style="margin:0;font:300 14px/1.6 'Public Sans',sans-serif;color:oklch(0.76 0 0)"><a href="#8a">8a</a> formulaire dense · <a href="#8b">8b</a> formulaire ample · <a href="#8c">8c</a> feuille et ses paliers · <a href="#8d">8d</a> surfaces superposées · <a href="#8e">8e</a> panneau latéral.</p>
+  </div>
+</section>
+<section style="display:flex;flex-direction:column;gap:52px;padding:64px;font-family:'Public Sans',system-ui,sans-serif;color:oklch(0.95 0 0)">
+
+  <div style="display:flex;flex-direction:column;gap:14px;max-width:1000px">
+    <div style="font:500 12px/1 'IBM Plex Mono',monospace;letter-spacing:0.24em;text-transform:uppercase;color:oklch(0.62 0 0)">Étape 6 · Formulaires et surfaces superposées</div>
+    <h1 style="margin:0;font:600 44px/1.05 Archivo,sans-serif;letter-spacing:-0.02em">Saisir, et poser par-dessus</h1>
+    <p style="margin:0;font:300 17px/1.6 'Public Sans',sans-serif;color:oklch(0.72 0 0);text-wrap:pretty">Le même jeu de champs rendu deux fois : dense pour la gestion, aéré pour l'édition rapide depuis une fiche. Puis les huit surfaces qui se posent par-dessus. Aucune n'utilise de matériau translucide : elles s'appuient sur un noir plus profond que le fond et sur l'assombrissement de ce qui est derrière — ce qui règle d'avance <span style="font-family:'IBM Plex Mono',monospace;font-size:14px">Reduce Transparency</span>.</p>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:44px;align-items:flex-start">
+
+    <!-- 8a FORMULAIRE DENSE -->
+    <div id="8a" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:12px"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">8a</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Formulaire dense · gestion</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">tous les types de champs et leurs états</span></div>
+      <div data-screen-label="8a — Formulaire dense" style="width:660px;height:1020px;overflow:hidden;background:oklch(0.135 0 0);padding:24px;display:flex;flex-direction:column;gap:20px">
+        <div style="display:flex;align-items:baseline;gap:12px"><span style="font:400 26px/1 'Bebas Neue',sans-serif;color:oklch(0.98 0 0)">Dune</span><span style="font:400 11px/1 'IBM Plex Mono',monospace;color:oklch(0.54 0 0)">modifié il y a 4 min · non enregistré</span></div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <span style="font:600 10px/1 'Archivo Narrow',sans-serif;letter-spacing:0.22em;text-transform:uppercase;color:oklch(0.58 0 0)">Identité</span>
+          <div style="display:flex;flex-direction:column;gap:5px"><span style="font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Titre</span><span style="background:oklch(1 0 0 / 0.08);padding:9px 11px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.96 0 0);border-bottom:2px solid oklch(0.8 0.14 66)">Dune<span style="color:oklch(0.8 0.14 66)">|</span></span><span style="font:400 10px/1.4 'IBM Plex Mono',monospace;color:oklch(0.5 0 0)">champ actif · le libellé reste au-dessus, jamais dans le champ</span></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><span style="font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Titre original</span><span style="background:oklch(1 0 0 / 0.08);padding:9px 11px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.5 0 0)">facultatif</span></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><span style="font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Synopsis</span><span style="background:oklch(1 0 0 / 0.08);padding:9px 11px;font:400 13px/1.5 'Archivo Narrow',sans-serif;color:oklch(0.92 0 0);height:74px">L'héritier d'une maison noble est envoyé sur la planète la plus hostile de l'univers connu.</span><span style="font:400 10px/1 'IBM Plex Mono',monospace;color:oklch(0.5 0 0);align-self:flex-end">92 / 2 000</span></div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <span style="font:600 10px/1 'Archivo Narrow',sans-serif;letter-spacing:0.22em;text-transform:uppercase;color:oklch(0.58 0 0)">Dates et durée</span>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Sortie · précision variable</span>
+            <div style="display:flex;gap:6px">
+              <span style="padding:8px 12px;background:oklch(0.8 0.14 66);color:oklch(0.14 0 0);font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Année</span>
+              <span style="padding:8px 12px;background:oklch(1 0 0 / 0.1);color:oklch(0.86 0 0);font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Mois</span>
+              <span style="padding:8px 12px;background:oklch(1 0 0 / 0.1);color:oklch(0.86 0 0);font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Jour</span>
+              <span style="margin-left:12px;background:oklch(1 0 0 / 0.08);padding:8px 12px;font:400 13px/1 'IBM Plex Mono',monospace;color:oklch(0.96 0 0)">2021</span>
+            </div>
+            <span style="font:400 10px/1.4 'IBM Plex Mono',monospace;color:oklch(0.5 0 0)">une sortie connue à l'année ne doit pas mentir en affichant un 1er janvier</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:5px"><span style="font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Durée · minutes</span><span style="background:oklch(1 0 0 / 0.08);padding:9px 11px;font:400 13px/1 'IBM Plex Mono',monospace;color:oklch(0.96 0 0);display:flex;justify-content:space-between">155<span style="color:oklch(0.62 0 0)">− ＋</span></span></div>
+            <div style="display:flex;flex-direction:column;gap:5px"><span style="font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.82 0.14 35)">Durée · erreur</span><span style="background:oklch(0.7 0.19 35 / 0.12);padding:9px 11px;font:400 13px/1 'IBM Plex Mono',monospace;color:oklch(0.96 0 0);border-bottom:2px solid oklch(0.7 0.19 35)">2h35</span><span style="font:400 10px/1.4 'Archivo Narrow',sans-serif;color:oklch(0.82 0.14 35)">Entrez un nombre de minutes, sans unité.</span></div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <span style="font:600 10px/1 'Archivo Narrow',sans-serif;letter-spacing:0.22em;text-transform:uppercase;color:oklch(0.58 0 0)">Classement</span>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Note</span><span style="display:flex;gap:5px;font:400 20px/1 'Archivo Narrow',sans-serif;color:oklch(0.8 0.14 66)">★ ★ ★ ★ <span style="color:oklch(0.34 0 0)">★</span> <span style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.56 0 0);align-self:center">effacer</span></span></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><span style="font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Collection · sélecteur simple</span><span style="background:oklch(1 0 0 / 0.08);padding:9px 11px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.96 0 0);display:flex;justify-content:space-between">Denis Villeneuve<span style="color:oklch(0.62 0 0)">▾</span></span></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Genres · sélecteur multiple, création à la volée</span>
+            <span style="background:oklch(1 0 0 / 0.08);padding:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span style="padding:5px 8px;background:oklch(0.8 0.14 66 / 0.22);font:400 11px/1 'Archivo Narrow',sans-serif;color:oklch(0.9 0.08 66)">Science-fiction ✕</span><span style="padding:5px 8px;background:oklch(1 0 0 / 0.09);font:400 11px/1 'Archivo Narrow',sans-serif;color:oklch(0.86 0 0)">Aventure ✕</span><span style="font:400 12px/1 'Archivo Narrow',sans-serif;color:oklch(0.96 0 0)">épop<span style="color:oklch(0.8 0.14 66)">|</span></span></span>
+            <span style="background:oklch(0.17 0 0);display:flex;flex-direction:column"><span style="padding:8px 11px;font:400 12px/1 'Archivo Narrow',sans-serif;color:oklch(0.62 0 0)">Aucun genre existant ne correspond</span><span style="padding:8px 11px;font:600 12px/1 'Archivo Narrow',sans-serif;color:oklch(0.14 0 0);background:oklch(0.8 0.14 66)">Créer le genre « épop… » ⏎</span></span>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <span style="font:600 10px/1 'Archivo Narrow',sans-serif;letter-spacing:0.22em;text-transform:uppercase;color:oklch(0.58 0 0)">Visibilité et profil</span>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;flex-direction:column;gap:3px"><span style="font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.92 0 0)">Privé</span><span style="font:400 10px/1 'IBM Plex Mono',monospace;color:oklch(0.5 0 0)">masqué des profils invités et de Spotlight</span></span><span style="width:40px;height:22px;border-radius:11px;background:oklch(0.8 0.14 66);position:relative;flex:none"><span style="position:absolute;right:2px;top:2px;width:18px;height:18px;border-radius:50%;background:oklch(0.14 0 0)"></span></span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;flex-direction:column;gap:3px"><span style="font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.5 0 0)">Archivé</span><span style="font:400 10px/1 'IBM Plex Mono',monospace;color:oklch(0.42 0 0)">désactivé tant que le titre est privé</span></span><span style="width:40px;height:22px;border-radius:11px;background:oklch(1 0 0 / 0.07);position:relative;flex:none"><span style="position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:oklch(0.4 0 0)"></span></span></div>
+          <div style="display:flex;flex-direction:column;gap:7px"><span style="font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Couleur de profil</span><span style="display:flex;gap:9px"><span style="width:28px;height:28px;background:oklch(0.8 0.14 66);outline:2px solid oklch(0.99 0 0);outline-offset:2px"></span><span style="width:28px;height:28px;background:oklch(0.62 0.14 250)"></span><span style="width:28px;height:28px;background:oklch(0.64 0.13 150)"></span><span style="width:28px;height:28px;background:oklch(0.66 0.16 15)"></span><span style="width:28px;height:28px;background:oklch(0.7 0.11 300)"></span><span style="width:28px;height:28px;background:oklch(0.78 0 0)"></span></span><span style="font:400 10px/1.4 'IBM Plex Mono',monospace;color:oklch(0.5 0 0)">six jetons, pas de sélecteur libre : la couleur reste dans le système</span></div>
+        </div>
+
+        <div style="margin-top:auto;display:flex;gap:9px;align-items:center">
+          <span style="font:400 10px/1 'IBM Plex Mono',monospace;color:oklch(0.5 0 0)">⌘⏎ enregistrer · ⎋ annuler</span>
+          <span style="margin-left:auto;padding:11px 16px;background:oklch(1 0 0 / 0.1);color:oklch(0.9 0 0);font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Annuler</span>
+          <span style="padding:11px 20px;background:oklch(0.99 0 0);color:oklch(0.12 0 0);font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Enregistrer</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8b FORMULAIRE AERE -->
+    <div id="8b" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:12px"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">8b</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Formulaire aéré · édition rapide</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">appelé depuis une fiche, cibles 44 pt</span></div>
+      <div data-screen-label="8b — Formulaire aéré" style="width:520px;height:1020px;overflow:hidden;background:oklch(0.13 0 0);display:flex;flex-direction:column">
+        <div style="height:52px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 22px">
+          <span style="font:400 12px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.8 0 0)">Annuler</span>
+          <span style="font:600 12px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.8 0.14 66)">Enregistrer</span>
+        </div>
+        <div style="padding:8px 22px 22px;display:flex;flex-direction:column;gap:26px">
+          <div style="display:flex;gap:16px;align-items:flex-end">
+            <div style="width:96px;flex:none;aspect-ratio:2/3;background:oklch(0.18 0 0);overflow:hidden"><img src="{{ heroA.u }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+            <div style="display:flex;flex-direction:column;gap:8px"><span style="font:400 40px/0.9 'Bebas Neue',sans-serif;color:oklch(0.98 0 0)">Dune</span><span style="font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.8 0.14 66)">Changer l'affiche</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:9px"><span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.62 0 0)">Titre</span><span style="background:oklch(1 0 0 / 0.09);padding:14px 15px;font:400 16px/1 'Archivo Narrow',sans-serif;color:oklch(0.97 0 0)">Dune</span></div>
+          <div style="display:flex;flex-direction:column;gap:9px"><span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.62 0 0)">Ma note</span><span style="display:flex;gap:10px;font:400 30px/1 'Archivo Narrow',sans-serif;color:oklch(0.8 0.14 66)">★ ★ ★ ★ <span style="color:oklch(0.32 0 0)">★</span></span></div>
+          <div style="display:flex;flex-direction:column;gap:9px"><span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.62 0 0)">Suivi</span><div style="display:flex;gap:8px"><span style="flex:1;height:46px;background:oklch(0.8 0.14 66);color:oklch(0.14 0 0);font:600 12px/46px 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase;text-align:center">Vu</span><span style="flex:1;height:46px;background:oklch(1 0 0 / 0.1);color:oklch(0.9 0 0);font:400 12px/46px 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase;text-align:center">À voir</span><span style="flex:1;height:46px;background:oklch(1 0 0 / 0.1);color:oklch(0.9 0 0);font:400 12px/46px 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase;text-align:center">Aucun</span></div></div>
+          <div style="display:flex;flex-direction:column;gap:9px"><span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.62 0 0)">Genres</span><span style="display:flex;gap:8px;flex-wrap:wrap"><span style="padding:11px 14px;background:oklch(0.8 0.14 66 / 0.22);font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.9 0.08 66)">Science-fiction ✕</span><span style="padding:11px 14px;background:oklch(1 0 0 / 0.09);font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.88 0 0)">Aventure ✕</span><span style="padding:11px 14px;background:oklch(1 0 0 / 0.05);font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.62 0 0)">＋ Ajouter</span></span></div>
+          <div style="display:flex;flex-direction:column;gap:9px"><span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.62 0 0)">Collection</span><span style="background:oklch(1 0 0 / 0.09);padding:14px 15px;font:400 16px/1 'Archivo Narrow',sans-serif;color:oklch(0.97 0 0);display:flex;justify-content:space-between">Denis Villeneuve<span style="color:oklch(0.62 0 0)">▾</span></span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;min-height:44px"><span style="font:400 16px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)">Privé</span><span style="width:46px;height:26px;border-radius:13px;background:oklch(0.8 0.14 66);position:relative;flex:none"><span style="position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:50%;background:oklch(0.14 0 0)"></span></span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;min-height:44px"><span style="font:400 16px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)">Favori</span><span style="width:46px;height:26px;border-radius:13px;background:oklch(1 0 0 / 0.14);position:relative;flex:none"><span style="position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:oklch(0.72 0 0)"></span></span></div>
+          <span style="font:400 11px/1.6 'Archivo Narrow',sans-serif;color:oklch(0.56 0 0)">L'édition rapide ne montre que ce qu'on corrige le soir, en une main. Tout le reste vit dans la console.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8c FEUILLE -->
+    <div id="8c" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:12px"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">8c</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Feuille · trois paliers</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">le fond s'assombrit, il ne se floute pas</span></div>
+      <div style="display:flex;gap:20px">
+        <sc-for list="{{ detents }}" as="d" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">{{ d.label }}</span>
+            <div style="position:relative;width:393px;height:620px;overflow:hidden;background:oklch(0.11 0 0)">
+              <div style="position:absolute;inset:0;overflow:hidden"><img src="{{ heroA.u }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:50% 24%;filter:blur(16px) brightness(0.7);transform:scale(1.3)"></div>
+              <div style="position:absolute;inset:0;background:oklch(0.07 0 0 / 0.62)"></div>
+              <div style="position:absolute;left:0;right:0;bottom:0;background:oklch(0.14 0 0);display:flex;flex-direction:column;gap:16px;padding:12px 20px 24px;height: {{ d.h }}">
+                <span style="width:38px;height:4px;border-radius:2px;background:oklch(1 0 0 / 0.24);align-self:center"></span>
+                <div style="display:flex;align-items:baseline;gap:10px"><span style="font:400 26px/1 'Bebas Neue',sans-serif;color:oklch(0.98 0 0)">{{ d.title }}</span><span style="font:400 10px/1 'IBM Plex Mono',monospace;color:oklch(0.56 0 0)">{{ d.sub }}</span></div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                  <sc-for list="{{ d.items }}" as="it" hint-placeholder-count="4">
+                    <span style="display:flex;justify-content:space-between;align-items:center;min-height:44px;font:400 15px/1 'Archivo Narrow',sans-serif;color:oklch(0.92 0 0)">{{ it.n }}<span style="font:400 12px/1 'Archivo Narrow',sans-serif;color: {{ it.c }}">{{ it.v }}</span></span>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- 8d SURFACES -->
+    <div id="8d" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:12px"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">8d</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Popover, dialogue, confirmation, menus, notification</h2></div>
+      <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Popover · ancré sous son déclencheur</span>
+          <div style="position:relative;width:460px;height:400px;overflow:hidden;background:oklch(0.11 0 0);padding:16px">
+            <div style="display:flex;gap:16px;justify-content:flex-end;font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.74 0 0)"><span>Trier ▾</span><span style="color:oklch(0.14 0 0);background:oklch(0.8 0.14 66);padding:6px 10px;margin:-6px -10px;font-weight:600">Filtres · 2</span></div>
+            <div style="position:absolute;right:16px;top:56px;width:270px;background:oklch(0.17 0 0);padding:16px;display:flex;flex-direction:column;gap:14px">
+              <span style="font:600 10px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Filtrer les titres</span>
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <span style="display:flex;justify-content:space-between;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.92 0 0)">Genre<span style="color:oklch(0.8 0.14 66)">Drame ▾</span></span>
+                <span style="display:flex;justify-content:space-between;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.92 0 0)">Note minimale<span style="color:oklch(0.8 0.14 66)">★ 4</span></span>
+                <span style="display:flex;justify-content:space-between;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.92 0 0)">Durée<span style="color:oklch(0.66 0 0)">toutes ▾</span></span>
+                <span style="display:flex;justify-content:space-between;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.92 0 0)">Décennie<span style="color:oklch(0.66 0 0)">toutes ▾</span></span>
+                <span style="display:flex;justify-content:space-between;align-items:center;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.92 0 0)">Non vus seulement<span style="width:38px;height:21px;border-radius:11px;background:oklch(1 0 0 / 0.14);position:relative"><span style="position:absolute;left:2px;top:2px;width:17px;height:17px;border-radius:50%;background:oklch(0.72 0 0)"></span></span></span>
+              </div>
+              <span style="font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Réinitialiser les filtres</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Dialogue · action neutre</span>
+          <div style="position:relative;width:460px;height:400px;overflow:hidden;background:oklch(0.11 0 0);display:flex;align-items:center;justify-content:center">
+            <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px;opacity:0.5"><sc-for list="{{ railA1 }}" as="f" hint-placeholder-count="8"><div style="aspect-ratio:2/3;background:oklch(0.16 0 0);overflow:hidden"><img src="{{ f.u }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div></sc-for></div>
+            <div style="position:absolute;inset:0;background:oklch(0.07 0 0 / 0.72)"></div>
+            <div style="position:relative;width:330px;background:oklch(0.17 0 0);padding:22px;display:flex;flex-direction:column;gap:14px">
+              <span style="font:400 24px/1 'Bebas Neue',sans-serif;color:oklch(0.98 0 0)">Nouvelle collection</span>
+              <span style="font:400 13px/1.5 'Archivo Narrow',sans-serif;color:oklch(0.78 0 0)">Les 6 titres sélectionnés y seront rangés. Tu pourras la renommer plus tard.</span>
+              <span style="background:oklch(1 0 0 / 0.09);padding:11px 12px;font:400 14px/1 'Archivo Narrow',sans-serif;color:oklch(0.97 0 0);border-bottom:2px solid oklch(0.8 0.14 66)">Vus en août<span style="color:oklch(0.8 0.14 66)">|</span></span>
+              <div style="display:flex;gap:9px;justify-content:flex-end;padding-top:4px"><span style="padding:11px 16px;background:oklch(1 0 0 / 0.1);color:oklch(0.9 0 0);font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Annuler</span><span style="padding:11px 18px;background:oklch(0.99 0 0);color:oklch(0.12 0 0);font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Créer</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Confirmation destructive</span>
+          <div style="position:relative;width:460px;height:400px;overflow:hidden;background:oklch(0.11 0 0);display:flex;align-items:center;justify-content:center">
+            <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px;opacity:0.5"><sc-for list="{{ railA2 }}" as="f" hint-placeholder-count="8"><div style="aspect-ratio:2/3;background:oklch(0.16 0 0);overflow:hidden"><img src="{{ f.u }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div></sc-for></div>
+            <div style="position:absolute;inset:0;background:oklch(0.07 0 0 / 0.72)"></div>
+            <div style="position:relative;width:330px;background:oklch(0.17 0 0);padding:22px;display:flex;flex-direction:column;gap:14px">
+              <span style="font:400 24px/1 'Bebas Neue',sans-serif;color:oklch(0.98 0 0)">Vider la corbeille ?</span>
+              <span style="font:400 13px/1.5 'Archivo Narrow',sans-serif;color:oklch(0.78 0 0)">41 éléments et 214 Mo d'images seront supprimés définitivement, sur tous tes appareils. Cette action ne peut pas être annulée.</span>
+              <span style="font:400 11px/1.5 'IBM Plex Mono',monospace;color:oklch(0.82 0.14 35)">7 titres · 12 personnes · 22 images</span>
+              <div style="display:flex;flex-direction:column;gap:8px;padding-top:4px"><span style="padding:12px 0;background:oklch(0.42 0.16 27);color:oklch(0.99 0 0);font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase;text-align:center">Vider définitivement</span><span style="padding:12px 0;background:oklch(1 0 0 / 0.1);color:oklch(0.9 0 0);font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase;text-align:center">Annuler</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Menu contextuel sur une carte</span>
+          <div style="position:relative;width:460px;height:400px;overflow:hidden;background:oklch(0.11 0 0);padding:16px;display:flex;gap:12px">
+            <div style="width:130px;flex:none;aspect-ratio:2/3;background:oklch(0.16 0 0);overflow:hidden;outline:2px solid oklch(0.8 0.14 66);outline-offset:2px"><img src="{{ heroB.u }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+            <div style="width:250px;background:oklch(0.17 0 0);padding:6px 0;display:flex;flex-direction:column;align-self:flex-start">
+              <span style="display:flex;justify-content:space-between;padding:9px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)">Ouvrir la fiche<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.56 0 0)">⏎</span></span>
+              <span style="display:flex;justify-content:space-between;padding:9px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)">Marquer vu<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.56 0 0)">⌘V</span></span>
+              <span style="display:flex;justify-content:space-between;padding:9px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)">Ajouter à Ma liste<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.56 0 0)">⌘L</span></span>
+              <span style="height:1px;background:oklch(1 0 0 / 0.08);margin:5px 0"></span>
+              <span style="display:flex;justify-content:space-between;padding:9px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)">Modifier…<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.56 0 0)">⌘E</span></span>
+              <span style="display:flex;justify-content:space-between;padding:9px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)">Ouvrir dans la console<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.56 0 0)">⌥⌘L</span></span>
+              <span style="display:flex;justify-content:space-between;padding:9px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)">Recadrer l'affiche…</span>
+              <span style="height:1px;background:oklch(1 0 0 / 0.08);margin:5px 0"></span>
+              <span style="display:flex;justify-content:space-between;padding:9px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)">Marquer privé<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.56 0 0)">⇧⌘P</span></span>
+              <span style="display:flex;justify-content:space-between;padding:9px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)">Archiver</span>
+              <span style="display:flex;justify-content:space-between;padding:9px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.78 0.16 30)">Mettre à la corbeille<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.6 0.1 30)">⌫</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Menu de barre d'outils · affichage</span>
+          <div style="position:relative;width:460px;height:400px;overflow:hidden;background:oklch(0.11 0 0);padding:16px">
+            <div style="display:flex;gap:16px;justify-content:flex-end;font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.74 0 0)"><span>Trier ▾</span><span>Filtres</span><span style="color:oklch(0.14 0 0);background:oklch(0.8 0.14 66);padding:6px 10px;margin:-6px -10px;font-weight:600">Affichage ▾</span></div>
+            <div style="position:absolute;right:16px;top:56px;width:250px;background:oklch(0.17 0 0);padding:6px 0;display:flex;flex-direction:column">
+              <span style="padding:7px 14px;font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.56 0 0)">Disposition</span>
+              <span style="display:flex;justify-content:space-between;padding:8px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)"><span style="color:oklch(0.8 0.14 66)">✓ Portrait</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.56 0 0)">⌥⌘P</span></span>
+              <span style="display:flex;justify-content:space-between;padding:8px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)"><span style="padding-left:15px">Paysage</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.56 0 0)">⌥⌘L</span></span>
+              <span style="height:1px;background:oklch(1 0 0 / 0.08);margin:5px 0"></span>
+              <span style="padding:7px 14px;font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.56 0 0)">Taille</span>
+              <span style="display:flex;justify-content:space-between;padding:8px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)"><span style="padding-left:15px">Compacte</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.56 0 0)">⌘1</span></span>
+              <span style="display:flex;justify-content:space-between;padding:8px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)"><span style="color:oklch(0.8 0.14 66)">✓ Moyenne</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.56 0 0)">⌘2</span></span>
+              <span style="display:flex;justify-content:space-between;padding:8px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)"><span style="padding-left:15px">Grande</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.56 0 0)">⌘3</span></span>
+              <span style="height:1px;background:oklch(1 0 0 / 0.08);margin:5px 0"></span>
+              <span style="display:flex;justify-content:space-between;padding:8px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)"><span style="padding-left:15px">Afficher les archivés</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.56 0 0)">⇧⌘H</span></span>
+              <span style="display:flex;justify-content:space-between;padding:8px 14px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.94 0 0)"><span style="color:oklch(0.8 0.14 66)">✓ Masquer le privé</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.56 0 0)">⇧⌘P</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">Notification temporaire · 4 s, annulable</span>
+          <div style="position:relative;width:460px;height:400px;overflow:hidden;background:oklch(0.11 0 0);padding:16px">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"><sc-for list="{{ railB1 }}" as="f" hint-placeholder-count="8"><div style="aspect-ratio:2/3;background:oklch(0.16 0 0);overflow:hidden"><img src="{{ f.u }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div></sc-for></div>
+            <div style="position:absolute;left:50%;bottom:26px;transform:translateX(-50%);background:oklch(0.19 0 0);padding:14px 18px;display:flex;align-items:center;gap:18px">
+              <span style="font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.96 0 0)">Ajouté à Ma liste</span>
+              <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Annuler</span>
+            </div>
+            <div style="position:absolute;left:50%;bottom:22px;transform:translateX(-50%);width:180px;height:2px;background:oklch(1 0 0 / 0.14)"><span style="display:block;width:62%;height:2px;background:oklch(0.8 0.14 66)"></span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 8e PANNEAU LATERAL -->
+    <div id="8e" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:12px"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">8e</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Panneau latéral d'édition</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">la grille reste en place et se resserre, elle ne disparaît pas</span></div>
+      <div data-screen-label="8e — Panneau latéral" style="position:relative;width:1280px;height:620px;overflow:hidden;background:oklch(0.11 0 0);display:flex">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <div style="height:56px;flex:none;display:flex;align-items:center;gap:16px;padding:0 30px">
+            <span style="font:400 34px/1 'Bebas Neue',sans-serif;color:oklch(0.98 0 0)">Titres</span>
+            <span style="margin-left:auto;display:flex;gap:18px;font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.8 0 0)"><span>Trier ▾</span><span style="color:oklch(0.8 0.14 66)">Filtres · 2</span><span>Affichage ▾</span></span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;padding:8px 30px 0">
+            <sc-for list="{{ films }}" as="f" hint-placeholder-count="10">
+              <div style="min-width:0;aspect-ratio:2/3;background:oklch(0.16 0 0);overflow:hidden"><img src="{{ f.u }}" alt="{{ f.t }}" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="width:380px;flex:none;background:oklch(0.145 0 0);padding:22px;display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font:400 24px/1 'Bebas Neue',sans-serif;color:oklch(0.98 0 0)">Édition</span>
+            <span style="font:400 10px/1 'IBM Plex Mono',monospace;color:oklch(0.54 0 0)">Dune · 2021</span>
+            <span style="margin-left:auto;font:400 12px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.78 0 0)">✕</span>
+          </div>
+          <div style="display:flex;gap:14px">
+            <div style="width:88px;flex:none;aspect-ratio:2/3;background:oklch(0.18 0 0);overflow:hidden"><img src="{{ heroA.u }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+            <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+              <span style="font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Remplacer l'affiche</span>
+              <span style="font:400 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Recadrer par contexte</span>
+              <span style="font:400 10px/1.5 'IBM Plex Mono',monospace;color:oklch(0.5 0 0)">glisser une image depuis le Finder fonctionne aussi</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:11px">
+            <div style="display:flex;flex-direction:column;gap:5px"><span style="font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Titre</span><span style="background:oklch(1 0 0 / 0.08);padding:9px 11px;font:400 13px/1 'Archivo Narrow',sans-serif;color:oklch(0.96 0 0)">Dune</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+              <div style="display:flex;flex-direction:column;gap:5px"><span style="font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Sortie</span><span style="background:oklch(1 0 0 / 0.08);padding:9px 11px;font:400 13px/1 'IBM Plex Mono',monospace;color:oklch(0.96 0 0)">2021</span></div>
+              <div style="display:flex;flex-direction:column;gap:5px"><span style="font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Durée</span><span style="background:oklch(1 0 0 / 0.08);padding:9px 11px;font:400 13px/1 'IBM Plex Mono',monospace;color:oklch(0.96 0 0)">155</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px"><span style="font:600 9px/1 'Archivo Narrow',sans-serif;letter-spacing:0.2em;text-transform:uppercase;color:oklch(0.6 0 0)">Genres</span><span style="display:flex;gap:5px;flex-wrap:wrap"><span style="padding:5px 8px;background:oklch(0.8 0.14 66 / 0.2);font:400 11px/1 'Archivo Narrow',sans-serif;color:oklch(0.9 0.08 66)">Science-fiction ✕</span><span style="padding:5px 8px;background:oklch(1 0 0 / 0.09);font:400 11px/1 'Archivo Narrow',sans-serif;color:oklch(0.86 0 0)">Aventure ✕</span></span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font:400 12px/1 'Archivo Narrow',sans-serif;color:oklch(0.88 0 0)">Ma note</span><span style="font:400 16px/1 'Archivo Narrow',sans-serif;color:oklch(0.8 0.14 66)">★ ★ ★ ★ <span style="color:oklch(0.34 0 0)">★</span></span></div>
+          </div>
+          <div style="margin-top:auto;display:flex;align-items:center;gap:9px">
+            <span style="font:400 10px/1 'IBM Plex Mono',monospace;color:oklch(0.5 0 0)">⌥↑ ⌥↓ titre suivant</span>
+            <span style="margin-left:auto;padding:11px 18px;background:oklch(0.99 0 0);color:oklch(0.12 0 0);font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.08em;text-transform:uppercase">Enregistrer</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <p style="margin:0;max-width:1000px;font:300 15px/1.6 'Public Sans',sans-serif;color:oklch(0.6 0 0)">Étape 6 : <a href="#8a">8a</a> formulaire dense · <a href="#8b">8b</a> formulaire aéré · <a href="#8c">8c</a> feuille et ses paliers · <a href="#8d">8d</a> popover, dialogue, confirmation destructive, menu contextuel, menu de barre d'outils, notification · <a href="#8e">8e</a> panneau latéral. La visionneuse plein écran est en <a href="#6c">6c</a>.</p>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:22px;padding:20px 64px 80px;font-family:'Public Sans',system-ui,sans-serif;color:oklch(0.95 0 0);max-width:1100px">
+  <h2 style="margin:0;font:600 30px/1.1 Archivo,sans-serif;letter-spacing:-0.02em">Relevé de planche 6 — écarts, décisions, réserves</h2>
+  
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Écarts au brief</span>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">1. Le brief demande tous les types de champ ; le sélecteur de fichier et le champ de saisie de durée ne sont pas dessinés, faute d'équivalent clair dans ce que j'ai montré.</p>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">2. Les feuilles ont un coin arrondi en haut, seule exception à la règle des angles francs. C'est un emprunt à la convention iOS, assumé mais non discuté.</p>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">3. Aucun état d'erreur de champ n'est montré en dehors de l'import : pas de champ en rouge, pas de message de validation sous un champ.</p>
+  </div>
+  
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Décisions prises sans validation explicite</span>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">1. La précision de date est un contrôle à trois crans — année, mois, jour — plutôt qu'un sélecteur de date classique avec champs vides. C'est un choix fort, adapté aux fiches de films anciens.</p>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">2. La note est une rangée de cinq étoiles pleines ou vides, sans demi-étoile ni note sur dix.</p>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">3. Le multi-sélecteur permet de créer une valeur en cours de saisie, sans confirmation ni contrôle de doublon.</p>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">4. Les jetons de couleur sont une liste fermée de teintes dérivées de l'ambre et de deux froids. Aucun sélecteur libre.</p>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">5. La feuille a trois paliers de hauteur. Le palier intermédiaire est le palier d'ouverture par défaut.</p>
+  </div>
+  
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Mes réserves — aucune retouche appliquée</span>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">1. <strong style="font-weight:600;color:oklch(0.95 0 0)">Le formulaire ample est presque deux fois plus haut que le dense</strong> pour le même contenu. Sur iPhone, cela veut dire beaucoup de défilement pour éditer une fiche complète, et je ne montre pas comment on découpe cette fiche en sections repliables.</p>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">2. <strong style="font-weight:600;color:oklch(0.95 0 0)">L'absence d'états d'erreur de champ est un vrai trou.</strong> Une app qui importe des données mal formées aura des champs invalides à afficher, et je n'ai pas de traitement visuel pour cela.</p>
+    <p style="margin:0;font:300 15px/1.65 'Public Sans',sans-serif;color:oklch(0.8 0 0);text-wrap:pretty">3. <strong style="font-weight:600;color:oklch(0.95 0 0)">La création de valeur à la volée dans le multi-sélecteur va produire des doublons</strong> (« sci-fi », « science-fiction », « Science Fiction »). C'est exactement ce que la fusion de la planche 5 doit rattraper ensuite.</p>
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showMeta&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Cartes&quot;},&quot;posterRadius&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:3,&quot;min&quot;:0,&quot;max&quot;:16,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Cartes&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const G = {"Science Fiction":"Science-fiction","Comedy":"Comédie","Drama":"Drame","Action":"Action","Horror":"Horreur","Superhero":"Super-héros","Animated":"Animation","Biography":"Biographie","Fantasy":"Fantastique"};
+    const base = [
+      {t:"Dune",y:2021,g:"Science Fiction",u:"https://upload.wikimedia.org/wikipedia/en/8/8e/Dune_%282021_film%29.jpg"},
+      {t:"Oppenheimer",y:2023,g:"Biography",u:"https://upload.wikimedia.org/wikipedia/en/4/4a/Oppenheimer_%28film%29.jpg"},
+      {t:"Barbie",y:2023,g:"Comedy",u:"https://upload.wikimedia.org/wikipedia/en/0/0b/Barbie_2023_poster.jpg"},
+      {t:"Top Gun: Maverick",y:2022,g:"Action",u:"https://upload.wikimedia.org/wikipedia/en/1/13/Top_Gun_Maverick_Poster.jpg"},
+      {t:"Everything Everywhere All at Once",y:2022,g:"Comedy",u:"https://upload.wikimedia.org/wikipedia/en/1/1e/Everything_Everywhere_All_at_Once.jpg"},
+      {t:"Tenet",y:2020,g:"Action",u:"https://upload.wikimedia.org/wikipedia/en/1/14/Tenet_movie_poster.jpg"},
+      {t:"Nope",y:2022,g:"Horror",u:"https://upload.wikimedia.org/wikipedia/en/e/e6/Nope_%28film%29_poster.jpg"},
+      {t:"The Batman",y:2022,g:"Superhero",u:"https://upload.wikimedia.org/wikipedia/en/f/ff/The_Batman_%28film%29_poster.jpg"},
+      {t:"Nomadland",y:2021,g:"Drama",u:"https://upload.wikimedia.org/wikipedia/en/a/a5/Nomadland_poster.jpeg"},
+      {t:"Soul",y:2020,g:"Animated",u:"https://upload.wikimedia.org/wikipedia/en/3/39/Soul_%282020_film%29_poster.jpg"},
+      {t:"Tár",y:2022,g:"Drama",u:"https://upload.wikimedia.org/wikipedia/en/1/19/T%C3%A1r_poster.jpg"},
+      {t:"The Northman",y:2022,g:"Action",u:"https://upload.wikimedia.org/wikipedia/en/8/8c/The_Northman.png"},
+      {t:"Past Lives",y:2023,g:"Drama",u:"https://upload.wikimedia.org/wikipedia/en/d/da/Past_Lives_film_poster.png"},
+      {t:"Licorice Pizza",y:2021,g:"Comedy",u:"https://upload.wikimedia.org/wikipedia/en/3/3c/LicoricePizzaPoster.jpeg"},
+      {t:"The Banshees of Inisherin",y:2022,g:"Comedy",u:"https://upload.wikimedia.org/wikipedia/en/6/6e/The_Banshees_of_Inisherin.jpg"},
+      {t:"Aftersun",y:2022,g:"Drama",u:"https://upload.wikimedia.org/wikipedia/en/1/11/Aftersun.jpg"},
+      {t:"Spider-Man: Across the Spider-Verse",y:2023,g:"Animated",u:"https://upload.wikimedia.org/wikipedia/en/b/b4/Spider-Man-_Across_the_Spider-Verse_poster.jpg"},
+      {t:"The Menu",y:2022,g:"Comedy",u:"https://upload.wikimedia.org/wikipedia/en/d/db/The_Menu_%282022_film%29.jpg"},
+      {t:"Elvis",y:2022,g:"Drama",u:"https://upload.wikimedia.org/wikipedia/en/7/79/Elvis_2022_poster.jpg"},
+      {t:"Minari",y:2021,g:"Drama",u:"https://upload.wikimedia.org/wikipedia/en/8/8a/Minari_%28film%29.png"},
+      {t:"The Green Knight",y:2021,g:"Fantasy",u:"https://upload.wikimedia.org/wikipedia/en/0/09/The_Green_Knight_poster.jpeg"},
+      {t:"First Cow",y:2020,g:"Drama",u:"https://upload.wikimedia.org/wikipedia/en/4/43/First_Cow_poster.jpeg"}
+    ];
+    const dots = ["\u25CF\u25CF\u25CF\u25CF\u25CF", "\u25CF\u25CF\u25CF\u25CF\u25CB", "\u25CF\u25CF\u25CF\u25CB\u25CB", "\u25CF\u25CF\u25CF\u25CF\u25CB"];
+    const deco = base.map((f, i) => ({
+      t: f.t, y: f.y, u: f.u,
+      g: G[f.g] || f.g,
+      dots: dots[i % dots.length],
+      state: i === 4 ? "Privé" : (i === 12 ? "Archivé" : "")
+    }));
+    const P = t => deco.find(f => f.t === t);
+    const people = [
+      ["Cillian Murphy","9 titres"],["Emily Blunt","6 titres"],["Timothée Chalamet","5 titres"],
+      ["Denis Villeneuve","9 titres"],["Florence Pugh","4 titres"],["Margot Robbie","7 titres"],
+      ["Ryan Gosling","8 titres"],["Robert Downey Jr.","11 titres"],["Greta Gerwig","4 titres"],
+      ["Rebecca Ferguson","5 titres"],["Christopher Nolan","10 titres"],["Michelle Yeoh","6 titres"],
+      ["Colin Farrell","5 titres"],["Cate Blanchett","9 titres"],["Paul Mescal","3 titres"],
+      ["Jordan Peele","3 titres"]
+    ].map(([n, c]) => ({ n, c }));
+    const collections = [
+      ["Denis Villeneuve","9 titres",0],["Science-fiction","148 titres",4],["Vus en 2025","62 titres",8],
+      ["A24","57 titres",12],["Nolan","10 titres",2],["Années 2020","203 titres",6],
+      ["Animation","74 titres",10],["Palme d'or","31 titres",14]
+    ].map(([n, k, i]) => ({
+      n, k,
+      a: deco[i % deco.length].u, b: deco[(i + 1) % deco.length].u,
+      c: deco[(i + 2) % deco.length].u, d: deco[(i + 3) % deco.length].u
+    }));
+    const ratios = ["2/3", "16/9", "3/4", "1/1", "4/5", "2/3", "16/9", "3/4", "1/1", "2/3", "5/4"];
+    const gallery = [...deco, ...deco].map((f, i) => ({ u: f.u, t: f.t, r: ratios[i % ratios.length] }));
+    const bookmarks = [
+      ["Villeneuve sur le tournage de Dune : Part Two", "cahiersducinema.fr", "Denis Villeneuve", "12 mars"],
+      ["Le 70 mm d'Oppenheimer, mode d'emploi", "kodak.com", "Oppenheimer", "9 mars"],
+      ["Entretien : le montage de Tár", "sightandsound.uk", "Tár", "2 mars"],
+      ["Affiches polonaises des années 70", "polishposter.com", "non rattaché", "28 févr."],
+      ["Everything Everywhere : les 12 000 plans truqués", "vfxvoice.com", "Everything Everywhere", "24 févr."],
+      ["Où voir First Cow en salle", "lacinetek.com", "First Cow", "20 févr."],
+      ["Le dossier de presse de Nope", "universal.com", "Nope", "14 févr."]
+    ].map(([t, d, e, j], i) => ({ t, d, e, j, u: deco[i % deco.length].u }));
+    const feedToday = [
+      ["21:02", "Note modifiée", "Tár passe de ★★★★ à ★★★★★", 10],
+      ["20:41", "Ajouté", "Past Lives (2023) — rayon Drame", 12],
+      ["19:58", "Recadrage", "Nouvelle image en hero sur Nope", 6],
+      ["18:12", "Archivé", "The Northman quitte la grille principale", 11]
+    ].map(([h, k, x, i]) => ({ h, k, x, u: deco[i % deco.length].u }));
+    const feedYesterday = [
+      ["23:14", "Import", "42 titres depuis Movix.csv — 3 en attente de correction", 3],
+      ["22:30", "Fusion", "Deux fiches de Colin Farrell réunies en une", 14],
+      ["21:07", "Vu", "The Banshees of Inisherin marqué vu", 14],
+      ["20:15", "Collection", "Rayon « Palme d'or » créé avec 31 titres", 16]
+    ].map(([h, k, x, i]) => ({ h, k, x, u: deco[i % deco.length].u }));
+    const split = (n, take) => {
+      const cols = Array.from({ length: n }, () => []);
+      gallery.slice(0, take).forEach((g, i) => cols[i % n].push(g));
+      return cols;
+    };
+    const gal3 = split(3, 12), gal5 = split(5, 20), gal8 = split(8, 32);
+    const rows = deco.map((f, i) => ({
+      t: f.t, y: f.y, g: f.g, u: f.u,
+      d: ["12 mars", "9 mars", "2 mars", "28 févr.", "24 févr.", "20 févr.", "14 févr."][i % 7],
+      m: [148, 181, 114, 131, 139, 150, 130, 176, 107, 100, 158, 137, 105, 133, 114, 101, 140, 107, 159, 115, 130, 122][i],
+      n: [5, 5, 4, 4, 5, 3, 4, 4, 4, 5, 5, 3, 5, 4, 4, 4, 5, 3, 4, 4, 4, 4][i],
+      s: i === 4 ? "Privé" : (i === 12 ? "Archivé" : "Visible"),
+      v: i % 3 === 0 ? "Vu" : (i % 3 === 1 ? "À voir" : "—"),
+      sel: [1, 2, 5, 8, 13].includes(i)
+    }));
+    const importRows = [
+      ["Perfect Days", "2023", "Drame", "ok", "—"],
+      ["The Substance", "2024", "Horreur", "ok", "—"],
+      ["Anatomie d'une chute", "2023", "Drame", "corriger", "durée illisible : « 2h32 »"],
+      ["Challengers", "2024", "Drame", "doublon", "existe déjà — fusionner ?"],
+      ["Civil War", "2024", "Action", "ok", "—"],
+      ["The Brutalist", "2024", "Drame", "corriger", "genre inconnu : « Épique »"],
+      ["Sinners", "2025", "Horreur", "ok", "—"],
+      ["Furiosa", "2024", "Action", "doublon", "existe déjà — fusionner ?"],
+      ["Une vie", "2023", "Biographie", "ok", "—"]
+    ].map(([t, y, g, st, msg], i) => ({
+      t, y, g, msg, u: deco[i % deco.length].u, l: 1002 + i,
+      st: st === "ok" ? "Prête" : (st === "doublon" ? "Doublon" : "À corriger"),
+      act: st === "ok" ? "" : (st === "doublon" ? "Fusionner" : "Corriger"),
+      c: st === "ok" ? "oklch(0.82 0.14 145)" : (st === "doublon" ? "oklch(0.86 0.1 66)" : "oklch(0.82 0.14 35)")
+    }));
+    const mergeFields = [
+      ["Nom", "Colin Farrell", "Colin J. Farrell", "a"],
+      ["Nom de tri", "Farrell, Colin", "farrell colin", "a"],
+      ["Naissance", "31 mai 1976", "1976", "a"],
+      ["Lieu", "Dublin, Irlande", "—", "a"],
+      ["Biographie", "412 caractères", "1 108 caractères", "b"],
+      ["Photo", "portrait 2019", "portrait 2023", "b"],
+      ["Titres liés", "5", "3", "both"],
+      ["Comptes sociaux", "1", "2", "both"]
+    ].map(([f, a, b, pick]) => {
+      const aOn = pick === "a" || pick === "both", bOn = pick === "b" || pick === "both";
+      return { f, a, b,
+        aBg: aOn ? "oklch(0.8 0.14 66 / 0.12)" : "transparent",
+        bBg: bOn ? "oklch(0.8 0.14 66 / 0.12)" : "transparent",
+        aDot: aOn ? "oklch(0.8 0.14 66)" : "oklch(1 0 0 / 0.16)",
+        bDot: bOn ? "oklch(0.8 0.14 66)" : "oklch(1 0 0 / 0.16)" };
+    });
+    const entities = [
+      ["Titres", "1 284"], ["Personnes", "3 902"], ["Collections", "38"], ["Genres", "62"],
+      ["Casting", "14 118"], ["Images", "7 411"], ["Liens", "204"], ["Signets", "61"],
+      ["Corbeille", "41"], ["Journal", "1 402"]
+    ].map(([n, k]) => ({ n, k }));
+    const AMBER = "oklch(0.8 0.14 66)", OFF = "oklch(1 0 0 / 0.14)", DARK = "oklch(0.14 0 0)", KNOB = "oklch(0.72 0 0)";
+    const exportFields = [
+      ["Titre", 1], ["Année", 1], ["Précision de date", 1], ["Durée", 1], ["Note", 1],
+      ["Genres", 1], ["Collection", 1], ["Privé", 1], ["Date d'ajout", 1],
+      ["Synopsis", 0], ["Casting", 0], ["Liens", 0], ["Image principale", 0], ["Identifiant interne", 0]
+    ].map(([n, on]) => ({ n, bg: on ? AMBER : "oklch(1 0 0 / 0.1)", mark: on ? "✓" : "" }));
+    const profiles = [
+      { i: "N", n: "Noé", lib: "Bibliothèque Maison", stat: "profil courant · 946 vus", color: AMBER,
+        bg: "oklch(0.8 0.14 66 / 0.1)", bio: OFF, bioX: "2px", bioKnob: KNOB, priv: OFF, privX: "2px", privKnob: KNOB,
+        note: "voit tout, y compris les 62 titres privés" },
+      { i: "C", n: "Camille", lib: "Bibliothèque Maison", stat: "catalogue partagé · listes séparées", color: "oklch(0.62 0.14 250)",
+        bg: "oklch(0.135 0 0)", bio: AMBER, bioX: "19px", bioKnob: DARK, priv: OFF, privX: "2px", privKnob: KNOB,
+        note: "même catalogue que Noé, watchlist et notes distinctes" },
+      { i: "I", n: "Invité", lib: "Bibliothèque Bac à sable", stat: "isolé · 128 titres", color: "oklch(0.64 0.13 150)",
+        bg: "oklch(0.135 0 0)", bio: OFF, bioX: "2px", bioKnob: KNOB, priv: AMBER, privX: "19px", privKnob: DARK,
+        note: "ne voit jamais les entités marquées privées" }
+    ];
+    const DIM = "oklch(0.62 0 0)", ON = "oklch(0.84 0.14 66)";
+    const detents = [
+      { label: "petit · 240 px", h: "240px", title: "Dune", sub: "actions rapides",
+        items: [{ n: "Marquer vu", v: "⌘V", c: DIM }, { n: "Ajouter à Ma liste", v: "⌘L", c: DIM }, { n: "Ma note", v: "★★★★☆", c: ON }] },
+      { label: "moyen · 60 %", h: "372px", title: "Modifier Dune", sub: "édition rapide",
+        items: [{ n: "Titre", v: "Dune", c: DIM }, { n: "Sortie", v: "2021", c: DIM }, { n: "Durée", v: "155 min", c: DIM }, { n: "Ma note", v: "★★★★☆", c: ON }, { n: "Privé", v: "activé", c: ON }] },
+      { label: "plein · 100 %", h: "580px", title: "Modifier Dune", sub: "tous les champs",
+        items: [{ n: "Titre", v: "Dune", c: DIM }, { n: "Titre original", v: "—", c: DIM }, { n: "Synopsis", v: "92 car.", c: DIM }, { n: "Sortie", v: "2021", c: DIM }, { n: "Durée", v: "155 min", c: DIM }, { n: "Genres", v: "2", c: DIM }, { n: "Collection", v: "Villeneuve", c: DIM }, { n: "Ma note", v: "★★★★☆", c: ON }, { n: "Privé", v: "activé", c: ON }, { n: "Archivé", v: "désactivé", c: DIM }] }
+    ];
+    const selected = new Set([0, 2, 3, 7, 11, 14]);
+    const gallerySel = gallery.slice(0, 18).map((g, i) => ({
+      ...g, s: selected.has(i), o: selected.has(i) ? 1 : 0.5
+    }));
+    return {
+      people, collections, gallery, gallerySel, bookmarks, feedToday, feedYesterday,
+      gal3, gal5, gal8, rows, importRows, mergeFields, entities, exportFields, profiles, detents,
+      rowsSel: rows.filter(r => r.sel),
+      films: deco.slice(0, 20),
+      filmsC: deco,
+      railA1: deco.slice(0, 9), railA2: deco.slice(9, 18), railA3: deco.slice(13, 22),
+      railB1: deco.slice(2, 12), railB2: deco.slice(12, 22), railB3: deco.slice(0, 10),
+      railC1: deco.slice(0, 7), railC2: deco.slice(7, 14),
+      heroA: P("Dune"), heroB: P("Oppenheimer"), heroC: P("The Batman"),
+      showMeta: this.props.showMeta ?? true,
+      radius: (this.props.posterRadius ?? 3) + "px"
+    };
+  }
+}
+</script>
+</body>
+</html>

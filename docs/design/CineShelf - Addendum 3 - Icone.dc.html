@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Archivo+Narrow:wght@400;500;600;700&family=Bebas+Neue&family=Public+Sans:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: oklch(0.125 0 0); }
+  a { color: oklch(0.84 0.14 66); text-decoration: none; }
+  a:hover { color: oklch(0.92 0.1 66); }
+</style>
+</helmet>
+
+<section style="display:flex;flex-direction:column;gap:52px;padding:64px;font-family:'Public Sans',system-ui,sans-serif;color:oklch(0.95 0 0)">
+
+  <div style="display:flex;flex-direction:column;gap:14px;max-width:1060px">
+    <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+      <span style="font:500 12px/1 'IBM Plex Mono',monospace;letter-spacing:0.2em;padding:6px 10px;background:oklch(0.84 0.14 66);color:oklch(0.11 0 0)">ADDENDUM 3</span>
+      <h1 style="margin:0;font:600 40px/1.05 Archivo,sans-serif;letter-spacing:-0.02em">L'icône de l'app</h1>
+    </div>
+    <p style="margin:0;font:300 16px/1.6 'Public Sans',sans-serif;color:oklch(0.72 0 0);text-wrap:pretty">Étape 10, jamais faite. Un seul concept, tiré de la direction 2a et de l'accent ambre, sans texte, lisible à 16 px. Les couleurs sont celles de la planche 8 : <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">bg.canvas</span> en fond, <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">accent</span> pour l'affiche. La teinte sourde de la seconde affiche est le seul ton nouveau — signalé en fin de page, pas ajouté au système.</p>
+    <p style="margin:0;font:300 14px/1.6 'Public Sans',sans-serif;color:oklch(0.58 0 0)"><a href="#12a">12a</a> le concept · <a href="#12b">12b</a> toutes les tailles · <a href="#12c">12c</a> sur un dock Mac · <a href="#12d">12d</a> sur un écran d'accueil iOS · <a href="#12e">12e</a> la source et les fichiers à produire</p>
+  </div>
+
+  <!-- 12a CONCEPT -->
+  <div id="12a" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">12a</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Le concept · une affiche, et la suivante coupée par le bord</h2></div>
+    <div style="display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start">
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">iOS · 1024 px, masque système</span>
+        <img src="icon/cineshelf-icon.svg" alt="Icône CineShelf" style="width:360px;height:360px;border-radius:80px;display:block">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">macOS · même dessin, retrait de 10 %</span>
+        <div style="width:360px;height:360px;display:flex;align-items:center;justify-content:center">
+          <img src="icon/cineshelf-icon.svg" alt="Icône CineShelf macOS" style="width:296px;height:296px;border-radius:66px;display:block">
+        </div>
+      </div>
+      <div style="width:520px;display:flex;flex-direction:column;gap:14px">
+        <div style="background:oklch(0.155 0 0);padding:18px 20px;display:flex;flex-direction:column;gap:8px">
+          <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Pourquoi ce dessin</span>
+          <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">C'est la seule signature graphique que la direction 2a possède en propre : l'affiche pleine, sans cadre ni coin arrondi, et la suivante coupée par le bord droit parce qu'il y en a d'autres. L'icône dit donc exactement ce que dit l'app au premier écran — une œuvre en grand, une collection derrière.</span>
+        </div>
+        <div style="background:oklch(0.155 0 0);padding:18px 20px;display:flex;flex-direction:column;gap:8px">
+          <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Géométrie, sur une grille de 1024</span>
+          <span style="font:400 12px/1.7 'IBM Plex Mono',monospace;color:oklch(0.82 0 0)">fond &nbsp;&nbsp;&nbsp;#050505 · bg.canvas<br>affiche &nbsp;x 128 · y 112 · 536 × 800 · ratio 2:3<br>tranche &nbsp;x 744 · y 112 · 280 × 800 · coupée à 1024<br>gouttière 80 px</span>
+          <span style="font:300 12px/1.5 'Public Sans',sans-serif;color:oklch(0.66 0 0);text-wrap:pretty">Aucune ombre, aucun dégradé, aucun coin arrondi dans le dessin : le masque du système fait les coins, comme il le fait pour les affiches de l'app.</span>
+        </div>
+        <div style="background:oklch(0.155 0 0);padding:18px 20px;display:flex;flex-direction:column;gap:8px">
+          <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Ce que j'ai écarté</span>
+          <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Une tablette d'étagère sous l'affiche : plus littéral avec le nom, mais c'est le vocabulaire de la direction 1b « Rayonnage », que tu n'as pas retenue. Un C ou un monogramme : du texte, exclu. Une bobine ou un clap : cliché, et rien à voir avec une collection possédée.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12b TAILLES -->
+  <div id="12b" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">12b</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Toutes les tailles, rendues à l'échelle réelle</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">le test de 16 px est en bas à droite de chaque série</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start">
+      <sc-for list="{{ series }}" as="s" hint-placeholder-count="2">
+        <div style="background:oklch(0.135 0 0);padding:22px 24px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.93 0 0)">{{ s.name }}</span>
+            <span style="font:400 11px/1.4 'IBM Plex Mono',monospace;color:oklch(0.6 0 0)">{{ s.note }}</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;max-width:720px">
+            <sc-for list="{{ s.sizes }}" as="z" hint-placeholder-count="8">
+              <div style="display:flex;flex-direction:column;gap:7px;align-items:center">
+                <img src="icon/cineshelf-icon.svg" alt="" style="width:{{ z.px }};height:{{ z.px }};border-radius:{{ z.r }};display:block">
+                <span style="font:400 10px/1 'IBM Plex Mono',monospace;color:oklch(0.62 0 0)">{{ z.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="max-width:1080px;background:oklch(0.155 0 0);padding:18px 20px;display:flex;flex-direction:column;gap:8px">
+      <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Le test de 16 px, honnêtement</span>
+      <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">À 16 px, la gouttière de 80 unités tombe à 1,25 px et la tranche à 4,4 px : la silhouette reste deux blocs ambres sur noir, lisible, mais la gouttière devient un cheveu. Deux options si tu la trouves trop fine : élargir la gouttière à 112 unités pour les tailles sous 32 px (une variante de dessin, comme Apple le fait pour ses petites tailles), ou l'accepter telle quelle. Je n'ai pas produit la variante — c'est une décision, pas un détail d'exécution.</span>
+    </div>
+  </div>
+
+  <!-- 12c DOCK -->
+  <div id="12c" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">12c</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Sur un dock Mac</h2><span style="font:400 13px/1 'Public Sans',sans-serif;color:oklch(0.56 0 0)">les voisines sont des aplats neutres, je ne redessine pas les icônes d'Apple</span></div>
+    <div data-screen-label="12c — Dock Mac" style="position:relative;width:1280px;height:300px;overflow:hidden;background:linear-gradient(160deg, #2a3550 0%, #4a4258 55%, #6b5340 100%);display:flex;align-items:flex-end;justify-content:center;padding-bottom:16px">
+      <div style="display:flex;align-items:flex-end;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.22);border-radius:22px">
+        <sc-for list="{{ dockLeft }}" as="d" hint-placeholder-count="5">
+          <span style="width:60px;height:60px;border-radius:14px;background:{{ d }};display:block"></span>
+        </sc-for>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+          <img src="icon/cineshelf-icon.svg" alt="CineShelf" style="width:60px;height:60px;border-radius:14px;display:block">
+          <span style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.85)"></span>
+        </div>
+        <sc-for list="{{ dockRight }}" as="d" hint-placeholder-count="4">
+          <span style="width:60px;height:60px;border-radius:14px;background:{{ d }};display:block"></span>
+        </sc-for>
+      </div>
+    </div>
+    <span style="max-width:1080px;font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.72 0 0);text-wrap:pretty">Ce qui se voit dans le dock : sur un fond de bureau clair ou coloré, l'icône est la plus sombre de la rangée, et c'est ce qui la fait ressortir plutôt que se fondre. L'ambre est la seule couleur chaude saturée du dock par défaut de macOS — pas de collision de teinte avec Photos, Musique ou Podcasts.</span>
+  </div>
+
+  <!-- 12d IOS -->
+  <div id="12d" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">12d</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">Sur un écran d'accueil iOS</h2></div>
+    <div style="display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start">
+      <div data-screen-label="12d — Accueil iOS clair" style="position:relative;width:393px;height:600px;overflow:hidden;background:linear-gradient(170deg, #dfe6f0 0%, #c8cfe0 60%, #b9bdd2 100%);padding:52px 26px 0;box-sizing:border-box">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:26px 18px">
+          <sc-for list="{{ homeBefore }}" as="h" hint-placeholder-count="6">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+              <span style="width:62px;height:62px;border-radius:15px;background:{{ h.c }};display:block"></span>
+              <span style="font:400 10px/1 -apple-system,'Public Sans',sans-serif;color:#1c1c1e">{{ h.n }}</span>
+            </div>
+          </sc-for>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <img src="icon/cineshelf-icon.svg" alt="CineShelf" style="width:62px;height:62px;border-radius:15px;display:block">
+            <span style="font:600 10px/1 -apple-system,'Public Sans',sans-serif;color:#1c1c1e">CineShelf</span>
+          </div>
+          <sc-for list="{{ homeAfter }}" as="h" hint-placeholder-count="5">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+              <span style="width:62px;height:62px;border-radius:15px;background:{{ h.c }};display:block"></span>
+              <span style="font:400 10px/1 -apple-system,'Public Sans',sans-serif;color:#1c1c1e">{{ h.n }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div data-screen-label="12d — Accueil iOS sombre" style="position:relative;width:393px;height:600px;overflow:hidden;background:linear-gradient(170deg, #1b2030 0%, #232433 60%, #2b2733 100%);padding:52px 26px 0;box-sizing:border-box">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:26px 18px">
+          <sc-for list="{{ homeBefore }}" as="h" hint-placeholder-count="6">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+              <span style="width:62px;height:62px;border-radius:15px;background:{{ h.c }};display:block"></span>
+              <span style="font:400 10px/1 -apple-system,'Public Sans',sans-serif;color:#f2f2f7">{{ h.n }}</span>
+            </div>
+          </sc-for>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <img src="icon/cineshelf-icon.svg" alt="CineShelf" style="width:62px;height:62px;border-radius:15px;display:block">
+            <span style="font:600 10px/1 -apple-system,'Public Sans',sans-serif;color:#f2f2f7">CineShelf</span>
+          </div>
+          <sc-for list="{{ homeAfter }}" as="h" hint-placeholder-count="5">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+              <span style="width:62px;height:62px;border-radius:15px;background:{{ h.c }};display:block"></span>
+              <span style="font:400 10px/1 -apple-system,'Public Sans',sans-serif;color:#f2f2f7">{{ h.n }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="width:440px;background:oklch(0.155 0 0);padding:18px 20px;display:flex;flex-direction:column;gap:8px">
+        <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.84 0.14 66)">Ce que le contexte apprend</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Sur fond clair, l'icône fonctionne : c'est un trou noir avec deux barres chaudes, elle attire l'œil sans crier. Sur fond sombre, elle perd son cadre — le noir de l'icône se confond avec le fond, et il ne reste que les deux blocs ambres flottants. C'est acceptable, et même élégant, mais ce n'est plus la même image.</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Si tu veux qu'elle tienne son cadre partout, il faut remonter le fond de l'icône à <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">bg.surface</span> (#131313) au lieu de <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">bg.canvas</span>. Deux tokens existants, aucun nouveau — c'est ta décision, je n'ai pas tranché à ta place.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12e SOURCE -->
+  <div id="12e" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:500 12px/1 'IBM Plex Mono',monospace;padding:4px 8px;border:1px solid oklch(0.8 0.14 66 / 0.5);color:oklch(0.84 0.14 66)">12e</span><h2 style="margin:0;font:400 26px/1 'Bebas Neue',sans-serif;letter-spacing:0.02em">La source et les fichiers à produire</h2></div>
+    <div style="display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start">
+      <div style="width:520px;display:flex;flex-direction:column;gap:9px">
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">icon/cineshelf-icon.svg</span>
+        <pre style="margin:0;background:oklch(0.1 0 0);padding:18px 20px;font:400 12px/1.7 'IBM Plex Mono',monospace;color:oklch(0.84 0 0);white-space:pre-wrap">&lt;svg viewBox="0 0 1024 1024"&gt;
+  &lt;rect width="1024" height="1024" fill="#050505"/&gt;
+  &lt;rect x="128" y="112" width="536" height="800"
+        fill="#ffb75f"/&gt;
+  &lt;rect x="744" y="112" width="280" height="800"
+        fill="#c98b45"/&gt;
+&lt;/svg&gt;</pre>
+        <span style="font:300 12px/1.5 'Public Sans',sans-serif;color:oklch(0.62 0 0);text-wrap:pretty">Trois rectangles, aucune courbe, aucun effet. Le fichier est dans le dossier <span style="font-family:'IBM Plex Mono',monospace;font-size:11px">icon/</span> du projet et dans le paquet de transmission.</span>
+      </div>
+      <div style="width:520px;display:flex;flex-direction:column;gap:10px">
+        <span style="font:400 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.6 0 0)">À exporter dans le catalogue d'assets</span>
+        <div style="display:flex;flex-direction:column;gap:1px;background:oklch(0.2 0 0)">
+          <sc-for list="{{ exports }}" as="e" hint-placeholder-count="4">
+            <div style="background:oklch(0.135 0 0);padding:11px 14px;display:flex;flex-direction:column;gap:3px">
+              <span style="font:600 11px/1.2 'Archivo Narrow',sans-serif;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.92 0 0)">{{ e.plat }}</span>
+              <span style="font:400 11px/1.5 'IBM Plex Mono',monospace;color:oklch(0.74 0 0)">{{ e.list }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <span style="font:300 12px/1.5 'Public Sans',sans-serif;color:oklch(0.62 0 0);text-wrap:pretty">Xcode 15 et suivants acceptent une seule image 1024 pour iOS ; les tailles ci-dessus restent utiles pour macOS, où le jeu complet est encore attendu. Aucun coin arrondi dans les fichiers exportés : le masque est appliqué par le système.</span>
+      </div>
+      <div style="width:1062px;background:oklch(0.155 0 0);padding:18px 20px;display:flex;flex-direction:column;gap:8px">
+        <span style="font:600 11px/1 'Archivo Narrow',sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.68 0.19 25)">Un ton hors planche 8, et deux décisions ouvertes</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">La tranche de droite est en <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">#c98b45</span> — un ambre assourdi qui n'est pas un token de la planche 8. Je ne l'ai pas ajouté au système : une icône n'est pas une interface, elle a le droit d'avoir sa palette propre, et ce ton ne doit apparaître nulle part dans l'app. Si tu préfères t'en passer, la tranche peut être en <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">accent</span> à pleine saturation, ce qui rapproche les deux blocs et rend la gouttière encore plus critique.</span>
+        <span style="font:300 13px/1.55 'Public Sans',sans-serif;color:oklch(0.78 0 0);text-wrap:pretty">Restent ouvertes : la variante de dessin sous 32 px (gouttière élargie), et le fond de l'icône sur écran d'accueil sombre (<span style="font-family:'IBM Plex Mono',monospace;font-size:12px">bg.canvas</span> ou <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">bg.surface</span>).</span>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const r = px => Math.round(px * 0.2237) + "px";
+    const iosSizes = [180, 167, 152, 120, 87, 80, 76, 60, 58, 40, 29, 20]
+      .map(px => ({ px: px + "px", r: r(px), label: px }));
+    const macSizes = [512, 256, 128, 64, 32, 16]
+      .map(px => ({ px: px + "px", r: r(px), label: px }));
+    const series = [
+      { name: "iOS · iPadOS", note: "1024 pour l'App Store, puis 180 · 167 · 152 · 120 · 87 · 80 · 76 · 60 · 58 · 40 · 29 · 20", sizes: iosSizes },
+      { name: "macOS", note: "1024 puis 512 · 256 · 128 · 64 · 32 · 16, dessin en retrait de 10 %", sizes: macSizes },
+    ];
+
+    const dockLeft = ["#3478f6", "#f5f5f7", "#34c759", "#1c1c1e", "#ff9f0a"];
+    const dockRight = ["#af52de", "#ff375f", "#5ac8fa", "#e5e5ea"];
+    const homeBefore = [
+      { n: "Photos", c: "#f5f5f7" }, { n: "Musique", c: "#fa2c56" },
+      { n: "Notes", c: "#fcd34d" }, { n: "Plans", c: "#34c759" },
+      { n: "Réglages", c: "#8e8e93" }, { n: "Podcasts", c: "#9c53f7" },
+    ];
+    const homeAfter = [
+      { n: "Livres", c: "#ff9f0a" }, { n: "Fichiers", c: "#3478f6" },
+      { n: "Rappels", c: "#f5f5f7" }, { n: "Horloge", c: "#1c1c1e" },
+      { n: "Bourse", c: "#2c2c2e" },
+    ];
+
+    const exports = [
+      { plat: "iOS · iPhone", list: "180 (60@3x) · 120 (60@2x, 40@3x) · 87 (29@3x) · 80 (40@2x) · 58 (29@2x) · 60 · 40 · 29 · 20" },
+      { plat: "iPadOS", list: "167 (83,5@2x) · 152 (76@2x) · 76 · 40 · 29 · 20 et leurs @2x" },
+      { plat: "App Store", list: "1024, sans transparence, sans coin arrondi" },
+      { plat: "macOS", list: "1024 · 512 · 256 · 128 · 64 · 32 · 16, avec @2x pour chaque cran" },
+    ];
+
+    return { series, dockLeft, dockRight, homeBefore, homeAfter, exports };
+  }
+}
+</script>
+</body>
+</html>

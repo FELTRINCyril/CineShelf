@@ -1987,3 +1987,67 @@ Deuxième fois, donc c'est inscrit dans `CLAUDE.md` au lieu d'être re-diagnosti
 **Suite**
 
 `L10` — édition en masse.
+
+---
+
+## 2026-08-03 (16) — Fin de session : où on en est, et ce qu'il faut pour reprendre ailleurs
+
+Session close proprement pour une reprise **sur un autre Mac**.
+
+**Ce qui a été fait aujourd'hui**
+
+Six tâches et une passe transverse, toutes poussées et vertes en CI :
+
+| | |
+|---|---|
+| `L1` | Requêtes interrogeables — titres et personnes (`eb05149` `e347b11`) |
+| — | CI réparée, invariant des relations verrouillé (`8ae4dfb`) |
+| `L2` | Service de recherche (`6ea6a8e`) |
+| `L3` | Indexation Spotlight (`4e696ee`) |
+| `L4` | Mathématiques du recadrage, `crop(for:)` branché (`07890db`) |
+| — | Handoff de design extrait et corrigé, schéma fermé (`0d76294`) |
+
+**Trois découvertes qui ont changé le travail, plutôt que de l'accompagner**
+
+1. **`#Predicate` plafonne à cinq clauses sur un `@Model`.** Mesuré : 5 clauses coûtent
+   1 328 ms de vérification de types, 6 échouent. Ni le nombre de clauses seul, ni les
+   traversées de relation n'expliquaient le mur — c'est le `@Model`. La sortie est de
+   construire l'arbre `PredicateExpressions` à la main, ce qu'une macro d'expression ne
+   peut pas faire faute de droit aux instructions.
+2. **La sémantique de `(x, y, zoom)` n'était écrite nulle part.** Deux lectures
+   plausibles donnaient des images différentes, et `L13` aurait importé les 21 colonnes
+   de la v1 de travers sans que rien ne le signale.
+3. **`entityTypeRaw` recevait le nom Swift de la classe**, sous un commentaire affirmant
+   l'inverse de ce que faisait le code. Un renommage de `@Model` aurait scindé le fil
+   d'activité en deux seaux, en silence.
+
+**Le schéma est fermé**
+
+Dix-neuf entités. Toute modification ultérieure exige un `VersionedSchema` nouveau et un
+`MigrationStage`, sans exception. Six manques ont été comblés avant fermeture, et aucune
+logique ne les consomme encore — c'est le travail de `L6`, `L11`, `L13`, `L18` et `L20`.
+
+**En attente de toi**
+
+- **Cinq questions chez Claude Design**, consolidées dans `docs/PROMPTS.md` : portée de
+  l'apparence claire, quatre valeurs manquantes au système de couleur, `Genre.colorToken`,
+  trois décisions sur l'icône, passe sur les réglages. Aucune n'empêche les tâches `L`
+  d'avancer ; **toutes empêchent les tâches `V`**.
+- **Le prompt 2** — le dump du bundle depuis le dépôt web — reste la dépendance dure de
+  `L13`, et donc de tout ce qui permettra de juger le design sur de vraies affiches.
+- Les trois addenda, eux, **sont livrés** : ce n'est pas à attendre.
+
+**Ce qui n'est pas dans Git, et pourquoi ce n'est pas grave**
+
+Rien de matériel. Le projet Xcode se régénère (`xcodegen generate`), les `.build/` et
+`DerivedData` se reconstruisent, `Package.resolved` n'a rien à résoudre puisqu'il n'y a
+aucune dépendance externe, et `.claude/settings.local.json` ne porte que des
+autorisations locales. Les polices, la palette et les dix-neuf fichiers de
+`docs/design/` **sont** versionnés : aucun asset à retélécharger, aucun transfert de
+fichier à faire.
+
+**Suite**
+
+`L10` — édition en masse. Elle ne dépend de rien, et le schéma lui donne déjà de quoi
+journaliser ce qu'elle fera : `ActivityEntry.payload` et `undoneAt` attendent `L20`, qui
+la suit immédiatement.

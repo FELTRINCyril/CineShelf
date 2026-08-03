@@ -127,6 +127,26 @@ de découpage sur sa fiche.
 > les champs sans la logique qui les consomme, puis `docs/02` et ce document marquent le
 > schéma comme fermé.
 
+> ### En attente de Claude Design — inventaire au 2026-08-03
+>
+> **Les trois addenda sont livrés**, pas attendus : états d'erreur de champ et parcours
+> de récupération à l'import (addendum 1), quatre écrans en iPhone et iPad (addendum 2),
+> icône de l'app (addendum 3). Ils sont dans [`docs/design/`](./design/), et le §10 du
+> handoff marque les deux points qu'ils comblaient comme traités. L'icône est livrée en
+> SVG.
+>
+> Ce qui reste réellement ouvert, du §10 du handoff et de la fermeture du schéma :
+>
+> | Question | Pourquoi elle bloque |
+> |---|---|
+> | **Portée de l'apparence claire** | Le design recommande : gestion en clair, accueil et fiches **forcés en sombre** quelle que soit l'apparence système. L'alternative honnête est l'app sombre uniquement. À trancher avant d'écrire le moindre écran |
+> | **Quatre valeurs manquent au système de couleur** | Teinte de remplissage d'état, couleur d'avertissement, trait d'état, piste de progression. Le designer n'en a inventé aucune, et deux jetons sont détournés en attendant (`danger` pour les colonnes non reconnues, `accent` pour les correspondances déduites) |
+> | **`Genre.colorToken`** | Des pastilles de genre colorées ont-elles un sens sous une direction à un seul accent ambre ? Addition postérieure à la v1, jamais une fonctionnalité reprise. Détail à l'écart correspondant |
+> | **Trois décisions sur l'icône** | Variante de dessin sous 32 px, fond sur écran d'accueil sombre, ton assourdi de la tranche |
+> | **Réglages** | L'écran existe pour que la liste soit complète ; il mérite une passe quand le périmètre réel des options sera connu |
+>
+> Aucune n'empêche les tâches `L` d'avancer. Toutes empêchent les tâches `V`.
+
 **Écarts connus, à reprendre plus tard** (tenus à jour au fil des sessions) :
 
 | Sujet | Où ça se règle |
@@ -147,7 +167,7 @@ de découpage sur sa fiche.
 | **`TitleCollection` et `SavedLink` n'ont volontairement pas de `filterKeys`**, contrairement à `Title` et `Person`. Ce n'est pas une harmonisation en retard, c'est un arbitrage : la dénormalisation coûte un **invariant permanent** — un champ dérivé de plus à recalculer à chaque écriture, et une porte de plus à garder fermée — alors que ces deux tables comptent des dizaines de lignes, pas des milliers. La jointure `library?.id` ne se paie qu'en SQL, où elle est négligeable à cette échelle. Ce que la traversée coûtait vraiment, c'était le budget de vérification de types (7 253 ms et 7 446 ms avec `#Predicate`), et l'arbre manuel de `CollectionQuery` / `SavedLinkQuery` le règle sans rien dénormaliser. **Ne pas « harmoniser » sans mesurer d'abord** : la bonne raison d'ajouter `filterKeys` serait un critère de filtre que la jointure ne sait pas exprimer, ou un volume qui a changé d'ordre | permanent |
 | **La densité a deux crans, pas trois.** `docs/03` §2 annonçait « compacte / standard / confortable » ; le handoff livre `.dense | .roomy`, et ce sont des écrans dessinés. `docs/03` est corrigé. Le cran est posé une fois par plateforme dans l'environnement — ample par défaut sur iPad, dense au pointeur — et c'est la seule valeur dynamique du système de design | `V5` |
 | **Le store de préférences d'affichage ne portera que `layout` et `size`**, alors que `02 §3.10` décrit `{layout, size, pageSize, sort, dir}`. `pageSize` est abandonné par `03` (§2 : `LazyVGrid` charge à la demande). `sort` et `dir` sont déjà portés par `TitleFilter`, que `NavigationModel` sérialise et restaure au lancement : les mettre aussi dans le store créerait deux sources de vérité, et les y mettre sans les brancher serait du code « au cas où ». **Le jour où le tri doit persister par contexte, c'est `TitleFilter` qui lira le store — jamais le store qui dupliquera `TitleFilter`.** Le sens de cette dépendance n'est pas négociable : l'inverse redonne deux vérités | `L1 bis` |
-| `AppIcon.appiconset` déclare 11 emplacements sans un seul nom de fichier : `actool` ne produit rien et l'app n'a **pas d'icône**. L'icône viendra de Claude Design | avant 25 |
+| `AppIcon.appiconset` déclare 11 emplacements sans un seul nom de fichier : `actool` ne produit rien et l'app n'a **pas d'icône**. **Le dessin est livré** — [`docs/design/icon/cineshelf-icon.svg`](./design/icon/cineshelf-icon.svg), trois rectangles, aucune courbe (addendum 3). Reste à produire les exports et à les poser dans le catalogue, et trois décisions de design à trancher : variante sous 32 px, fond sur écran d'accueil sombre, ton assourdi de la tranche | avant 25 |
 | `Typo.sectionTitle` inutilisé dans `App/` : **décision actée** — aucun en-tête de section n'est aujourd'hui sans style, donc rien à y brancher. Les quatre en-têtes de contenu de `TitleDetailView` gardent `railLabelStyle()` ; les promouvoir serait un changement de hiérarchie visuelle (12 → 20 pt de base sur iOS, perte des majuscules et du `tracking`), pas un branchement. À reprendre au prompt 16, qui écrit Accueil, Collections et Genres — de vrais groupes de contenu. Poser alors `sectionTitle` **une fois**, dans un `sectionTitleStyle()` sur le modèle de `railLabelStyle()`, plutôt que sur chaque appelant : ce serait un ajout aux composants, dont l'anatomie est désormais à refaire (voir la bascule) | `V5` |
 | Prédicat de production sans couverture : **il n'en reste qu'un**, `Bootstrap.existingProfile`, structurellement inatteignable en test — il ne sert qu'au cas d'une relation inverse désynchronisée par CloudKit. Les six qui étaient déclarés dans des vues (`MediaEnvironment`, `TitleDetailView`, `RouteInspector`, `Sidebar`, `TitleFilterSheet`, `DemoCatalog`) sont rapatriés dans `CineShelfCore/Queries/EntityQueries.swift`, couverts par `EntityQueryTests`, et la règle `no_predicate_outside_core` interdit qu'un septième réapparaisse dans une vue | `L17` |
 | `MediaRepository.asset(withID:)` : code mort, aucun appelant dans le dépôt | — |

@@ -1356,3 +1356,133 @@ avaient commité sans pousser. Tout est maintenant sur `origin/main`.
 **Suite**
 
 `L1`.
+
+---
+
+## 2026-08-03 (9) — `L1` : les filtres passent en SQL, et le plafond de `#Predicate`
+
+Reprise sur une machine neuve. Rien à réinstaller : `xcodegen generate`, build macOS
+vert, on enchaîne. `L1` découpée sur un critère plus net que le mien — **est-ce que
+ça touche au schéma ?** — ce qui la ramène à titres + personnes et sort la galerie et
+les préférences d'affichage dans `L1 bis`, insérable n'importe quand.
+
+**Ce qu'on croyait, et ce qui était faux**
+
+L'écart « cinq critères filtrés en mémoire » disait que `#Predicate` sature « au-delà
+de ~6 clauses » à cause des **traversées de relation optionnelle** : `(x.rel?.id ??
+sentinelle) == cible`. C'était mesuré, et c'était vrai — mais incomplet, et
+l'incomplétude changeait tout le plan.
+
+Dénormaliser les identifiants dans `Title.filterKeys` supprime bien toutes les
+traversées. **Ça n'a pas suffi.** Le prédicat à douze clauses a demandé 36 s de
+vérification de types, puis échoué.
+
+Trois hypothèses testées, dans cet ordre :
+
+1. *Les traversées sont le coût.* Faux — le prédicat n'en contient plus aucune et
+   échoue quand même.
+2. *C'est la profondeur de la chaîne `&&`, qui penche à gauche.* Faux — un arbre
+   équilibré échoue aussi (22 865 ms).
+3. *C'est le `@Model`.* Vrai. Les mêmes douze clauses sur un `struct` nu mimant les
+   mêmes colonnes passent sous 200 ms. SwiftData ajoute ses propres surcharges de
+   `PredicateExpressions`, et l'inférence explose.
+
+Le plafond réel, sur `Title` : **cinq clauses**. Et cinq coûtent déjà 1 328 ms.
+
+| Clauses | Vérification de types | Résultat |
+|---|---|---|
+| 4 | < 200 ms | passe |
+| 5 | 1 328 ms | passe |
+| 6 | 10 503 ms | échoue |
+| 12 | 30 012 ms | échoue |
+
+**La sortie**
+
+Une macro d'expression doit tenir dans une seule expression : l'inférence porte donc
+sur l'arbre entier d'un coup. Du code manuel, lui, a droit aux instructions. On
+construit donc **le même arbre `PredicateExpressions`** — mêmes nœuds `build_*`, ceux
+que la macro aurait expansés — coupé par des `let` intermédiaires. Chaque clause
+devient un problème d'inférence indépendant et minuscule. Douze clauses : sous 200 ms.
+
+C'est verbeux, et c'était le prix du filtrage en SQL. La seule alternative était de
+continuer à rapatrier le catalogue entier, ce que `L1` avait pour objet de supprimer.
+
+Vérifié, et pas supposé, que SwiftData traduit bien cet arbre : fetch depuis un
+`ModelContext` neuf, sans aucun objet en attente, donc forcément servi par SQLite.
+
+**Ce que ça a coûté ailleurs**
+
+`refreshDerived()` lit maintenant les relations. C'est le seul invariant du modèle
+qu'aucun type ne protège : une relation mutée sans rafraîchissement laisse
+`filterKeys` en arrière et le filtre devient faux **sans que rien ne casse**. Les
+chemins sont couverts un par un, par le magasin, dont celui qui n'a pas de garde-fou
+possible — un `Credit` inséré depuis la personne. Un test documente aussi le piège à
+l'envers, pour que le coût de l'oubli soit écrit quelque part.
+
+Bonne nouvelle vérifiée au passage : aucun code de production ne mute aujourd'hui
+`genres`, `credits` ni `collection` — seuls `DemoCatalog` et les tests. La fenêtre
+était donc la bonne.
+
+Et un non-événement qui méritait d'être affirmé : **renommer un genre n'invalide
+rien**, puisqu'on stocke des identifiants. Un test le dit, parce que « rien à faire »
+est le genre de conclusion qu'on croit à tort avoir oubliée.
+
+**Les personnes**
+
+`PersonFilter` dans `CineShelfCore` — type neuf, donc dans `Packages/`, contrairement
+à `TitleFilter` qu'on complète là où il vit. Rôles dénormalisés par nécessité :
+`roleValues` est un `[String]`, persisté en binaire, non interrogeable.
+
+L'âge, non. Un vivant vieillit : un âge stocké serait faux dès le lendemain, sans
+alerte. Deux branches, donc — bornes de `birthDate` calculées à la requête pour les
+vivants, `ageAtDeath` dénormalisé (immuable par nature) pour les défunts. Il faut les
+deux : quelqu'un mort jeune il y a longtemps aurait aujourd'hui l'âge d'un senior. Le
+raisonnement est écrit dans le code, parce que « simplifier » en dénormalisant l'âge
+est exactement ce qu'un lecteur futur tentera. Un test le rend vérifiable : la même
+ligne, jamais réécrite, change de tranche douze ans plus tard.
+
+Le prédicat prend `now:` en paramètre plutôt que de lire l'horloge — un test de borne
+d'âge doit pouvoir fixer le jour, sinon il change de sens à chaque anniversaire de sa
+fixture.
+
+**Les mesures, et les deux seuils**
+
+Sur 5 000 titres, douze critères actifs, magasin en mémoire, moyenne sur 5 itérations
+après une passe à blanc :
+
+| Requête | Durée | Titres rendus |
+|---|---|---|
+| Prédicat complet | **5,3 ms** | 32 |
+| Aucun filtre | **248 ms** | 5 000 |
+
+Le budget de `04 §4` est de 50 ms : on est dix fois dessous. Les assertions ne sont
+**pas** calées sur le budget mais sur la mesure — 25 ms, soit cinq fois 5,3 ms. Un
+seuil au budget laisserait passer une régression d'un facteur neuf en silence ; un
+seuil à 6 ms clignoterait sur un runner partagé.
+
+Les 248 ms sont un résultat en soi : ce n'est pas le prédicat qui coûte, c'est le
+nombre d'objets matérialisés. L'écart « pas de `fetchLimit` progressif » a maintenant
+son chiffre. Et le rapport de 46 entre les deux requêtes est le test qui attraperait
+un retour au filtrage en mémoire — s'il tombait à 1, c'est qu'on relit tout.
+
+Aucun `#Index` ajouté : un index B-tree n'aide pas un `CONTAINS` à joker initial, et
+la marge ne le réclame pas. `docs/02` §6 demandait « où mesuré utile » — mesuré, pas
+utile.
+
+**Documents**
+
+`docs/02` gagne une section §5 bis (`filterKeys`) et le tableau du plafond de
+`#Predicate` : c'est une contrainte de plateforme, elle appartient au document qui
+fait foi, pas à un commentaire de code. `CLAUDE.md` : « un commit par tâche » devient
+« un commit par sujet cohérent » — l'intention était la bissectabilité.
+
+**Ce qui reste ouvert**
+
+`L1 bis` (galerie, préférences d'affichage), avec deux pièges déjà notés sur sa fiche :
+« orphelin » écrit `asset.attachments?.isEmpty ?? true` ramènerait la traversée qu'on
+vient de chasser, et les énumérations dupliquées entre `CineShelfCore` et
+`DesignSystem` réclament un test d'égalité des `rawValue`.
+
+**Suite**
+
+`L2` — service de recherche.

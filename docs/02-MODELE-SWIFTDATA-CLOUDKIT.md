@@ -348,8 +348,9 @@ public final class Title {
     public var isArchived: Bool = false
     public var deletedAt: Date?               // corbeille
 
-    // Recherche
+    // Recherche et filtres
     public var searchText: String = ""        // maintenu à l'écriture
+    public var filterKeys: String = ""        // maintenu à l'écriture — voir §5 bis
 
     // Horodatage
     public var createdAt: Date = Date()
@@ -398,10 +399,26 @@ public extension Title {
             .compactMap { $0 }
             .joined(separator: " ")
             .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        // Les relations, sous forme interrogeable : bibliothèque, collection,
+        // genres, personnes créditées. Voir §5 bis.
+        filterKeys = FilterKey.keys(
+            [library?.id].compactMap { $0 }.map(FilterKey.library)
+                + [collection?.id].compactMap { $0 }.map(FilterKey.collection)
+                + (genres ?? []).map { FilterKey.genre($0.id) }
+                + (credits ?? []).compactMap(\.person?.id).map(FilterKey.person)
+        )
         updatedAt = .now
     }
 }
 ```
+
+> **`refreshDerived()` lit désormais les relations.** Conséquence directe : toute
+> mutation d'une relation doit l'appeler, y compris celles qui ne passent pas par
+> le titre — un `Credit` inséré depuis la personne, un genre attaché depuis le
+> genre. Une relation mutée sans rafraîchissement laisse `filterKeys` en arrière,
+> et le filtre devient faux **sans que rien ne casse**. C'est le seul invariant du
+> modèle qu'aucun type ne protège ; il est couvert cas par cas dans
+> `FilterKeyTests`.
 
 ### 3.4 Personne
 
@@ -426,6 +443,8 @@ public final class Person {
     public var isArchived: Bool = false
     public var deletedAt: Date?
     public var searchText: String = ""
+    public var filterKeys: String = ""        // maintenu — bibliothèque, genres, rôles
+    public var ageAtDeath: Int?               // maintenu — nil pour les vivants
     public var createdAt: Date = Date()
     public var updatedAt: Date = Date()
 
@@ -472,9 +491,32 @@ public extension Person {
         searchText = [displayName, bio]
             .compactMap { $0 }.joined(separator: " ")
             .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        filterKeys = FilterKey.keys(
+            [library?.id].compactMap { $0 }.map(FilterKey.library)
+                + (genres ?? []).map { FilterKey.genre($0.id) }
+                + roleValues.compactMap(PersonRole.init(rawValue:)).map(FilterKey.role)
+        )
+        ageAtDeath = deathDate.flatMap { death in
+            birthDate.flatMap {
+                Calendar.current.dateComponents([.year], from: $0, to: death).year
+            }
+        }
         updatedAt = .now
     }
 }
+
+> **Les rôles sont dans `filterKeys` par nécessité.** `roleValues` est un
+> `[String]`, que SwiftData persiste en binaire : un `contains` dessus n'est pas
+> traduisible en SQL de façon fiable. Le jeton `r:<rôle>` est ce qui rend le filtre
+> par rôle interrogeable.
+
+> **`ageAtDeath` est dénormalisé, l'âge des vivants ne l'est pas — et ne doit pas
+> l'être.** Un vivant vieillit : un âge stocké serait faux dès le lendemain, sans
+> que rien ne le signale. L'âge au décès, lui, est immuable par nature. Les vivants
+> sont donc filtrés par bornes de `birthDate` calculées à l'instant de la requête,
+> les défunts par `ageAtDeath` — et il faut les deux, parce que quelqu'un mort jeune
+> il y a longtemps aurait aujourd'hui l'âge d'un senior et serait rangé dans la
+> mauvaise tranche. Détail dans `PersonFilter.AgeWindow`.
 
 @Model
 public final class SocialHandle {
@@ -826,6 +868,62 @@ func searchTitles(_ query: String, in context: ModelContext) throws -> [Title] {
 
 Le champ `searchText` est dénormalisé et **déjà replié** (sans accents, en minuscules) à l'écriture. C'est ce qui remplace `unicode61 remove_diacritics 2`.
 
+**Le plafond de `#Predicate`, et pourquoi il commande la forme des filtres.**
+
+Mesuré sur `Title` avec `-Xfrontend -warn-long-expression-type-checking` : la macro
+`#Predicate` **plafonne à cinq clauses** sur un `@Model` SwiftData.
+
+| Clauses | Vérification de types | Résultat |
+|---|---|---|
+| 4 | < 200 ms | passe |
+| 5 | 1 328 ms | passe, déjà lent |
+| 6 | 10 503 ms | **échoue** |
+| 12 | 30 012 ms | **échoue** |
+
+Deux explications ont été testées et écartées : ce n'est pas le nombre de clauses en
+soi — les mêmes douze sur un `struct` nu passent sous 200 ms, donc c'est bien le
+`@Model` qui aggrave — et ce ne sont pas les traversées de relation optionnelle, leur
+suppression ne suffisant pas. La cause est qu'une macro d'expression doit tenir dans
+**une seule expression** : l'inférence porte alors sur un arbre générique
+`PredicateExpressions` de douze niveaux d'un coup. Un arbre équilibré n'y change rien
+(22 865 ms, échoue).
+
+Au-delà de cinq clauses, on construit donc l'arbre `PredicateExpressions` **à la
+main**, coupé par des `let` intermédiaires — chaque clause devient un problème
+d'inférence indépendant, et douze passent sous 200 ms. C'est exactement l'arbre que
+la macro aurait expansé, mêmes nœuds `build_*`, donc SwiftData le traduit de la même
+façon. `predicateClause(active:_:)` porte l'aide et le détail ; `TitleFilter` et
+`PersonFilter` en sont les deux usages.
+
+**Corollaire pour toute tâche qui ajoute un critère** : ne pas rallonger un
+`#Predicate` existant sans mesurer. Un prédicat qui ne compile plus se voit ; un
+prédicat dont la compilation passe de 200 ms à 1,3 s ne se voit pas.
+
+### 5 bis. `filterKeys` — les relations rendues interrogeables
+
+Un `#Predicate` ne peut pas traverser une relation sans jointure, et une traversée
+optionnelle (`title.collection?.id`) coûte cher au vérificateur de types. `Title` et
+`Person` portent donc une colonne `filterKeys : String`, maintenue par
+`refreshDerived()`, où chaque relation devient un jeton délimité :
+
+```
+|c:<uuid-collection>|g:<uuid-genre>|l:<uuid-bibliothèque>|p:<uuid-personne>|
+```
+
+Filtrer par genre devient alors `filterKeys.contains("|g:…|")` — une opération sur
+une colonne non optionnelle, sans jointure. Les jetons sont **triés et
+dédoublonnés** : un champ dérivé doit être une fonction de l'état et non de l'ordre
+dans lequel SwiftData rend une relation, sinon deux recalculs identiques produisent
+deux `updatedAt` et une synchronisation CloudKit pour rien.
+
+On stocke des **identifiants et non des noms** : renommer un genre n'invalide alors
+aucune clé. Une seule paire de fonctions (`FilterKey.keys` à l'écriture,
+`FilterKey.pattern` à la lecture) garantit que les deux côtés restent d'accord.
+
+Mesuré sur 5 000 titres, les douze critères actifs : **5,3 ms**, contre 50 ms de
+budget (`04 §4`). Aucun `#Index` n'a été ajouté — un index B-tree n'aide pas un
+`CONTAINS` à joker initial, et la marge ne le réclame pas.
+
 **Niveau 2 — Spotlight.** Indexer chaque titre et chaque personne dans `CoreSpotlight` (`CSSearchableItem`). Bénéfice : recherche depuis l'écran d'accueil iOS et Spotlight macOS, en plus de la recherche interne. Gratuit en termes d'effort, très « natif ».
 
 **Niveau 3 — index FTS local**, seulement si le catalogue dépasse ~20 000 entrées : une base SQLite annexe **non synchronisée**, reconstruite localement, avec FTS5. À ne faire que si le niveau 1 devient lent, mesures à l'appui.
@@ -855,6 +953,7 @@ Le champ `searchText` est dénormalisé et **déjà replié** (sans accents, en 
 | favoris de galerie | `MediaFlag` (par profil) |
 | ⛔ (n'existait pas) | `Profile.requiresBiometry` — verrouillage Face ID |
 | `movies_fts`, `actors_fts` | `searchText` + prédicat + CoreSpotlight |
+| jointures de filtre (`movie_genre`, `movie_actor`, `collection_id`) | `filterKeys` dénormalisé + `contains` — voir §5 bis |
 | `activity` (reconstruit) | `ActivityEntry` |
 | `users.display_prefs` | `@AppStorage` / `NSUbiquitousKeyValueStore` |
 | index SQL | index SwiftData implicites + `#Index` où mesuré utile |

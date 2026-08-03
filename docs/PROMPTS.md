@@ -219,6 +219,10 @@ dépend. Utiles quand tu veux souffler ou avancer sur un autre front.
 
 Parmi elles, `L5` `L7` `L8` `L14` `L16` `L17` ne dépendent de rien du tout.
 
+Les fiches détaillées qui suivent sont rangées par **numéro** (`L1` à `L19`), pas dans
+l'ordre d'exécution : c'est l'ordre où l'on retrouve une tâche quand on la cherche.
+L'ordre de travail, c'est celui des deux tableaux ci-dessus.
+
 `L1` reste première du chemin critique pour une seconde raison, indépendante du
 design : elle touche le schéma, et doit donc passer **avant** le gel de
 `versionIdentifier` que `L13` déclenche.

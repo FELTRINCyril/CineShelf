@@ -5,9 +5,15 @@ import SwiftData
 @MainActor
 public struct PersonRepository {
     let context: ModelContext
+    /// Synchronisée après chaque écriture — voir `TitleRepository.spotlight`.
+    let spotlight: SpotlightIndexer
 
-    public init(context: ModelContext) {
+    public init(
+        context: ModelContext,
+        spotlight: SpotlightIndexer = SpotlightConfiguration.indexer
+    ) {
         self.context = context
+        self.spotlight = spotlight
     }
 
     @discardableResult
@@ -23,6 +29,7 @@ public struct PersonRepository {
         person.refreshDerived()
         context.insert(person)
         ActivityRecorder(context: context).record(.create, person)
+        spotlight.sync(person)
         return person
     }
 
@@ -30,18 +37,21 @@ public struct PersonRepository {
         mutate(person)
         person.refreshDerived()
         ActivityRecorder(context: context).record(.update, person)
+        spotlight.sync(person)
     }
 
     public func softDelete(_ person: Person) {
         person.deletedAt = .now
         person.updatedAt = .now
         ActivityRecorder(context: context).record(.delete, person)
+        spotlight.sync(person)
     }
 
     public func restore(_ person: Person) {
         person.deletedAt = nil
         person.updatedAt = .now
         ActivityRecorder(context: context).record(.restore, person)
+        spotlight.sync(person)
     }
 
     // MARK: Relations

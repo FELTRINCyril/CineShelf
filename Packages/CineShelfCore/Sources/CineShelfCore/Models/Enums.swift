@@ -18,6 +18,23 @@ public enum PersonRole: String, Codable, CaseIterable, Sendable {
     case actor, social, director, writer, crew
 }
 
+extension PersonRole {
+    /// Le libellé français d'un rôle.
+    ///
+    /// Dans le modèle et non dans une vue : `SpotlightIndexer` en a besoin pour la
+    /// ligne secondaire d'un item, et `CineShelfCore` n'importe pas SwiftUI. Même
+    /// motif que `AgeBand.label` et les messages de `ActivityDescribing`.
+    public var label: String {
+        switch self {
+        case .actor: "Acteur"
+        case .social: "Compte social"
+        case .director: "Réalisateur"
+        case .writer: "Scénariste"
+        case .crew: "Équipe"
+        }
+    }
+}
+
 public enum CreditRole: String, Codable, CaseIterable, Sendable {
     case cast, director, writer, producer, composer, crew
 }

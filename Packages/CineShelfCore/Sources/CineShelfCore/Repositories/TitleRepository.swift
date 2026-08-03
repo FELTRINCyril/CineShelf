@@ -10,8 +10,18 @@ import SwiftData
 public struct TitleRepository {
     let context: ModelContext
 
-    public init(context: ModelContext) {
+    /// L'indexation Spotlight, synchronisée après **chaque** écriture.
+    ///
+    /// Injectable, avec la configuration de l'app pour défaut : un test qui veut
+    /// observer l'indexation passe le sien, et n'a pas à toucher à un état global.
+    let spotlight: SpotlightIndexer
+
+    public init(
+        context: ModelContext,
+        spotlight: SpotlightIndexer = SpotlightConfiguration.indexer
+    ) {
         self.context = context
+        self.spotlight = spotlight
     }
 
     @discardableResult
@@ -21,13 +31,22 @@ public struct TitleRepository {
         title.refreshDerived()
         context.insert(title)
         ActivityRecorder(context: context).record(.create, title)
+        spotlight.sync(title)
         return title
     }
 
+    /// Applique une mutation, met les dérivés à jour, journalise, et **remet l'index
+    /// d'accord avec l'état obtenu**.
+    ///
+    /// L'indexation se décide sur l'état final et non sur ce qui a changé : c'est ce
+    /// qui fait qu'un titre rendu privé sort de l'index sans que l'appelant ait à le
+    /// savoir. Un `update` qui bascule `isPrivate` et un `update` qui corrige une faute
+    /// de frappe passent par le même chemin. Voir `SpotlightIndexer`.
     public func update(_ title: Title, _ mutate: (Title) -> Void) {
         mutate(title)
         title.refreshDerived()
         ActivityRecorder(context: context).record(.update, title)
+        spotlight.sync(title)
     }
 
     /// Corbeille plutôt que suppression : une suppression synchronisée est
@@ -36,12 +55,14 @@ public struct TitleRepository {
         title.deletedAt = .now
         title.updatedAt = .now
         ActivityRecorder(context: context).record(.delete, title)
+        spotlight.sync(title)
     }
 
     public func restore(_ title: Title) {
         title.deletedAt = nil
         title.updatedAt = .now
         ActivityRecorder(context: context).record(.restore, title)
+        spotlight.sync(title)
     }
 
     // MARK: Relations

@@ -1677,3 +1677,91 @@ règle. La CI fait un checkout neuf, elle n'y est pas exposée.
 
 `L3` — indexation Spotlight. Elle dépend de `L2` pour la normalisation et la notion de
 portée, qui sont maintenant en place.
+
+---
+
+## 2026-08-03 (12) — `L3` : indexation Spotlight, et la fuite qu'elle ferme
+
+**Deux corrections de prémisse, relevées avant d'écrire**
+
+`ActivityEntry.payload` **n'existe pas**. Le modèle porte `id`, `actionRaw`,
+`entityTypeRaw`, `entityID`, `summary`, `createdAt`. La tâche `L20` (annulation de
+l'édition en masse et de la fusion) doit donc *créer* le champ : c'est un changement de
+schéma, elle hérite de la fenêtre de gratuité de `versionIdentifier`, et sa fiche le
+dit en tête.
+
+Le **handoff de design n'est pas dans le dépôt** — arbre propre, aucun fichier non
+suivi. Sa section 7 est donc à corriger quand il arrivera : elle écrit que le contenu
+privé serait « géré au niveau du profil, pas du titre », ce qui est faux dans notre
+modèle. La correction est appliquée au code et à `docs/04` §6.
+
+**Ce que `L3` ferme vraiment**
+
+« Ne jamais indexer une entité privée » est la moitié facile. L'autre moitié est que
+**la sortie de l'index doit suivre l'entrée dans l'état privé** : un titre indexé alors
+qu'il était public, puis rendu privé, resterait trouvable depuis l'écran d'accueil du
+système. L'app le masque partout correctement, donc rien ne signale la fuite. Même
+chose pour la corbeille.
+
+D'où la forme retenue : `sync(_:)` **décide à partir de l'état courant** plutôt que de
+recevoir un ordre « indexe » ou « retire ». L'appelant n'a pas à savoir ce qui a
+changé ; il lui suffit d'appeler après chaque écriture, et les repositories le font.
+Un `update` qui bascule `isPrivate` et un `update` qui corrige une faute de frappe
+passent par le même chemin. C'est la même stratégie que pour `filterKeys` : rendre
+l'invariant impossible à violer plutôt que de compter sur la discipline.
+
+**`isPrivate` est par entité, pas par profil**
+
+Écrit dans le code parce que c'est contre-intuitif : l'index du système est **unique
+pour l'appareil** et n'a aucune notion de profil actif. Indexer selon
+`Profile.hidesPrivateContent` ferait dépendre le contenu d'un index partagé du profil
+ouvert au moment de l'écriture — donc fuiterait dès qu'un profil permissif touche une
+entité privée. La règle est absolue.
+
+**Décision assumée : les entités archivées restent indexées.** `isArchived` masque ce
+qu'on garde, ce n'est pas un état de confidentialité, et le contrat de `docs/03` §9 ne
+cite que le privé et la corbeille. Un test fixe la décision pour qu'elle ne dérive pas
+par accident.
+
+**Le découpage qui rend la tâche testable**
+
+`CSSearchableIndex` n'est pas utilisable sous `swift test` — le binaire n'a pas
+d'identifiant de paquet, et une suite de tests n'a rien à écrire dans l'index de la
+machine. Le code est donc coupé en deux :
+
+- `SpotlightIndexer` prend **toutes** les décisions et rend des `SpotlightEntry`, des
+  valeurs pures ;
+- `CoreSpotlightIndex` convertit et passe les appels, sans une seule décision.
+
+Les erreurs de l'index sont avalées volontairement : une indexation est un service
+rendu, pas une écriture du catalogue, et l'écriture qui l'a déclenchée ne doit pas
+échouer parce que Spotlight reconstruit son index.
+
+**`SpotlightConfiguration` plutôt qu'un singleton.** `docs/04` §3 écrivait
+`SpotlightIndexer.shared`, ce qui aurait rendu les repositories intestables. La valeur
+est remplaçable, l'app pose la vraie au démarrage, et les tests passent leur propre
+indexeur au repository sans toucher à l'état global. Par défaut,
+`NullSpotlightIndex` ne fait rien — le chemin d'indexation est alors exercé à vide, ce
+qui donne une seule forme de code au lieu de deux.
+
+**L'identifiant est un contrat de compatibilité**
+
+Un item indexé aujourd'hui est encore dans l'index du système après une mise à jour de
+l'app. Changer le format sans réindexer rendrait tous les anciens items inouvrables —
+visibles dans Spotlight, menant nulle part. C'est écrit sur `SpotlightItemID`, avec le
+renvoi vers `reindexEverything(in:)`. Le décodage refuse tout ce qui n'est pas
+exactement au format attendu, et ne rien ouvrir est le bon comportement : l'index peut
+contenir des items d'une version antérieure.
+
+Le décodage vit dans `CineShelfCore`, comme la fiche l'exige ; la correspondance vers
+`AppRoute` reste dans l'app, parce que c'est la seule part qui soit vraiment de l'app.
+
+**Ce qui manque encore, et c'est noté**
+
+Les items sont indexés **sans vignette**. La fermeture qui les fournit existe, mais sa
+valeur par défaut ne rend rien : `CineShelfCore` ne peut pas importer `MediaKit`. À
+brancher avec `L5`, écart inscrit.
+
+**Suite**
+
+`L4` — mathématiques du recadrage.

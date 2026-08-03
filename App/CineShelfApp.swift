@@ -16,6 +16,13 @@ struct CineShelfApp: App {
         // `FontResolutionTests` échoue si une police cesse de se résoudre.
         DesignSystemFonts.register()
 
+        // Le vrai index du système, posé une fois pour toutes : les repositories le
+        // lisent par défaut, donc toute écriture le tient à jour sans que le moindre
+        // appelant ait à y penser. Tant que cette ligne n'existait pas, l'indexation
+        // tournait à vide — c'est voulu, `NullSpotlightIndex` est le défaut sûr pour
+        // les tests et pour tout contexte sans Spotlight.
+        SpotlightConfiguration.indexer = SpotlightIndexer(index: CoreSpotlightIndex())
+
         do {
             let container = try Persistence.makeContainer(cloudKit: FeatureFlags.cloudKitEnabled)
             try Bootstrap.ensureDefaults(in: container.mainContext)

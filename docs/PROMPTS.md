@@ -38,6 +38,7 @@ ordre :
 | `L1` | Requêtes interrogeables — titres et personnes | Code | `02 §3 §5`, `04 §3` | ✅ `eb05149` `e347b11` |
 | — | CI réparée, invariant des relations verrouillé | Code | — | ✅ `8ae4dfb` |
 | `L2` | Service de recherche | Code | `02 §5`, `04 §6` | ✅ `bc96a3f` |
+| `L3` | Indexation Spotlight | Code | `02 §5`, `04 §6`, `03 §9` | ✅ `6c9e5d9` |
 
 ### Ce qui reste — chaque prompt est coupé en deux
 
@@ -87,6 +88,8 @@ de découpage sur sa fiche.
 | `.navigationTransition(.zoom)` : la source est déclarée par `PosterCard`, mais son `@Namespace` est privé à la grille — le chaînage vers la destination manque | `V2` |
 | Pas de `fetchLimit` progressif : `@Query` tout chargé (décision actée, à revoir au-delà de ~10 000 titres). **Chiffré par `L1`** : matérialiser 5 000 titres sans filtre coûte **248 ms**, contre 5,3 ms pour une requête filtrée qui en rend 32. Ce n'est donc pas le prédicat qui coûte, c'est le nombre d'objets rendus — et c'est ce chiffre-là qu'un `fetchLimit` ferait baisser. `TitleFilterPerformanceTests` le mesure à chaque exécution. **C'est une tâche `V`, pas `L`** : la vue sans filtre est l'écran par défaut, donc ce qui reste à faire est un `fetchLimit` progressif et son déclenchement au défilement — de l'interface, pas de la logique. Rien à décider avant que le nouveau design dise comment la grille se charge | `V3` · `V6` |
 | **Les prédicats de `TitleFilter` et `PersonFilter` sont construits à la main**, pas par `#Predicate` : la macro plafonne à **cinq clauses** sur un `@Model` (mesures dans `docs/02` §5). Ce n'est pas une dette, c'est la seule forme qui tienne — mais elle a un coût de lisibilité, et deux règles en découlent. **Une** : tout critère nouveau passe par `predicateClause(active:)` et rejoint un sous-arbre existant, il ne se rajoute pas à une chaîne `&&`. **Deux** : ne jamais rallonger un `#Predicate` existant sans mesurer, parce qu'un prédicat dont la compilation passe de 200 ms à 1,3 s ne se signale pas. Concerne `L2`, `L3`, `L18` et tout ce qui interroge le magasin | permanent |
+| **Les items Spotlight n'ont pas encore de vignette.** `SpotlightIndexer` prend une fermeture qui les fournit, et la valeur par défaut ne rend rien : `CineShelfCore` ne peut pas importer `MediaKit`, la règle de dépendances de `04 §1` va dans l'autre sens, donc c'est à l'appelant de brancher le cache. Les items sont indexés sans image — moins joli, jamais faux. À brancher quand `L5` aura le préchargement et l'échelle d'écran, avec le preset `thumb` de `04 §4` | `L5` |
+| **`TitleCollection` et `SavedLink` n'ont volontairement pas de `filterKeys`**, contrairement à `Title` et `Person`. Ce n'est pas une harmonisation en retard, c'est un arbitrage : la dénormalisation coûte un **invariant permanent** — un champ dérivé de plus à recalculer à chaque écriture, et une porte de plus à garder fermée — alors que ces deux tables comptent des dizaines de lignes, pas des milliers. La jointure `library?.id` ne se paie qu'en SQL, où elle est négligeable à cette échelle. Ce que la traversée coûtait vraiment, c'était le budget de vérification de types (7 253 ms et 7 446 ms avec `#Predicate`), et l'arbre manuel de `CollectionQuery` / `SavedLinkQuery` le règle sans rien dénormaliser. **Ne pas « harmoniser » sans mesurer d'abord** : la bonne raison d'ajouter `filterKeys` serait un critère de filtre que la jointure ne sait pas exprimer, ou un volume qui a changé d'ordre | permanent |
 | **Le store de préférences d'affichage ne portera que `layout` et `size`**, alors que `02 §3.10` décrit `{layout, size, pageSize, sort, dir}`. `pageSize` est abandonné par `03` (§2 : `LazyVGrid` charge à la demande). `sort` et `dir` sont déjà portés par `TitleFilter`, que `NavigationModel` sérialise et restaure au lancement : les mettre aussi dans le store créerait deux sources de vérité, et les y mettre sans les brancher serait du code « au cas où ». **Le jour où le tri doit persister par contexte, c'est `TitleFilter` qui lira le store — jamais le store qui dupliquera `TitleFilter`.** Le sens de cette dépendance n'est pas négociable : l'inverse redonne deux vérités | `L1 bis` |
 | `AppIcon.appiconset` déclare 11 emplacements sans un seul nom de fichier : `actool` ne produit rien et l'app n'a **pas d'icône**. L'icône viendra de Claude Design | avant 25 |
 | `Typo.sectionTitle` inutilisé dans `App/` : **décision actée** — aucun en-tête de section n'est aujourd'hui sans style, donc rien à y brancher. Les quatre en-têtes de contenu de `TitleDetailView` gardent `railLabelStyle()` ; les promouvoir serait un changement de hiérarchie visuelle (12 → 20 pt de base sur iOS, perte des majuscules et du `tracking`), pas un branchement. À reprendre au prompt 16, qui écrit Accueil, Collections et Genres — de vrais groupes de contenu. Poser alors `sectionTitle` **une fois**, dans un `sectionTitleStyle()` sur le modèle de `railLabelStyle()`, plutôt que sur chaque appelant : ce serait un ajout aux composants, dont l'anatomie est désormais à refaire (voir la bascule) | `V5` |
@@ -189,8 +192,8 @@ L1 → L2 → L3 → L4 → L10 → L11 → L12 → prompt 2 → L13
 |---|---|---|---|---|---|
 | 1 | `L1` | Rendre interrogeables en SQL les critères de filtre des titres **et** des personnes | `02 §3 §5`, `04 §3`, écarts ci-dessus | — | ✅ `eb05149` `e347b11` |
 | 2 | `L2` | Service de recherche : portées, résultats groupés, comptes, recherches récentes | `02 §5`, `04 §6` | `L1` | ✅ `bc96a3f` |
-| 3 | `L3` | Indexation Spotlight : indexer, désindexer, réindexer, jamais le privé | `02 §5`, `04 §6`, `03 §9` | `L2` | ⬜ **suivant** |
-| 4 | `L4` | Mathématiques du recadrage : geste ↔ `MediaCrop`, bornes, rect final | `02 §2.4 §3.7`, `04 §4` | — | ⬜ |
+| 3 | `L3` | Indexation Spotlight : indexer, désindexer, réindexer, jamais le privé | `02 §5`, `04 §6`, `03 §9` | `L2` | ✅ `6c9e5d9` |
+| 4 | `L4` | Mathématiques du recadrage : geste ↔ `MediaCrop`, bornes, rect final | `02 §2.4 §3.7`, `04 §4` | — | ⬜ **suivant** |
 | 5 | `L10` | Édition en masse : décrire une mutation, l'appliquer à une sélection | `03 §12` | — | ⬜ |
 | 6 | `L11` | CSV : lire, écrire, valider, résoudre les références, appliquer par lots | `03 §10`, `04 §7` | `L10` | ⬜ |
 | 7 | `L12` | Archive `.cineshelfarchive` : écriture et relecture | `04 §7`, `03 §10` | `L11` | ⬜ |
@@ -211,6 +214,7 @@ dépend. Utiles quand tu veux souffler ou avancer sur un autre front.
 | Tâche | Objectif en une ligne | Docs à lire | Dépend de | État |
 |---|---|---|---|---|
 | `L1 bis` | Filtres de galerie (source, mélange à graine stable) et store de préférences d'affichage hors des vues | `02 §3.7 §3.10`, `04 §1 §3` | — | ⬜ |
+| `L20` | **Annulation de l'édition en masse et de la fusion** — journal inversable | `02 §3.9`, `03 §12` | `L8` `L10` | ⬜ **touche au schéma, voir sa fiche** |
 | `L5` | Préchargement de vignettes, pression mémoire, échelle d'écran | `04 §4` | — | ⬜ |
 | `L6` | Génération d'une couverture en mosaïque | `03 §6`, `04 §4` | `L4` | ⬜ |
 | `L7` | Aperçu de lien : `LPMetadataProvider`, délai, repli, libellé déduit | `03 §8` | — | ⬜ |
@@ -224,6 +228,10 @@ dépend. Utiles quand tu veux souffler ou avancer sur un autre front.
 | `L19` | App Intents, Handoff, partage entrant, données du widget | `03 §13`, `04 §12` | `L2` `L7` `L18` | ⬜ |
 
 Parmi elles, `L1 bis` `L5` `L7` `L8` `L14` `L16` `L17` ne dépendent de rien du tout.
+
+> **`L20` est la seule tâche d'appoint qui touche au schéma.** Elle a donc la même
+> contrainte de fenêtre que `L1` : gratuite tant que `versionIdentifier` vaut `1.0.0`,
+> plan de migration après le prompt 20. Si elle n'est pas faite avant, elle le devient.
 
 Les fiches détaillées qui suivent sont rangées par **numéro** (`L1` à `L19`), pas dans
 l'ordre d'exécution : c'est l'ordre où l'on retrouve une tâche quand on la cherche.
@@ -300,6 +308,53 @@ quand, y compris après le gel du prompt 20.
    jeux de `rawValue` sont identiques**, sans quoi la divergence sera silencieuse : un
    contexte présent d'un seul côté ne casse aucune compilation, il perd juste sa
    préférence au runtime.
+
+---
+
+### `L20` — Annulation de l'édition en masse et de la fusion
+
+**Objectif.** Rendre défaisables les deux seules opérations qui touchent des dizaines
+d'enregistrements d'un coup et qu'aucune main ne peut refaire à l'envers.
+
+**Pourquoi ça manque, et pourquoi ce n'est pas la corbeille.** La suppression est déjà
+réversible : `deletedAt` la met en corbeille, `restore` la ramène. C'est une opération
+sur **une** entité, et elle a son filet. L'édition en masse (`L10`) et la fusion
+(`L8`) n'en ont aucun : elles écrasent des champs et déplacent des relations sur toute
+une sélection, et une erreur de sélection ne se rattrape pas — il faudrait retrouver à
+la main la valeur d'avant de chaque enregistrement touché. C'est le point soulevé par
+le design, et il est juste.
+
+**Correction à la prémisse : `ActivityEntry.payload` n'existe pas.** Le modèle porte
+aujourd'hui `id`, `actionRaw`, `entityTypeRaw`, `entityID`, `summary`, `createdAt` —
+et rien d'autre. Il n'y a donc **pas** de base à réutiliser : le champ est à créer,
+c'est un changement de schéma, et c'est ce qui donne à cette tâche sa fenêtre.
+
+- Ajouter à `ActivityEntry` de quoi porter un diff inversable, et **une seule fois** :
+  un `Data` encodé (JSON), pas une colonne par cas. Le contenu est un enregistrement
+  par entité touchée : identifiant, type, et pour chaque champ modifié l'avant et
+  l'après. Pour les relations, ce qui a été rattaché et détaché.
+- Une entrée par **lot**, pas par ligne — sinon le fil devient illisible, ce que
+  `L10` note déjà. C'est donc le lot qui s'annule, pas une ligne du lot.
+- L'exécuteur d'annulation : rejouer un diff à l'envers, en vérifiant que les entités
+  visées existent toujours et n'ont pas changé depuis. **Refuser plutôt qu'écraser** si
+  elles ont changé : une annulation qui détruit une modification postérieure est pire
+  que pas d'annulation du tout. Le refus doit dire ce qui a bougé.
+- Bornes : ce qui est annulable, et jusqu'à quand. Un diff a un coût de stockage, et il
+  est synchronisé. Décider d'une fenêtre (par nombre d'entrées ou par âge) et purger
+  au-delà, dans la passe de maintenance de `L16`.
+- La fusion (`L8`) rend déjà un plan inspectable : son diff inverse est ce plan lu à
+  l'envers, plus le rétablissement du perdant marqué supprimé. Les deux opérations
+  doivent produire le même format de diff, sinon il y aura deux exécuteurs
+  d'annulation.
+
+**Terminé quand :** un lot d'édition en masse et une fusion s'annulent tous les deux
+par le même chemin, un test vérifie qu'une annulation refuse de s'appliquer sur une
+entité modifiée entre-temps, et la purge des diffs anciens est rejouable.
+
+> **`V6` (console de gestion, édition en masse) n'est pas utilisable pour de vrai
+> tant que `L20` n'est pas faite.** Livrer une édition en masse sans annulation, c'est
+> livrer un outil qui peut détruire une heure de saisie sur une sélection mal cliquée,
+> avec pour seul recours de tout ressaisir. Le lien est noté des deux côtés.
 
 ---
 
@@ -629,7 +684,7 @@ sert de banc d'essai en attendant.
 | `V3` | Galerie : masonry, matrice `layout × size` rendue, visionneuse, immersif | 14 | `L1 bis` `L4` `L5` |
 | `V4` | Personnes : grille, fiche, éditeur, écran de fusion champ par champ | 15 | `L8` `L9` |
 | `V5` | Collections, genres, liens et signets, accueil, fil | 16 | `L6` `L7` `L18` |
-| `V6` | Console de gestion : tableau par entité, édition inline, édition en masse | 17 | `L10` |
+| `V6` | Console de gestion : tableau par entité, édition inline, édition en masse. **Ne pas livrer sans `L20`** : une édition en masse sans annulation peut détruire une heure de saisie sur une sélection mal cliquée, sans autre recours que de tout ressaisir | 17 | `L10` · **`L20`** |
 | `V7` | Profils, bibliothèques, transfert, verrouillage, écran de confidentialité | 18 | `L14` `L15` |
 | `V8` | Import et export : sélecteur de champs, aperçu ligne à ligne, correction, progression | 19 | `L11` `L12` |
 | `V9` | Migration : commande cachée et rapport de vérification | 20 | `L13` |

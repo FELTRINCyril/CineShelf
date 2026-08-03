@@ -338,6 +338,33 @@ Trois couches, décrites en détail dans `02-MODELE-SWIFTDATA-CLOUDKIT.md` §5 :
 
 L'UI utilise `.searchable(text:placement:)` + `.searchScopes` pour filtrer par type, et `.searchSuggestions` pour les recherches récentes.
 
+### Spotlight : la règle de confidentialité (depuis `L3`)
+
+**Une entité privée ou à la corbeille n'est jamais dans l'index, et elle doit en
+**sortir** quand elle le devient.** Les deux exigences ne se confondent pas : un titre
+indexé alors qu'il était public, puis rendu privé, resterait trouvable depuis l'écran
+d'accueil du système. L'app le masque partout correctement, donc rien ne signale la
+fuite. Même chose pour la suppression douce.
+
+D'où la forme de l'API : `SpotlightIndexer.sync(_:)` **décide à partir de l'état
+courant** au lieu de recevoir un ordre « indexe » ou « retire ». Les repositories
+l'appellent après chaque écriture, sans avoir à savoir ce qui a changé.
+
+**`isPrivate` est porté par l'entité, pas par le profil.** Un `Title` appartient à une
+`Library`, jamais à un `Profile` ; ce que le profil porte est `hidesPrivateContent`,
+qui décide de l'**affichage** dans l'app. Pour Spotlight, seule `isPrivate` compte, et
+`hidesPrivateContent` n'aurait aucun sens : l'index du système est unique pour
+l'appareil et n'a pas de notion de profil actif. S'y fier ferait fuiter dès qu'un
+profil permissif touche une entité privée.
+
+Les entités **archivées restent indexées** : `isArchived` est un état de rangement, pas
+de confidentialité. Décision, pas oubli — elle se change dans
+`SpotlightIndexer.shouldIndex(isPrivate:deletedAt:)`, et nulle part ailleurs.
+
+La réindexation complète (`reindexEverything(in:)`) est rejouable et vide l'index
+avant de le reconstruire. Trois appelants prévus : la fin de la migration `L13`, un
+changement de format d'identifiant, et la maintenance de `L16`.
+
 ### Le service, et son contrat (depuis `L2`)
 
 `SearchService` (dans `CineShelfCore/Queries/`) est une fonction : « texte + portée →

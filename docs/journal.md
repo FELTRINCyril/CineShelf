@@ -1843,3 +1843,60 @@ donc `V2`.
 La **fermeture du schéma**, avant `L10` : la fenêtre de gratuité se referme à `L13`, et
 la liste se rend avant d'écrire. `L4` n'y ajoute rien — un seul recadrage sert tous les
 ratios, donc `MediaCrop` est complet.
+
+---
+
+## 2026-08-03 (14) — Le handoff est arrivé, et trois hashes du tableau ne pointaient nulle part
+
+**Un défaut de suivi, de mon fait**
+
+Les hashes inscrits dans `docs/PROMPTS.md` pour `L2`, `L3` et `L4` désignaient des
+commits **orphelins**. Cause : j'écrivais le hash dans le tableau puis je faisais
+`git commit --amend` pour l'y intégrer — ce qui change le hash. Le tableau désignait
+donc à chaque fois le commit d'avant l'amende, absent de l'historique poussé.
+
+`bc96a3f` → `6ea6a8e`, `6c9e5d9` → `4e696ee`, `2a1f7b8` → `07890db`. Les dix-huit
+hashes du document sont maintenant vérifiés atteignables depuis `HEAD`.
+
+C'est exactement le genre de défaut que ce tableau existe pour éviter : il est le seul
+suivi d'avancement, et sa valeur tient à ce qu'on puisse revenir au commit qu'il
+désigne. `CLAUDE.md` porte maintenant la règle — le hash s'inscrit dans un commit
+suivant, jamais par `--amend` — et la ligne de vérification.
+
+**Le paquet de design est là**
+
+`docs/CineShelf design system-handoff.zip`. Direction retenue : **« 2a Plein cadre »** —
+noir uniforme, un seul accent ambre, aucune bordure, aucune ombre, aucune translucidité.
+L'affiche est l'interface. Huit planches, trois addenda, un README de 33 Ko, l'icône en
+SVG.
+
+Il est entré dans le dépôt par mon `git add -A` du commit `L4`, sans que je l'aie
+décidé. Ses copies de `03` et `06` sont **identiques aux nôtres** — vérifié — donc pas
+de seconde source de vérité aujourd'hui ; elles divergeront le jour où l'un des deux
+documents bougera, et c'est noté au tableau.
+
+**Les deux erreurs annoncées, et il y en a deux et non une**
+
+Le §7 « Comportements » écrit :
+
+> **Contenu privé** : géré au niveau du **profil**, pas du titre. Un titre est privé
+> parce qu'il appartient à un profil verrouillé par Face ID.
+
+Et le §10 le répète dans les décisions arrêtées. Les deux sont faux dans notre modèle :
+`isPrivate` est porté par l'entité, un `Title` appartient à une `Library` et jamais à un
+`Profile`, et c'est `Profile.hidesPrivateContent` qui décide de l'affichage.
+
+La conséquence n'est pas théorique. Suivre le handoff rendrait un titre privé visible
+dès qu'un profil permissif est ouvert, et — plus grave — indexable dans Spotlight, dont
+l'index est **unique pour l'appareil**. C'est la fuite que `L3` a fermée il y a deux
+heures.
+
+Ce que le handoff dit du **rendu** reste valable : géométrie exacte de l'affiche, aplat
+`private.mask`, `eye.slash` sur la vignette masquée. C'est le déclencheur qui est faux,
+pas l'apparence.
+
+**Suite**
+
+La fermeture du schéma, avant `L10`. Le handoff est maintenant lisible, donc son
+balayage — « qu'est-ce qu'il suppose qu'on ne stocke pas ? » — peut se faire pour de
+vrai.

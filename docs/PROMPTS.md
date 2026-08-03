@@ -37,9 +37,9 @@ ordre :
 | — | Grille des titres vide derrière 42 tests verts | Code | — | ✅ `e0f0f0b` |
 | `L1` | Requêtes interrogeables — titres et personnes | Code | `02 §3 §5`, `04 §3` | ✅ `eb05149` `e347b11` |
 | — | CI réparée, invariant des relations verrouillé | Code | — | ✅ `8ae4dfb` |
-| `L2` | Service de recherche | Code | `02 §5`, `04 §6` | ✅ `bc96a3f` |
-| `L3` | Indexation Spotlight | Code | `02 §5`, `04 §6`, `03 §9` | ✅ `6c9e5d9` |
-| `L4` | Mathématiques du recadrage | Code | `02 §2.4 §3.7`, `04 §4` | ✅ `2a1f7b8` |
+| `L2` | Service de recherche | Code | `02 §5`, `04 §6` | ✅ `6ea6a8e` |
+| `L3` | Indexation Spotlight | Code | `02 §5`, `04 §6`, `03 §9` | ✅ `4e696ee` |
+| `L4` | Mathématiques du recadrage | Code | `02 §2.4 §3.7`, `04 §4` | ✅ `07890db` |
 
 ### Ce qui reste — chaque prompt est coupé en deux
 
@@ -74,13 +74,24 @@ de découpage sur sa fiche.
 > **Suivi de l'avancement : ce document uniquement.** `docs/03` garde ses symboles (✅ ♻️ 🔀 ⛔ ⏸ ➕) — ils décrivent *l'intention* pour chaque fonctionnalité, pas l'état d'avancement. Ne pas mélanger les deux.
 > À la fin de chaque tâche : cocher sa ligne, ici et dans le tableau des tâches `L`, avec le hash du commit.
 
-> **Bloquant amont : `design_handoff_cineshelf` n'est pas dans le dépôt.** Vérifié —
-> arbre propre, aucun fichier non suivi. La chaîne `I` ne peut pas démarrer tant qu'il
-> n'y est pas, et sa **section 7 est à corriger** : elle écrit que le contenu privé
-> serait « géré au niveau du profil, pas du titre », ce qui est faux dans notre modèle.
-> `isPrivate` est porté par l'entité, un `Title` appartient à une `Library` et non à un
-> `Profile`, et c'est `Profile.hidesPrivateContent` qui décide de l'affichage. La règle
-> retenue et son argument sont dans `docs/04` §6.
+> **Le handoff de design est dans le dépôt** — `docs/CineShelf design system-handoff.zip`,
+> direction « 2a Plein cadre ». Ses copies de `03` et `06` sont **identiques** aux nôtres,
+> vérifié : pas de seconde source de vérité pour l'instant, mais elles se figeront le
+> jour où l'un des deux documents bougera. Ne jamais les lire à la place de `docs/`.
+>
+> **Deux erreurs à corriger dedans, au même endroit du modèle.** Son §7 « Comportements »
+> écrit « **Contenu privé** : géré au niveau du **profil**, pas du titre. Un titre est
+> privé parce qu'il appartient à un profil verrouillé par Face ID », et son §10 le
+> répète dans les décisions arrêtées (« contenu privé au niveau du profil »). C'est faux
+> dans notre modèle : `isPrivate` est porté **par l'entité**, un `Title` appartient à une
+> `Library` et jamais à un `Profile`, et c'est `Profile.hidesPrivateContent` qui décide
+> de l'**affichage**. La conséquence est concrète — suivre le handoff rendrait un titre
+> privé visible dès qu'un profil permissif est ouvert, et le rendrait indexable dans
+> Spotlight, dont l'index est unique pour l'appareil. Règle et argument dans `docs/04` §6.
+>
+> Ce que le handoff dit du **rendu** reste valable : géométrie exacte de l'affiche,
+> aplat `private.mask`, `eye.slash` sur la vignette masquée. C'est le *déclencheur* qui
+> est faux, pas l'apparence.
 
 > **Prochaine passe transverse : la fermeture du schéma, avant `L10`.** La fenêtre de
 > gratuité se referme à `L13`, et un champ manquant découvert après le gel coûte un plan
@@ -211,9 +222,9 @@ L1 → L2 → L3 → L4 → L10 → L11 → L12 → prompt 2 → L13
 | # | Tâche | Objectif en une ligne | Docs à lire | Dépend de | État |
 |---|---|---|---|---|---|
 | 1 | `L1` | Rendre interrogeables en SQL les critères de filtre des titres **et** des personnes | `02 §3 §5`, `04 §3`, écarts ci-dessus | — | ✅ `eb05149` `e347b11` |
-| 2 | `L2` | Service de recherche : portées, résultats groupés, comptes, recherches récentes | `02 §5`, `04 §6` | `L1` | ✅ `bc96a3f` |
-| 3 | `L3` | Indexation Spotlight : indexer, désindexer, réindexer, jamais le privé | `02 §5`, `04 §6`, `03 §9` | `L2` | ✅ `6c9e5d9` |
-| 4 | `L4` | Mathématiques du recadrage : geste ↔ `MediaCrop`, bornes, rect final | `02 §2.4 §3.7`, `04 §4` | — | ✅ `2a1f7b8` |
+| 2 | `L2` | Service de recherche : portées, résultats groupés, comptes, recherches récentes | `02 §5`, `04 §6` | `L1` | ✅ `6ea6a8e` |
+| 3 | `L3` | Indexation Spotlight : indexer, désindexer, réindexer, jamais le privé | `02 §5`, `04 §6`, `03 §9` | `L2` | ✅ `4e696ee` |
+| 4 | `L4` | Mathématiques du recadrage : geste ↔ `MediaCrop`, bornes, rect final | `02 §2.4 §3.7`, `04 §4` | — | ✅ `07890db` |
 | 5 | `L10` | Édition en masse : décrire une mutation, l'appliquer à une sélection | `03 §12` | — | ⬜ **suivant** — mais voir « fermeture du schéma » ci-dessous |
 | 6 | `L11` | CSV : lire, écrire, valider, résoudre les références, appliquer par lots | `03 §10`, `04 §7` | `L10` | ⬜ |
 | 7 | `L12` | Archive `.cineshelfarchive` : écriture et relecture | `04 §7`, `03 §10` | `L11` | ⬜ |

@@ -124,6 +124,13 @@ document le dit lui-même.
    avec le hash du commit. C'est le seul endroit où se suit l'avancement.
    Y reporter aussi les nouveaux écarts, dans « Écarts connus ».
 
+   > **Le hash s'inscrit dans un commit *suivant*, jamais par `--amend`.** Amender
+   > change le hash : le tableau se met alors à désigner un commit qui n'existe
+   > plus dans l'historique poussé, et il n'y paraît rien — c'est arrivé sur `L2`,
+   > `L3` et `L4`. Vérification en une ligne, quand un doute existe :
+   > `grep -oE '\`[0-9a-f]{7}\`' docs/PROMPTS.md | tr -d '\`' | while read h; do`
+   > `git merge-base --is-ancestor $h HEAD || echo "$h orphelin"; done`
+
 > Ne rien cocher dans `docs/03-FONCTIONNALITES-NATIF.md` : ses symboles
 > (✅ ♻️ 🔀 ⛔ ⏸ ➕) décrivent l'**intention** retenue pour chaque
 > fonctionnalité — conservée, repensée, abandonnée — pas l'avancement. Les

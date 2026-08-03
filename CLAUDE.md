@@ -67,9 +67,16 @@ python3 scripts/generate-colors.py   # après toute modif de colors.tokens.json
 2. **Proposer un plan avant d'écrire du code.** Attendre ma validation.
 3. Écrire, compiler, corriger jusqu'à build vert sur iOS **et** macOS.
 4. Lancer les tests.
-5. Cocher les fonctionnalités traitées dans `docs/03-FONCTIONNALITES-NATIF.md`.
-6. Ajouter une ligne à `docs/journal.md`.
-7. Un commit par tâche, message conventionnel.
+5. Ajouter une ligne à `docs/journal.md`.
+6. Un commit par tâche, message conventionnel.
+7. Cocher la ligne du prompt dans le **tableau d'état de `docs/PROMPTS.md`**,
+   avec le hash du commit. C'est le seul endroit où se suit l'avancement.
+   Y reporter aussi les nouveaux écarts, dans « Écarts connus ».
+
+> Ne rien cocher dans `docs/03-FONCTIONNALITES-NATIF.md` : ses symboles
+> (✅ ♻️ 🔀 ⛔ ⏸ ➕) décrivent l'**intention** retenue pour chaque
+> fonctionnalité — conservée, repensée, abandonnée — pas l'avancement. Les
+> mélanger rendrait les deux illisibles.
 
 ## Ce que je ne veux pas
 - De dépendance externe sans me demander.

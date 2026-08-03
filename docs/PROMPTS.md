@@ -7,13 +7,88 @@ Version détaillée (vérifications, critères de sortie, dépannage) → `GUIDE
 
 ## Récapitulatif
 
-| # | Quoi | Qui | Joindre |
-|---|---|---|---|
-| — | Fichier `CLAUDE.md` | toi | — |
+| # | Quoi | Qui | Docs à lire | État |
+|---|---|---|---|---|
+| 4 | Installation du projet | Code | `SETUP.md` | ✅ `03fff62` |
+| 5 | Modèle de données (17 `@Model`) | Code | `02` `04` | ✅ `d5e7cb9` |
+| 6 | Repositories & outillage | Code | `04` | ✅ `451f6da` |
+| — | Ménage (doc, CI, journal) | Code | — | ✅ `ad95dcc` |
+| 13a | Pipeline médias — **logique seule** | Code | `04 §4` | ✅ `d1810d1` |
+| 7 | Tokens | **Design** | `01` | ✅ livré |
+| 8 | Composants | **Design** | `01 partie D` | ✅ livré |
+| 8bis+9 | Intégration DesignSystem + catalogue | Code | — | ✅ `ee3b88c` |
+| — | Budgets perf, chasse Archivo, doc | Code | — | ✅ `0aa8d05` |
+| 10 | Navigation adaptative | Code | `01 partie C`, `04 §2` | ✅ `dc15a48` |
+| **11** | **Titres (liste + détail + éditeur)** | Code | `03 §4` | 🔜 **suivant** |
+| 12 | Recherche + Spotlight | Code | `02 §5` | ⬜ |
+| 13b | Médias — **UI** : PhotosPicker, import fichier, glisser-déposer, `CropEditor`, branchement `MediaThumbnail`, `attach` + invariante, préchargement | Code | `04 §4` | ⬜ |
+| 14 | Galerie + visionneuse | Code | `03 §7` | ⬜ |
+| 15 | Personnes + doublons + fusion | Code | `03 §5` | ⬜ |
+| 16 | Collections, genres, liens, accueil, fil | Code | `03 §6 §8 §11` | ⬜ |
+| 17 | Console de gestion (`Table`) | Code | `03 §12` | ⬜ |
+| 18 | Profils, bibliothèques, Face ID | Code | `02 §2.2 §9` | ⬜ |
+| 19 | Import/export CSV | Code | `03 §10`, `04 §7` | ⬜ |
+| 2 | **Dump de l'app web** | Code (dépôt web) | `02 §7` | ⬜ avant le 20 |
+| 20 | Migration des vraies données | Code | `02 §7` | ⬜ |
+| 21 | Config CloudKit | toi | — | ⬜ abonnement requis |
+| 22 | Synchronisation | Code | `04 §5` | ⬜ |
+| 23 | Intégrations système | Code | `03 §13` | ⬜ |
+| 24 | Accessibilité | Code | `01 partie E` | ⬜ |
+| 25 | Publication | toi | — | ⬜ |
+| 1 | Tests Playwright de référence | Code (dépôt web) | `03` | ⬜ facultatif |
+| 3 | Captures de l'app web | toi | — | ⬜ facultatif |
+
+> **Les docs ne se joignent plus** : elles sont dans `docs/` du dépôt, Claude Code les lit sur disque.
+> **Suivi de l'avancement : ce tableau uniquement.** `docs/03` garde ses symboles (✅ ♻️ 🔀 ⛔ ⏸ ➕) — ils décrivent *l'intention* pour chaque fonctionnalité, pas l'état d'avancement. Ne pas mélanger les deux.
+> À la fin de chaque prompt : cocher la ligne ici avec le hash du commit.
+
+**Écarts connus, à reprendre plus tard** (tenus à jour au fil des sessions) :
+
+| Sujet | Où ça se règle |
+|---|---|
+| Barre d'outils de la colonne « Liste » | 11 |
+| `⌥↑` / `⌥↓` câblés mais inactifs (aucune collection peuplée) | 11 |
+| `MediaThumbnail` non relié à `ThumbnailCache` | 11 |
+| `⌘N` « Nouveau titre » présent mais grisé | 11 |
+| `Profile.requiresBiometry` affiché mais non appliqué | 18 |
+| Préchargement de l'écran suivant | 13b |
+| `MediaRepository.attach` + invariante `hasExactlyOneOwner` | 13b |
+| `Bootstrap` ne branche pas `startObservingMemoryPressure()` : le cache n'est instancié par personne tant qu'aucune vue n'affiche d'image | 13b |
+| Dédoublonnage médias : global au magasin (décision actée) | — |
+| Reprise d'import par lot de 200, pas par élément | 19 · 20 |
+| `⇧⌘I` / `⇧⌘E` présents mais grisés | 19 |
+| Avertissement à l'écran quand un profil change de bibliothèque | 18 |
+| Bloc « Bibliothèques » de la barre latérale affiché mais inerte | 18 |
+| Les 36 primitives sont générées dans le `.xcassets` alors qu'aucune vue ne doit les lire — à élaguer si le poids devient un sujet | — |
+| Le pont `Binding<AppSection?>` de `Sidebar` avale la désélection : si un état « rien de sélectionné » devient nécessaire, c'est `NavigationModel.section` qu'il faudra rendre optionnelle, pas la vue | — |
+
+---
+
+## Structure de travail à mettre dans chaque prompt
+
+À coller en tête de tout prompt à partir du 10. Économise le contexte et évite la compaction.
+
+```
+Répartition du travail :
+- Toi, agent principal : les décisions d'architecture, le code structurant,
+  l'intégration. Tu gardes la vue d'ensemble et tu ne délègues pas ça.
+- Sous-agent « reco », AVANT d'écrire : lit les sections de docs concernées et
+  le code existant, et me rend une synthèse — ce qui existe déjà, les
+  contraintes, les pièges. Rien d'autre.
+- Sous-agent « build » : la boucle compiler → erreur → corriger, sur iOS et
+  macOS. Il ne me rend que le résultat final et la liste des corrections.
+- Sous-agent « revue », À LA FIN : relit ton travail contre les docs citées et
+  CLAUDE.md, et liste les écarts. Il ne corrige rien, il constate.
+
+Termine par un commit et une mise à jour de docs/journal.md et du tableau
+d'état de docs/PROMPTS.md, avec le hash.
+```
+
+---|---|---|---|
 | 1 | Tests de référence | **Code** (dépôt web) | `03-FONCTIONNALITES-NATIF.md` |
 | 2 | Dump des données | **Code** (dépôt web) | `02-MODELE-SWIFTDATA-CLOUDKIT.md` |
 | 3 | Captures d'écran | toi | — |
-| 4 | Créer le projet Xcode | toi | — |
+| 4 | **Installation complète du projet** | **Code** | voir `SETUP.md` |
 | 5 | Modèle de données | **Code** | `02` + `04` |
 | 6 | Repositories & outillage | **Code** | `04` |
 | 7 | Tokens | **Design** | `01-DESIGN-SYSTEM-APPLE.md` |
@@ -57,9 +132,11 @@ Conséquences pratiques :
 
 ---
 
-## Avant tout — `CLAUDE.md`
+## Le fichier `CLAUDE.md`
 
-Pas un prompt : un fichier à créer à la racine du nouveau dépôt. Claude Code le lit à chaque session.
+**Tu n'as pas à le créer** : le prompt 4 (`SETUP.md`) le génère à partir de cette section. Il est reproduit ici pour que tu puisses vérifier ce qui a été produit, et le corriger si tu changes d'avis en cours de route.
+
+Claude Code le lit automatiquement à chaque session : c'est lui qui l'empêche de dériver.
 
 ````markdown
 # CineShelf — instructions projet
@@ -204,14 +281,27 @@ Capture chaque écran de l'app web (accueil, films, détail, acteurs, collection
 
 ---
 
-# 4 — Créer le projet Xcode
+# 4 — Installation complète du projet
 
-**Qui :** toi. Pas de prompt.
+**Qui :** Claude Code, dans un dossier vide
+**Joindre :** rien (le prompt gère tout)
 
-1. Xcode → New Project → **Multiplatform → App**, nom `CineShelf`, org `fr.feltrin`, SwiftUI, **Storage: None**
-2. Cibles minimum selon tes appareils
-3. Trois packages locaux : `DesignSystem`, `CineShelfCore`, `MediaKit`, liés à la cible
-4. `git init`, copie `docs/` et `CLAUDE.md` à la racine
+Le prompt complet est dans **`SETUP.md`** — il est long, je ne le duplique pas ici.
+
+Il crée en une fois : le dépôt Git, le projet Xcode via XcodeGen, les trois
+packages locaux, `CLAUDE.md`, l'Info.plist, les entitlements CloudKit prêts mais
+désactivés, SwiftLint avec les règles maison, la CI, et le code minimal qui
+compile sur iOS et macOS.
+
+Prérequis, à faire avant : Xcode installé et lancé une fois, Homebrew installé,
+les 9 fichiers `.md` posés quelque part.
+
+```bash
+mkdir ~/Developer/Rayon && cd ~/Developer/Rayon
+claude
+```
+
+Puis colle le prompt de `SETUP.md`.
 
 ---
 

@@ -1575,3 +1575,105 @@ déjà là, dans la première version des mutateurs eux-mêmes.
 **Suite**
 
 `L2` — service de recherche.
+
+---
+
+## 2026-08-03 (11) — `L2` : service de recherche, et `TitleFilter` descend dans le paquet
+
+**Mesuré avant d'écrire, comme en `L1`**
+
+`TitleCollection` et `SavedLink` n'ont pas de `filterKeys` : la portée de bibliothèque
+exige donc une traversée `library?.id`, la construction la plus chère pour le
+vérificateur de types. Cinq clauses — corbeille, archivage, privé, bibliothèque,
+terme — écrites avec `#Predicate` :
+
+| Prédicat | Vérification de types |
+|---|---|
+| Collections, macro | **7 253 ms** |
+| Signets, macro | **7 446 ms** |
+| Collections, arbre manuel | **< 200 ms** |
+
+Elles compilaient, mais à une clause de l'échec et pour quinze secondes ajoutées à
+chaque build propre du paquet. Arbre manuel, donc, comme `TitleFilter` et
+`PersonFilter`.
+
+**Décision de ne pas leur ajouter de `filterKeys`.** La dénormalisation a un coût
+permanent — un invariant de plus à maintenir à chaque écriture, celui qu'on vient de
+verrouiller à coups de règles de lint — et ces deux tables comptent des dizaines de
+lignes, pas des milliers. La jointure ne se paie qu'en SQL, où elle est négligeable ;
+le plafond de type-check se paie à chaque compilation. L'arbre manuel règle le second
+sans introduire le premier.
+
+Détail utile pour la suite : une chaîne optionnelle s'écrit `build_flatMap` dans
+l'arbre, pas un `KeyPath` imbriqué. La forme se lit en dumpant l'expansion de la macro
+(`-Xfrontend -dump-macro-expansions`), ce qui est la bonne façon de retrouver n'importe
+quel nœud.
+
+**`TitleFilter` descend dans `CineShelfCore`**
+
+Conséquence de la règle validée — un seul chemin de visibilité. La recherche doit
+masquer exactement ce que la grille masque, et `CineShelfCore` ne peut pas dépendre de
+`App`. Le filtre descend donc dans le paquet et devient `public`.
+
+Deux effets à noter. `TitleSortField.symbol` rend des noms de SF Symbols depuis le
+paquet : même motif que `ProfileAccent`, dont le `rawValue` est un nom de jeu de
+couleurs — désigner une ressource du design system sans importer SwiftUI. Et
+`project.yml` listait explicitement `App/Navigation/TitleFilter.swift` dans la cible de
+tests pour accéder au type `internal` ; l'entrée disparaît, il arrive maintenant par la
+dépendance de paquet.
+
+**`SearchOutcome` : deux états, et le type qui les impose**
+
+La chaîne vide ne renvoie rien — un champ vide doit montrer les recherches récentes,
+renvoyer tout matérialiserait 5 000 objets (248 ms mesurées en `L1`), et la grille
+existe déjà pour parcourir le catalogue.
+
+Mais « `SearchResults` vide veut dire qu'on n'a rien saisi » comme **convention** se
+perdrait : quelqu'un écrit `if results.isEmpty` et confond les deux cas. C'est donc
+dans le type — `.idle` ou `.results(SearchResults)`. Deux états et non trois : « aucune
+correspondance » se déduit de `SearchResults.isEmpty`, donc rien ne peut se
+désynchroniser, et le compilateur force `V1` à écrire les deux branches. La décision
+appartient au service, pas à l'appelant : la règle vit à un seul endroit. L'espace seul
+est `idle` aussi — le retrait des espaces précède le test de vacuité, et un test le
+vérifie sur quatre formes de blanc.
+
+**Ce que le service ne fait pas**
+
+Pas d'anti-rebond. C'est une fonction, appelable à chaque frappe ; la vue décide quand
+l'appeler. Le mettre ici le rendrait intestable et imposerait un rythme à des appelants
+sans frappe à amortir — l'App Intent de `L19`. Noté au tableau des tâches `V`.
+
+**Mesures**
+
+Portée `.all` sur 5 000 titres, 500 personnes, 50 collections, 50 signets — huit
+requêtes, deux par type (une tranche, un compte) : **8,3 ms**, et 11,1 ms sur un second
+passage. Budget de `04 §4` : 50 ms. Seuil posé à 40 ms, environ quatre fois la mesure
+haute.
+
+Un second test comparait `.titles` à `.all` pour prouver que la portée restreint
+vraiment la requête. Mesuré : 6,0 contre 11,1 ms, rapport de **1,85** — trop mince pour
+être assené sans clignoter. Il est retiré, et la raison écrite à sa place : la preuve
+que la portée restreint la requête est **catégorique**, elle vit dans
+`scopesRestrictTheQuery` où une portée unique rend exactement zéro pour les trois
+autres types. Une preuve catégorique vaut mieux qu'un rapport fragile — c'est la même
+leçon que le facteur 46 de `L1`, appliquée dans l'autre sens.
+
+**Recherches récentes**
+
+Bornées à dix, dédoublonnées sur la forme repliée mais conservant la saisie
+(« Amélie » et « amelie » sont la même recherche ; on réaffiche la dernière frappe),
+un casier par profil, `UserDefaults` injecté pour que la suite de tests n'écrive pas
+dans le domaine de l'app. Jamais `NSUbiquitousKeyValueStore` : ce qu'on a cherché est
+une trace d'usage, pas une donnée du catalogue.
+
+**Un piège d'outillage, pas de code**
+
+`swift test` de MediaKit a échoué sur `cannot find 'GenreQuery' in scope` alors que
+`CineShelfCore` compilait seul : artefact incrémental périmé, le fichier ayant été
+ajouté au paquet pendant que le graphe de MediaKit était en cache. `rm -rf .build` le
+règle. La CI fait un checkout neuf, elle n'y est pas exposée.
+
+**Suite**
+
+`L3` — indexation Spotlight. Elle dépend de `L2` pour la normalisation et la notion de
+portée, qui sont maintenant en place.

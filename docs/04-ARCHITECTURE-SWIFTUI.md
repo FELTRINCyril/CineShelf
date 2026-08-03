@@ -30,7 +30,7 @@ CineShelf/
 │   └── Resources/                    Assets.xcassets, Archivo.ttf, Localizable
 ├── Packages/
 │   ├── DesignSystem/                 tokens, composants, PosterCard, ShelfRail
-│   ├── CineShelfCore/                @Model, repositories, services
+│   ├── CineShelfCore/                @Model, repositories, services, Queries/
 │   └── MediaKit/                     vignettes, blurhash, recadrage, import d'images
 ├── Tests/
 │   ├── CoreTests/  DesignSystemTests/  MediaKitTests/
@@ -337,6 +337,34 @@ Trois couches, décrites en détail dans `02-MODELE-SWIFTDATA-CLOUDKIT.md` §5 :
 3. Index FTS local en base annexe **non synchronisée**, uniquement si la mesure le justifie (> ~20 000 entrées).
 
 L'UI utilise `.searchable(text:placement:)` + `.searchScopes` pour filtrer par type, et `.searchSuggestions` pour les recherches récentes.
+
+### Le service, et son contrat (depuis `L2`)
+
+`SearchService` (dans `CineShelfCore/Queries/`) est une fonction : « texte + portée →
+résultats groupés ». Quatre points de contrat qui commandent l'interface :
+
+- **Deux états, pas trois.** `SearchOutcome` vaut `.idle` (aucun terme saisi, espaces
+  compris) ou `.results`, dont les groupes peuvent être vides. « Aucune
+  correspondance » se déduit de `SearchResults.isEmpty` et n'a pas son propre cas : un
+  troisième état serait une seconde source de vérité pour le même fait. Le compilateur
+  force donc l'écran à traiter les deux branches — champ vide → recherches récentes,
+  terme sans correspondance → « aucun résultat ».
+- **La décision de `idle` appartient au service.** La règle vit à un seul endroit,
+  l'écran ne peut pas l'oublier ni la contredire.
+- **Chaque groupe porte sa tranche et son compte complet** (`fetchCount`, aucun objet
+  matérialisé). C'est ce qui permet « 12 titres » sous une liste de cinq.
+- **Aucun anti-rebond dans le service.** Il est appelable à chaque frappe ; c'est la
+  vue qui décide quand l'appeler. Le rebond ici le rendrait intestable et imposerait
+  un rythme aux appelants sans frappe — un App Intent de `L19`, par exemple.
+
+La visibilité n'est pas réimplémentée : les titres passent par `TitleFilter`, les
+personnes par `PersonFilter`, ceux-là mêmes que la grille et la liste utilisent. Un
+second chemin finirait par diverger, et la recherche montrerait alors un contenu privé
+que la grille masque. C'est la raison pour laquelle `TitleFilter` est descendu de
+`App/` vers `CineShelfCore`.
+
+Mesuré : **8 à 11 ms** en portée `.all` sur 5 000 titres — huit requêtes, deux par
+type. Budget de §4 : 50 ms.
 
 ---
 

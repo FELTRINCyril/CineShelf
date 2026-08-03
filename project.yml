@@ -144,7 +144,10 @@ targets:
       - App/Navigation/AppRoute.swift
       - App/Navigation/AppSection.swift
       - App/Navigation/NavigationModel.swift
-      - App/Navigation/TitleFilter.swift
+      # `TitleFilter.swift` figurait ici : il est descendu dans CineShelfCore
+      # avec L2, parce que le service de recherche en a besoin et que le paquet
+      # ne peut pas dépendre de l'app. Il arrive donc par la dépendance de
+      # paquet, plus par cette liste.
       # Le générateur de fixtures : auto-suffisant (il n'importe que
       # CineShelfCore et des frameworks système), donc compilable ici sans
       # entraîner de vue.

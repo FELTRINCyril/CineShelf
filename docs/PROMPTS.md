@@ -36,6 +36,8 @@ ordre :
 | — | Entitlements par SDK, couleurs sémantiques | Code | — | ✅ `ce3e63c` |
 | — | Grille des titres vide derrière 42 tests verts | Code | — | ✅ `e0f0f0b` |
 | `L1` | Requêtes interrogeables — titres et personnes | Code | `02 §3 §5`, `04 §3` | ✅ `eb05149` `e347b11` |
+| — | CI réparée, invariant des relations verrouillé | Code | — | ✅ `8ae4dfb` |
+| `L2` | Service de recherche | Code | `02 §5`, `04 §6` | ✅ `bc96a3f` |
 
 ### Ce qui reste — chaque prompt est coupé en deux
 
@@ -186,8 +188,8 @@ L1 → L2 → L3 → L4 → L10 → L11 → L12 → prompt 2 → L13
 | # | Tâche | Objectif en une ligne | Docs à lire | Dépend de | État |
 |---|---|---|---|---|---|
 | 1 | `L1` | Rendre interrogeables en SQL les critères de filtre des titres **et** des personnes | `02 §3 §5`, `04 §3`, écarts ci-dessus | — | ✅ `eb05149` `e347b11` |
-| 2 | `L2` | Service de recherche : portées, résultats groupés, comptes, recherches récentes | `02 §5`, `04 §6` | `L1` | ⬜ **suivant** |
-| 3 | `L3` | Indexation Spotlight : indexer, désindexer, réindexer, jamais le privé | `02 §5`, `04 §6`, `03 §9` | `L2` | ⬜ |
+| 2 | `L2` | Service de recherche : portées, résultats groupés, comptes, recherches récentes | `02 §5`, `04 §6` | `L1` | ✅ `bc96a3f` |
+| 3 | `L3` | Indexation Spotlight : indexer, désindexer, réindexer, jamais le privé | `02 §5`, `04 §6`, `03 §9` | `L2` | ⬜ **suivant** |
 | 4 | `L4` | Mathématiques du recadrage : geste ↔ `MediaCrop`, bornes, rect final | `02 §2.4 §3.7`, `04 §4` | — | ⬜ |
 | 5 | `L10` | Édition en masse : décrire une mutation, l'appliquer à une sélection | `03 §12` | — | ⬜ |
 | 6 | `L11` | CSV : lire, écrire, valider, résoudre les références, appliquer par lots | `03 §10`, `04 §7` | `L10` | ⬜ |
@@ -622,7 +624,7 @@ sert de banc d'essai en attendant.
 
 | Tâche | Écrans | Prompt d'origine | S'appuie sur |
 |---|---|---|---|
-| `V1` | Recherche : champ, portées, suggestions, résultats groupés | 12 | `L2` `L3` |
+| `V1` | Recherche : champ, portées, suggestions, résultats groupés. **L'anti-rebond de la saisie est affaire de vue, pas du service** : `SearchService` est une fonction pure, appelable à chaque frappe, et c'est la vue qui décide quand l'appeler. Le mettre dans le service le rendrait intestable et imposerait un rythme à des appelants qui n'ont pas de frappe à amortir — l'App Intent de `L19`, par exemple. Deux branches obligatoires, et le compilateur les impose : `SearchOutcome.idle` (champ vide → recherches récentes) et `.results` dont les groupes peuvent être vides (→ « aucun résultat ») | 12 | `L2` `L3` |
 | `V2` | Médias : `PhotosPicker`, import de fichier, glisser-déposer, collage, `CropEditor`, branchement de `MediaThumbnail` | 13b | `L4` `L5` |
 | `V3` | Galerie : masonry, matrice `layout × size` rendue, visionneuse, immersif | 14 | `L1 bis` `L4` `L5` |
 | `V4` | Personnes : grille, fiche, éditeur, écran de fusion champ par champ | 15 | `L8` `L9` |

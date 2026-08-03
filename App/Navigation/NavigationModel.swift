@@ -1,3 +1,4 @@
+import CineShelfCore
 import Foundation
 import Observation
 import SwiftUI

@@ -1,28 +1,35 @@
-import CineShelfCore
 import Foundation
 import SwiftData
 
 // L'état de filtre et de tri de la liste des titres.
 //
-// Placé dans `App/Navigation/` et non dans `Features/Titles/` parce que le
-// prompt 11 exige qu'il soit **restauré au lancement** : c'est donc
-// `NavigationModel` qui le porte et le sérialise. L'y mettre depuis une feature
-// obligerait `App/Navigation/` à importer `Features/Titles/`, et créerait un
-// cycle — la feature lisant déjà le modèle de navigation.
+// **Il a vécu dans `App/Navigation/`**, parce que le prompt 11 exigeait qu'il soit
+// restauré au lancement : c'est `NavigationModel` qui le porte et le sérialise, et le
+// mettre dans `Features/Titles/` aurait créé un cycle. Il est descendu dans
+// `CineShelfCore` avec `L2`, pour une raison qui l'emporte : le service de recherche
+// en a besoin, et `CineShelfCore` ne peut pas dépendre de `App`.
 //
-// Le type ne connaît que `CineShelfCore` : aucune vue, aucun composant.
+// L'enjeu n'est pas le rangement. La recherche doit masquer exactement ce que la
+// grille masque — corbeille, archivés, contenu privé, hors-bibliothèque — et un
+// second chemin de visibilité finirait par divergerdu premier. Le seul moyen d'avoir
+// une règle unique est que les deux appellent le même code.
+//
+// Conséquence assumée : `TitleSortField.symbol` rend des noms de SF Symbols depuis
+// `CineShelfCore`. Même motif que `ProfileAccent`, dont le `rawValue` est un nom de
+// jeu de couleurs — le paquet désigne une ressource du design system sans importer
+// ni SwiftUI ni `DesignSystem`.
 
 /// Les critères de tri de la liste des titres — `docs/03` §4.
-enum TitleSortField: String, CaseIterable, Identifiable, Codable, Sendable {
+public enum TitleSortField: String, CaseIterable, Identifiable, Codable, Sendable {
     case added
     case name
     case rating
     case release
     case runtime
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
-    var label: String {
+    public var label: String {
         switch self {
         case .added: "Ajout"
         case .name: "Titre"
@@ -32,7 +39,7 @@ enum TitleSortField: String, CaseIterable, Identifiable, Codable, Sendable {
         }
     }
 
-    var symbol: String {
+    public var symbol: String {
         switch self {
         case .added: "clock"
         case .name: "textformat"
@@ -47,7 +54,7 @@ enum TitleSortField: String, CaseIterable, Identifiable, Codable, Sendable {
     /// Le tri secondaire sur `sortName` n'est pas cosmétique : sans lui, deux
     /// titres de même note ou de même année s'échangent de place à chaque
     /// réévaluation de la requête, et la grille scintille.
-    func descriptors(ascending: Bool) -> [SortDescriptor<Title>] {
+    public func descriptors(ascending: Bool) -> [SortDescriptor<Title>] {
         let order: SortOrder = ascending ? .forward : .reverse
         let byName = SortDescriptor(\Title.sortName, order: .forward)
 
@@ -62,14 +69,14 @@ enum TitleSortField: String, CaseIterable, Identifiable, Codable, Sendable {
 }
 
 /// Les tranches de durée pré-réglées — `docs/03` §4.
-enum RuntimeBand: String, CaseIterable, Identifiable, Codable, Sendable {
+public enum RuntimeBand: String, CaseIterable, Identifiable, Codable, Sendable {
     case short
     case medium
     case long
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
-    var label: String {
+    public var label: String {
         switch self {
         case .short: "Court (< 1 h 30)"
         case .medium: "Moyen (1 h 30 – 2 h)"
@@ -77,7 +84,7 @@ enum RuntimeBand: String, CaseIterable, Identifiable, Codable, Sendable {
         }
     }
 
-    var range: ClosedRange<Int> {
+    public var range: ClosedRange<Int> {
         switch self {
         case .short: 1...89
         case .medium: 90...120
@@ -90,37 +97,46 @@ enum RuntimeBand: String, CaseIterable, Identifiable, Codable, Sendable {
 ///
 /// `Codable` pour la restauration, `Equatable` pour que les vues sachent quand
 /// reconstruire leur requête.
-struct TitleFilter: Codable, Equatable, Sendable {
-    var searchText: String = ""
-    var collectionID: UUID?
-    var genreID: UUID?
-    var personID: UUID?
-    var runtimeBand: RuntimeBand?
-    var minimumRuntime: Int?
-    var maximumRuntime: Int?
-    var minimumRating: Double?
-    var maximumRating: Double?
-    var showsArchived: Bool = false
+public struct TitleFilter: Codable, Equatable, Sendable {
+    public var searchText: String = ""
+    public var collectionID: UUID?
+    public var genreID: UUID?
+    public var personID: UUID?
+    public var runtimeBand: RuntimeBand?
+    public var minimumRuntime: Int?
+    public var maximumRuntime: Int?
+    public var minimumRating: Double?
+    public var maximumRating: Double?
+    public var showsArchived: Bool = false
 
-    var sort: TitleSortField = .added
-    var ascending: Bool = false
+    public var sort: TitleSortField = .added
+    public var ascending: Bool = false
+
+    /// L'initialiseur ne prend que le tri, et c'est ce qui fait marcher `isActive`
+    /// et `clear()` : « aucun critère actif » se dit `TitleFilter(sort:ascending:)`,
+    /// donc un critère ajouté à la structure entre automatiquement dans la
+    /// comparaison. Un initialiseur exhaustif obligerait à penser à l'y ajouter.
+    public init(sort: TitleSortField = .added, ascending: Bool = false) {
+        self.sort = sort
+        self.ascending = ascending
+    }
 
     /// `true` dès qu'un critère restreint la liste. Le tri n'en fait pas partie :
     /// trier ne cache rien.
-    var isActive: Bool {
+    public var isActive: Bool {
         self != TitleFilter(sort: sort, ascending: ascending)
     }
 
     /// Les bornes de durée effectives : la tranche pré-réglée l'emporte sur les
     /// bornes libres, parce que c'est elle que l'utilisateur vient de toucher.
-    var effectiveRuntime: (minimum: Int?, maximum: Int?) {
+    public var effectiveRuntime: (minimum: Int?, maximum: Int?) {
         if let band = runtimeBand {
             return (band.range.lowerBound, band.range.upperBound)
         }
         return (minimumRuntime, maximumRuntime)
     }
 
-    mutating func clear() {
+    public mutating func clear() {
         self = TitleFilter(sort: sort, ascending: ascending)
     }
 }
@@ -184,7 +200,7 @@ extension TitleFilter {
     ///     est optionnelle et `move(_:to:)` existe. Dans les deux cas, mieux vaut
     ///     tout montrer que rien.
     /// - Returns: le prédicat à passer à un `@Query` ou un `FetchDescriptor`.
-    func predicate(hidingPrivate: Bool, libraryID: UUID?) -> Predicate<Title> {
+    public func predicate(hidingPrivate: Bool, libraryID: UUID?) -> Predicate<Title> {
         let showsArchived = showsArchived
 
         // `Title.searchText` est replié par `refreshDerived()` (sans accents, sans
@@ -380,7 +396,7 @@ extension TitleFilter {
         )
     }
 
-    var descriptors: [SortDescriptor<Title>] {
+    public var descriptors: [SortDescriptor<Title>] {
         sort.descriptors(ascending: ascending)
     }
 }

@@ -72,3 +72,175 @@ public enum MediaQuery {
         #Predicate<MediaAsset> { $0.id == id }
     }
 }
+
+// MARK: - Visibilité et recherche des collections et des signets
+//
+// `Title` et `Person` ont leurs propres filtres (`TitleFilter`, `PersonFilter`).
+// `TitleCollection` et `SavedLink` n'en avaient pas : `L2` les leur donne, sous la
+// forme réduite dont la recherche a besoin — visibilité + terme.
+//
+// **Ces deux prédicats sont construits à la main, et c'est mesuré, pas prudentiel.**
+// Écrits avec `#Predicate`, les cinq clauses — corbeille, archivage, privé,
+// bibliothèque, terme — coûtent **7 253 ms** de vérification de types pour les
+// collections et **7 446 ms** pour les signets. Elles compilent, mais à une clause de
+// l'échec et pour quinze secondes ajoutées à chaque build propre du paquet. En arbre
+// manuel : **moins de 200 ms**. Voir `predicateClause(active:_:)` pour le pourquoi.
+//
+// Le coût vient de la traversée `library?.id`, que ces deux modèles n'ont pas
+// dénormalisée. **Décision de ne pas leur ajouter de `filterKeys`** : la
+// dénormalisation a un coût permanent — un invariant de plus à maintenir à chaque
+// écriture — et ces deux tables comptent des dizaines de lignes, pas des milliers. La
+// jointure ne se paie qu'en SQL, où elle est négligeable ; le plafond de type-check,
+// lui, se paie à chaque compilation. L'arbre manuel règle le second sans introduire le
+// premier.
+
+public enum CollectionQuery {
+
+    /// Les collections visibles qui correspondent à un terme.
+    ///
+    /// - Parameters:
+    ///   - term: le terme **déjà replié** (sans accents, sans casse). Vide, la clause
+    ///     est neutralisée — un `CONTAINS ''` ne matche aucune ligne en SQL.
+    ///   - hidingPrivate: le profil actif masque les entités privées.
+    ///   - libraryID: la bibliothèque du profil actif. `nil` ne filtre pas.
+    ///   - showsArchived: inclut les collections archivées.
+    /// - Returns: le prédicat correspondant.
+    public static func matching(
+        term: String,
+        hidingPrivate: Bool,
+        libraryID: UUID?,
+        showsArchived: Bool = false
+    ) -> Predicate<TitleCollection> {
+        let noID = UUID()
+        let libraryTarget = libraryID ?? noID
+
+        return Predicate<TitleCollection> { collection in
+            let root = PredicateExpressions.build_Arg(collection)
+            let alive = PredicateExpressions.build_Equal(
+                lhs: PredicateExpressions.build_KeyPath(root: root, keyPath: \.deletedAt),
+                rhs: PredicateExpressions.build_NilLiteral()
+            )
+            let notArchived = predicateClause(
+                active: showsArchived == false,
+                PredicateExpressions.build_Equal(
+                    lhs: PredicateExpressions.build_KeyPath(root: root, keyPath: \.isArchived),
+                    rhs: PredicateExpressions.build_Arg(false)
+                )
+            )
+            let notPrivate = predicateClause(
+                active: hidingPrivate,
+                PredicateExpressions.build_Equal(
+                    lhs: PredicateExpressions.build_KeyPath(root: root, keyPath: \.isPrivate),
+                    rhs: PredicateExpressions.build_Arg(false)
+                )
+            )
+            let inLibrary = predicateClause(
+                active: libraryID != nil,
+                PredicateExpressions.build_Equal(
+                    lhs: PredicateExpressions.build_NilCoalesce(
+                        lhs: PredicateExpressions.build_flatMap(
+                            PredicateExpressions.build_KeyPath(root: root, keyPath: \.library)
+                        ) {
+                            PredicateExpressions.build_KeyPath(
+                                root: PredicateExpressions.build_Arg($0), keyPath: \.id)
+                        },
+                        rhs: PredicateExpressions.build_Arg(noID)
+                    ),
+                    rhs: PredicateExpressions.build_Arg(libraryTarget)
+                )
+            )
+            let matchesTerm = predicateClause(
+                active: term.isEmpty == false,
+                PredicateExpressions.build_contains(
+                    PredicateExpressions.build_KeyPath(root: root, keyPath: \.searchText),
+                    PredicateExpressions.build_Arg(term)
+                )
+            )
+
+            return PredicateExpressions.build_Conjunction(
+                lhs: PredicateExpressions.build_Conjunction(
+                    lhs: PredicateExpressions.build_Conjunction(lhs: alive, rhs: notArchived),
+                    rhs: notPrivate
+                ),
+                rhs: PredicateExpressions.build_Conjunction(lhs: inLibrary, rhs: matchesTerm)
+            )
+        }
+    }
+}
+
+public enum SavedLinkQuery {
+
+    /// Les signets visibles qui correspondent à un terme.
+    ///
+    /// `SavedLink.searchText` agrège le nom, les notes **et l'URL** : chercher
+    /// « imdb » trouve donc un signet dont seule l'adresse le contient, ce qui est le
+    /// comportement attendu d'un gestionnaire de signets.
+    ///
+    /// - Parameters:
+    ///   - term: le terme déjà replié. Vide, la clause est neutralisée.
+    ///   - hidingPrivate: le profil actif masque les entités privées.
+    ///   - libraryID: la bibliothèque du profil actif. `nil` ne filtre pas.
+    ///   - showsArchived: inclut les signets archivés.
+    /// - Returns: le prédicat correspondant.
+    public static func matching(
+        term: String,
+        hidingPrivate: Bool,
+        libraryID: UUID?,
+        showsArchived: Bool = false
+    ) -> Predicate<SavedLink> {
+        let noID = UUID()
+        let libraryTarget = libraryID ?? noID
+
+        return Predicate<SavedLink> { link in
+            let root = PredicateExpressions.build_Arg(link)
+            let alive = PredicateExpressions.build_Equal(
+                lhs: PredicateExpressions.build_KeyPath(root: root, keyPath: \.deletedAt),
+                rhs: PredicateExpressions.build_NilLiteral()
+            )
+            let notArchived = predicateClause(
+                active: showsArchived == false,
+                PredicateExpressions.build_Equal(
+                    lhs: PredicateExpressions.build_KeyPath(root: root, keyPath: \.isArchived),
+                    rhs: PredicateExpressions.build_Arg(false)
+                )
+            )
+            let notPrivate = predicateClause(
+                active: hidingPrivate,
+                PredicateExpressions.build_Equal(
+                    lhs: PredicateExpressions.build_KeyPath(root: root, keyPath: \.isPrivate),
+                    rhs: PredicateExpressions.build_Arg(false)
+                )
+            )
+            let inLibrary = predicateClause(
+                active: libraryID != nil,
+                PredicateExpressions.build_Equal(
+                    lhs: PredicateExpressions.build_NilCoalesce(
+                        lhs: PredicateExpressions.build_flatMap(
+                            PredicateExpressions.build_KeyPath(root: root, keyPath: \.library)
+                        ) {
+                            PredicateExpressions.build_KeyPath(
+                                root: PredicateExpressions.build_Arg($0), keyPath: \.id)
+                        },
+                        rhs: PredicateExpressions.build_Arg(noID)
+                    ),
+                    rhs: PredicateExpressions.build_Arg(libraryTarget)
+                )
+            )
+            let matchesTerm = predicateClause(
+                active: term.isEmpty == false,
+                PredicateExpressions.build_contains(
+                    PredicateExpressions.build_KeyPath(root: root, keyPath: \.searchText),
+                    PredicateExpressions.build_Arg(term)
+                )
+            )
+
+            return PredicateExpressions.build_Conjunction(
+                lhs: PredicateExpressions.build_Conjunction(
+                    lhs: PredicateExpressions.build_Conjunction(lhs: alive, rhs: notArchived),
+                    rhs: notPrivate
+                ),
+                rhs: PredicateExpressions.build_Conjunction(lhs: inLibrary, rhs: matchesTerm)
+            )
+        }
+    }
+}

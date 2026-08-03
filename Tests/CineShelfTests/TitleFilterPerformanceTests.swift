@@ -146,6 +146,13 @@ struct TitleFilterPerformanceTests {
         )
     }
 
+    /// **Ne pas supprimer ce test au motif qu'il mesure des performances.** Il ne
+    /// mesure pas une vitesse, il prouve une **forme** : que le filtrage a bien lieu
+    /// dans SQLite. C'est le seul garde-fou du pari documenté dans
+    /// `predicateClause(active:_:)` — si SwiftData cessait de reconnaître l'arbre
+    /// construit à la main et retombait sur une évaluation en mémoire, le code
+    /// compilerait, tous les tests de critères resteraient verts, et seul le rapport
+    /// mesuré ici s'effondrerait.
     @Test("Un filtre sélectif ne paie pas le catalogue entier")
     func selectiveFilterDoesNotScanEverything() throws {
         // La preuve que le filtrage se fait bien dans SQLite, et le test qui

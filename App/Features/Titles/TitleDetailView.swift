@@ -30,7 +30,7 @@ struct TitleDetailView: View {
 
     init(titleID: UUID) {
         self.titleID = titleID
-        _titles = Query(filter: #Predicate<Title> { $0.id == titleID })
+        _titles = Query(filter: TitleQuery.withID(titleID))
     }
 
     /// La grille filtre déjà le contenu privé, mais on peut atteindre une fiche

@@ -14,7 +14,7 @@ struct Sidebar: View {
     // Un genre à la corbeille ou archivé n'a rien à faire dans la barre
     // latérale : il y resterait cliquable, menant à une liste vide.
     @Query(
-        filter: #Predicate<Genre> { $0.isPinned && $0.deletedAt == nil && $0.isArchived == false },
+        filter: GenreQuery.pinned,
         sort: \Genre.pinIndex
     )
     private var pinnedGenres: [Genre]

@@ -15,7 +15,7 @@ struct TitleFilterSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @Query(sort: \TitleCollection.name) private var collections: [TitleCollection]
-    @Query(filter: #Predicate<Genre> { $0.deletedAt == nil }, sort: \Genre.name)
+    @Query(filter: GenreQuery.living, sort: \Genre.name)
     private var genres: [Genre]
 
     var body: some View {

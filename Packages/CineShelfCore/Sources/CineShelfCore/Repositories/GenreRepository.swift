@@ -48,16 +48,12 @@ public struct GenreRepository {
     }
 
     private func find(key: String, target: GenreTarget, in library: Library) throws -> Genre? {
-        let targetRaw = target.rawValue
-        let libraryID = library.id
+        // Le filtre `deletedAt == nil` est porté par `GenreQuery` : sans lui,
+        // `findOrCreate` ressusciterait silencieusement un genre mis à la corbeille,
+        // et l'utilisateur retrouverait ses anciennes associations sans les avoir
+        // demandées.
         var descriptor = FetchDescriptor<Genre>(
-            // `deletedAt == nil` : sans lui, `findOrCreate` ressusciterait
-            // silencieusement un genre mis à la corbeille, et l'utilisateur
-            // retrouverait ses anciennes associations sans les avoir demandées.
-            predicate: #Predicate {
-                $0.nameKey == key && $0.targetRaw == targetRaw && $0.library?.id == libraryID
-                    && $0.deletedAt == nil
-            }
+            predicate: GenreQuery.living(key: key, target: target, inLibrary: library.id)
         )
         descriptor.fetchLimit = 1
         return try context.fetch(descriptor).first

@@ -58,6 +58,12 @@ extension PersonFilter {
     /// `@Model`, et il en faut davantage. Même découpage que `TitleFilter` — des
     /// sous-arbres sous le plafond, recombinés ensuite.
     ///
+    /// > **Le pari de `PredicateExpressions` est documenté dans
+    /// > `predicateClause(active:_:)`, à lire avant de modifier cet arbre.** Le
+    /// > risque n'est pas la rupture d'API — elle ne compilerait pas — mais que
+    /// > SwiftData cesse de reconnaître la forme et retombe en mémoire, sans qu'un
+    /// > seul test de critère ne bronche.
+    ///
     /// - Parameters:
     ///   - hidingPrivate: le profil actif masque les entités privées.
     ///   - libraryID: la bibliothèque du profil actif. `nil` ne filtre pas.

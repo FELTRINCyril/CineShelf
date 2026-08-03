@@ -1486,3 +1486,92 @@ vient de chasser, et les énumérations dupliquées entre `CineShelfCore` et
 **Suite**
 
 `L2` — service de recherche.
+
+---
+
+## 2026-08-03 (10) — CI réparée, et l'invariant des relations fermé à clé
+
+Quatre sujets demandés avant `L2`, plus le push des quatre commits de `L1`.
+
+**La CI était rouge depuis `48c3dc8`, sur deux causes distinctes**
+
+1. `swift-format: command not found`, exit 127. Il est livré avec la toolchain Xcode
+   mais **n'est pas dans le PATH** : il faut `xcrun`. Le défaut ne se voyait pas parce
+   que la commande documentée dans `CLAUDE.md` utilisait déjà `xcrun` — seul le
+   workflow s'en passait.
+2. `« Performance : 200 vignettes »` assenait les budgets de `docs/04` §4 tels quels.
+   Le runner GitHub est virtualisé et son accélération d'image est absente
+   (`AppleM2ScalerParavirtDriver` échoue au démarrage), donc le décodage retombe sur
+   un chemin logiciel :
+
+   | Chemin | En local | Sur le runner |
+   |---|---|---|
+   | décodage à froid | 15,2 ms | 266,5 ms |
+   | relecture disque | 2,5 ms | 15,8 ms |
+
+   Un facteur 17 sur le même code. Le test assène maintenant des **rapports** —
+   indépendants de la machine, et c'est eux qui portent le sens, puisqu'un cache qui
+   cesserait d'être lu les ramènerait à 1 — plus des plafonds absolus calés sur
+   l'environnement le plus lent où il tourne. Le budget d'UX se vérifie sur appareil
+   avec Instruments, comme `docs/04` §4 le demande lui-même.
+
+`CLAUDE.md` gagne la règle : **une CI rouge bloque la tâche suivante.** Une CI rouge
+que personne ne regarde apprend à ignorer le signal.
+
+**Le pari de `PredicateExpressions`, documenté**
+
+C'est l'endroit le plus fragile du dépôt et ça n'était écrit nulle part. Le
+raisonnement complet est maintenant dans `predicateClause(active:_:)`, avec des
+renvois depuis `TitleFilter` et `PersonFilter` :
+
+- les `build_*` sont l'interface de la macro, leur nommage dit qu'elles ne sont pas
+  destinées à l'usage direct ;
+- une rupture d'API **ne compilerait pas** — échec bruyant, immédiat, trois fichiers ;
+- le vrai risque est ailleurs : que SwiftData cesse de **reconnaître** la forme et
+  retombe en mémoire. Le code compile, tous les tests de critères restent verts — ils
+  vérifient *quels* titres sortent, pas *où* le filtrage a eu lieu — et l'app se remet
+  à rapatrier cinq mille lignes. Aucune erreur.
+- le seul garde-fou est
+  `TitleFilterPerformanceTests.selectiveFilterDoesNotScanEverything`. Il est nommé
+  dans le commentaire, et le test porte lui-même l'avertissement de ne pas le
+  supprimer au motif qu'il « mesure des performances » : il ne mesure pas une
+  vitesse, il prouve une forme.
+
+**L'invariant des relations, rendu impossible à violer**
+
+Il était sûr par accident : aucun code de production ne mutait `genres`, `credits` ni
+`collection`. `V4` et `V5` vont écrire exactement ce code, donc la porte se ferme
+avant qu'on prenne l'habitude de passer par la fenêtre.
+
+- Mutateurs dans les repositories, seules portes autorisées : `setCollection`,
+  `setGenres`, `move`, `addCredit`, `removeCredit` sur les titres ; `setGenres`,
+  `setRoles`, `move` sur les personnes. Chacun délègue à `update(_:_:)`, qui appelle
+  `refreshDerived()` et journalise.
+- Règle SwiftLint `no_relation_write_outside_core` : écrire dans `.genres`,
+  `.credits`, `.collection` ou `.library` hors de `CineShelfCore` est une erreur.
+  Exclusions assumées et documentées dans le fichier — les tests et `DemoCatalog`
+  posent les relations à la main exprès.
+- Règle `no_predicate_outside_core` : `#Predicate` hors de `CineShelfCore` est une
+  erreur, parce que le plafond de cinq clauses ne se devine pas et qu'une vue n'est
+  couverte par aucun test. Les six prédicats qui vivaient dans des vues sont
+  rapatriés dans `EntityQueries` et couverts — **l'écart « prédicats de production
+  sans couverture » se réduit à un seul cas**, `Bootstrap.existingProfile`, qui est
+  structurellement inatteignable.
+
+Les deux règles ont été **vérifiées par une sonde** : un fichier temporaire portant
+les violations, pour s'assurer qu'elles mordent. Une règle de lint qui ne déclenche
+jamais ne protège rien, et rien ne le signale.
+
+**Un vrai bug attrapé au passage**
+
+`removeCredit` échouait sur son propre test. `ModelContext.delete(_:)` ne retire pas
+l'objet des relations inverses avant la sauvegarde : `title.credits` contenait encore
+le crédit supprimé, donc `refreshDerived()` recomposait `filterKeys` **avec** la
+personne qu'on venait de décréditer, et le titre restait retrouvable par un filtre sur
+elle. Il faut détacher (`credit.title = nil`) avant de supprimer. C'est exactement le
+genre de faux positif silencieux que les mutateurs sont censés empêcher — et il était
+déjà là, dans la première version des mutateurs eux-mêmes.
+
+**Suite**
+
+`L2` — service de recherche.

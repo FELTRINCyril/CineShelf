@@ -153,7 +153,7 @@
         private static func markerGenre(in context: ModelContext, libraryID: UUID) throws -> Genre? {
             let key = Genre.key(for: markerGenreName)
             let descriptor = FetchDescriptor<Genre>(
-                predicate: #Predicate<Genre> { $0.nameKey == key && $0.deletedAt == nil })
+                predicate: GenreQuery.living(key: key))
             return try context.fetch(descriptor).first { $0.library?.id == libraryID }
         }
 

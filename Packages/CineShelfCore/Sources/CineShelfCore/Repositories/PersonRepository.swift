@@ -43,4 +43,23 @@ public struct PersonRepository {
         person.updatedAt = .now
         ActivityRecorder(context: context).record(.restore, person)
     }
+
+    // MARK: Relations
+    //
+    // Mêmes raisons que sur `TitleRepository` : `Person.filterKeys` dénormalise la
+    // bibliothèque, les genres et les rôles pour les rendre interrogeables. Une
+    // relation écrite sans `refreshDerived()` rend le filtre correspondant faux en
+    // silence. La règle `no_relation_write_outside_core` interdit les autres portes.
+
+    public func setGenres(_ genres: [Genre], on person: Person) {
+        update(person) { $0.genres = genres }
+    }
+
+    public func setRoles(_ roles: Set<PersonRole>, on person: Person) {
+        update(person) { $0.roles = roles }
+    }
+
+    public func move(_ person: Person, to library: Library) {
+        update(person) { $0.library = library }
+    }
 }

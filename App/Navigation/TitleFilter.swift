@@ -149,6 +149,14 @@ extension TitleFilter {
     /// était de continuer à rapatrier le catalogue entier pour le filtrer en
     /// Swift, ce que `L1` avait précisément pour objet de supprimer.
     ///
+    /// > **Avant de toucher à cet arbre, lire le pari documenté dans
+    /// > `predicateClause(active:_:)`.** En résumé : une rupture d'API de
+    /// > `PredicateExpressions` ne compilerait pas, donc elle se verrait ; le vrai
+    /// > risque est que SwiftData cesse de reconnaître la forme et retombe en
+    /// > mémoire, ce qui laisserait **tous les tests de critères verts**. Le seul
+    /// > garde-fou est
+    /// > `TitleFilterPerformanceTests.selectiveFilterDoesNotScanEverything`.
+    ///
     /// ### Les deux limites qui restent vraies
     ///
     /// - Les propriétés calculées (`kind`, `releaseYear`) ne sont pas utilisables

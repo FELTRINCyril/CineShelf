@@ -74,7 +74,7 @@ enum MediaImageError: Error {
 actor AssetDataProvider {
 
     func data(for assetID: UUID) -> Data? {
-        var descriptor = FetchDescriptor<MediaAsset>(predicate: #Predicate { $0.id == assetID })
+        var descriptor = FetchDescriptor<MediaAsset>(predicate: MediaQuery.asset(withID: assetID))
         descriptor.fetchLimit = 1
         return try? modelContext.fetch(descriptor).first?.data
     }

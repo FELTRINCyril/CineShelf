@@ -102,3 +102,65 @@ custom_rules:
     message: "Utilise .clipShape(.rect(cornerRadius:style: .continuous))."
     regex: '\.cornerRadius\('
     severity: error
+
+  # Depuis L1, `refreshDerived()` compose `filterKeys` à partir des relations :
+  # bibliothèque, collection, genres et personnes créditées y sont dénormalisés pour
+  # être interrogeables en SQL. Une relation écrite sans rafraîchissement laisse donc
+  # `filterKeys` en arrière, et l'entité devient introuvable par le filtre
+  # correspondant — sans erreur, sans avertissement, et sans qu'aucun test de critère
+  # ne bronche, puisque la relation est bien posée.
+  #
+  # Les seules portes autorisées sont les mutateurs de `TitleRepository` et de
+  # `PersonRepository` (section « Relations »), qui appellent `refreshDerived()`.
+  #
+  # Exclusions, toutes assumées :
+  #   - `Packages/CineShelfCore` : c'est là que vivent les mutateurs eux-mêmes ;
+  #   - `Tests/` et `Packages/*/Tests` : les fixtures posent les relations à la main
+  #     **exprès**, et rappellent `refreshDerived()` explicitement — c'est ce qui
+  #     permet à `FilterKeyTests` de vérifier l'invariant, y compris à l'envers ;
+  #   - `App/DemoData` : décision actée, une fixture n'est pas une action
+  #     utilisateur et ne doit pas produire trois cents entrées de fil d'activité.
+  #     `DemoCatalogTests` vérifie que ses `filterKeys` sont à jour.
+  no_relation_write_outside_core:
+    name: "Écriture de relation hors CineShelfCore"
+    message: >-
+      Une relation dénormalisée dans filterKeys ne s'écrit pas directement : passe par
+      TitleRepository/PersonRepository (section Relations), qui appellent
+      refreshDerived(). Sinon le filtre correspondant devient faux en silence.
+    regex: '(?<!self)\.(genres|credits|collection|library)\s*=(?!=)'
+    excluded:
+      - ".*/Packages/CineShelfCore/.*"
+      - ".*/Tests/.*"
+      - ".*/App/DemoData/.*"
+    excluded_match_kinds:
+      - comment
+      - doccomment
+      - string
+    severity: error
+
+  # `#Predicate` plafonne à **cinq clauses** sur un `@Model` SwiftData — mesuré, voir
+  # `predicateClause(active:_:)` et `docs/02` §5. Ce plafond ne se devine pas : au-delà,
+  # la compilation part en trente secondes puis échoue, et à cinq elle coûte déjà 1,3 s
+  # sans rien dire.
+  #
+  # Tous les prédicats vivent donc dans `Packages/CineShelfCore`, à côté de cette
+  # documentation et des outils qui permettent de dépasser le plafond. La règle est
+  # posée au niveau du **module** et non du seul fichier qui porte `predicateClause` :
+  # les repositories ont de bonnes raisons d'interroger le magasin, et les y interdire
+  # aurait forcé un détour sans bénéfice. Ce qu'on veut empêcher, c'est un prédicat
+  # écrit dans une vue — où personne ne lira l'avertissement, et où aucune cible de
+  # test ne peut le couvrir.
+  no_predicate_outside_core:
+    name: "#Predicate hors CineShelfCore"
+    message: >-
+      Les prédicats vivent dans CineShelfCore/Queries : #Predicate plafonne à cinq
+      clauses sur un @Model, et une vue n'est couverte par aucun test. Ajoute une
+      fabrique à EntityQueries, ou une clause à un filtre existant via predicateClause.
+    regex: '#Predicate'
+    excluded:
+      - ".*/Packages/CineShelfCore/.*"
+    excluded_match_kinds:
+      - comment
+      - doccomment
+      - string
+    severity: error

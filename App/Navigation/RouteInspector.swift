@@ -48,7 +48,7 @@ private struct TitleInspector: View {
 
     init(titleID: UUID) {
         self.titleID = titleID
-        _titles = Query(filter: #Predicate<Title> { $0.id == titleID })
+        _titles = Query(filter: TitleQuery.withID(titleID))
     }
 
     var body: some View {

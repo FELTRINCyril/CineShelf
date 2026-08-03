@@ -1,3 +1,30 @@
+<!-- ARCHIVE - NE PLUS UTILISER -->
+# ARCHIVE - obsolète depuis le 3 août 2026
+
+> **Ce document est obsolète. Ne pas l'utiliser, ne pas s'y référer pour du travail neuf.**
+>
+> **Pourquoi :** mauvais registre. Il spécifiait une app de **bureautique Apple** -
+> barre latérale, `Table`, `Form`, `.inspector`, chrome système partout - alors que
+> CineShelf est un catalogue de films qu'on ouvre le soir. Le bon voisinage est
+> l'app TV d'Apple, Plex, Infuse.
+>
+> **Remplacé par :** [`../06-BRIEF-DESIGN.md`](../06-BRIEF-DESIGN.md), qui est un
+> brief et non une spécification : la direction artistique et les tokens y sont
+> déduits des écrans, pas décidés avant eux.
+>
+> **Ce qui reste valable et a été conservé ailleurs** (c'est de l'architecture, pas
+> de l'esthétique) : les 3 niveaux de tokens, l'Asset Catalog et ses 4 apparences,
+> `generate-colors.py`, `ColorAssetTests`, la couture par modèles de présentation,
+> les règles de lint (aucune couleur littérale, aucune taille de police fixe), et la
+> matrice `layout × size`. Voir « Ce qui survit de l'ancien 01 » dans
+> [`../PROMPTS.md`](../PROMPTS.md).
+>
+> **Ce qui est mort :** les valeurs de palette, le choix typographique, l'anatomie
+> des 7 composants, l'architecture de navigation, et tout chrome système appliqué
+> par défaut.
+
+---
+
 # CineShelf — Design System Apple (iOS · iPadOS · macOS)
 
 > **Destinataire : Claude Design.** Remplace `01-DESIGN-SYSTEM.md` (version web). Cible unique multiplateforme SwiftUI.

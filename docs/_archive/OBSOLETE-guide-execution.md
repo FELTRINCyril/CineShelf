@@ -1,3 +1,19 @@
+<!-- ARCHIVE - NE PLUS UTILISER -->
+# ARCHIVE - obsolète depuis le 3 août 2026
+
+> **Ce document est obsolète.** Ses 24 sessions, ses prompts à copier et ses
+> vérifications sont remplacés par le **tableau d'état de
+> [`../PROMPTS.md`](../PROMPTS.md)** : les prompts y vivent, l'avancement s'y suit,
+> et les tâches sont désormais découpées en LOGIQUE (L1, L2...) et VUES.
+>
+> Il décrit en outre un enchaînement « design d'abord » qui n'a plus cours : la
+> direction artistique est en refonte, voir
+> [`../06-BRIEF-DESIGN.md`](../06-BRIEF-DESIGN.md).
+>
+> Conservé pour mémoire seulement.
+
+---
+
 # CineShelf — Guide d'exécution
 
 > Le déroulé complet, session par session : qui fait quoi, dans quel ordre, avec quel prompt et quelles pièces jointes.

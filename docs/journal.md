@@ -1196,3 +1196,163 @@ changement de hiérarchie visuelle. Décision actée : on attend le prompt 16, q
 **Suite**
 
 Prompt 12 — Recherche + Spotlight.
+
+---
+
+## 2026-08-03 (7) — Bascule de direction artistique, et le plan repris par la logique
+
+Session de documentation et de planification : **aucune ligne de Swift**.
+
+**Le ménage dans `docs/`**
+
+`06-BRIEF-DESIGN.md` entre. Quatre documents sortent vers `docs/_archive/`, chacun
+avec un bandeau qui dit pourquoi :
+
+| Avant | Après | Motif |
+|---|---|---|
+| `01-DESIGN-SYSTEM-APPLE.md` | `_archive/OBSOLETE-design-system-productivite.md` | mauvais registre : app de bureautique Apple au lieu d'app média |
+| `05-ROADMAP-NATIF.md` | `_archive/OBSOLETE-roadmap-natif.md` | remplacé par le tableau d'état de `PROMPTS.md` |
+| `GUIDE-EXECUTION.md` | `_archive/OBSOLETE-guide-execution.md` | idem |
+| `SETUP.md` | `_archive/SETUP.md` | l'installation est faite (`03fff62`) |
+
+`docs/README.md` est réécrit : il décrivait huit documents dont trois sont
+maintenant archivés, et pointait `GUIDE-EXECUTION.md` comme point d'entrée.
+`CLAUDE.md` perd la référence au `01`, gagne celles du `06` et de `PROMPTS.md`, et
+porte désormais la règle d'interface — **aucun travail visuel nouveau sans accord
+explicite**.
+
+Le `README.md` annoncé dans `~/Downloads` n'y était pas : seuls
+`06-BRIEF-DESIGN.md` et une copie de `03-FONCTIONNALITES-NATIF.md` (identique à
+celle du dépôt) s'y trouvaient. Le `README` a donc été réécrit depuis l'état réel
+du dépôt, pas recopié.
+
+**La bascule**
+
+Une section de `PROMPTS.md` acte la séparation entre ce qui est mort et ce qui
+survit du `01`. Obsolète : les valeurs de palette, le choix typographique,
+l'anatomie des composants, l'architecture de navigation, tout chrome système par
+défaut. Conservé, parce que c'est de l'architecture et non de l'esthétique : les
+trois niveaux de tokens, l'Asset Catalog et ses quatre apparences,
+`generate-colors.py`, `ColorAssetTests`, la couture par modèles de présentation,
+les règles de lint, et la matrice `layout × size` — qui est une fonctionnalité de
+l'app, pas une décoration.
+
+L'interface des prompts 10 et 11 devient un **banc d'essai** : on l'exerce, on ne
+l'investit plus, on ne la supprime pas. Noté au tableau des écarts, qui gagne aussi
+la règle générale : les écarts d'apparence attendent le design, les écarts de
+logique se corrigent normalement.
+
+**Le plan, repris par la logique**
+
+Chaque prompt restant est coupé en deux : une part LOGIQUE (aucun SwiftUI,
+testable, insensible au design) et une part VUES, à écrire une seule fois contre le
+design final. Résultat : **19 tâches `L1`…`L19`** et **12 tâches `V1`…`V12`**, avec
+objectif, docs à lire, dépendances et état.
+
+L'inventaire de départ comptait douze entrées ; sept manquaient et ont été
+ajoutées : les requêtes interrogeables (`L1`, qui absorbe l'écart des cinq critères
+filtrés en mémoire), la suggestion de casting (`L9`), l'édition en masse (`L10`),
+l'archive `.cineshelfarchive` (`L12`), la maintenance et la corbeille (`L16`), les
+sélections éditoriales et les statistiques (`L18`), et le déménagement du store de
+préférences d'affichage hors d'une vue (dans `L1`).
+
+`L1` passe en tête pour une raison de calendrier et non de goût : elle touche le
+schéma, donc elle doit être faite **avant** le gel de `versionIdentifier` au
+prompt 20.
+
+**Le plan arbitré, et le critère qui a tout réordonné**
+
+Les 7 ajouts et les deux choix contestables (`L1` en premier, `L8` non découpée)
+sont validés. Un critère s'est ajouté à l'arbitrage, qui n'était pas dans ma
+proposition et qui change l'ordre : **la nouvelle direction artistique ne pourra
+être jugée que sur les vraies affiches**, pas sur des dégradés générés. Les vraies
+affiches arrivent avec `L13`. Le chemin le plus court vers `L13` est donc le chemin
+le plus court vers la capacité à valider le design.
+
+Le chemin critique, désormais en tête du tableau :
+
+```
+L1 → L2 → L3 → L4 → L10 → L11 → L12 → prompt 2 → L13
+```
+
+Les onze autres — `L5` `L6` `L7` `L8` `L9` `L14` `L15` `L16` `L17` `L18` `L19` —
+deviennent des **tâches d'appoint** : aucune ne retarde `L13`, aucune n'en dépend.
+
+Le **prompt 2**, le dump du bundle depuis l'app web, cesse d'être une précaution
+« avant le 20 » pour devenir une **dépendance dure** de `L13` : sans bundle, rien à
+importer, et la direction reste injugeable. Il se fait dans l'autre dépôt.
+
+**Trois vérifications demandées**
+
+*Le fil d'activité.* Il n'était nulle part : `L18` couvrait le hero, les rayons, Ma
+liste et les statistiques, pas la lecture d'`ActivityEntry`. Vérifié dans le code —
+`ActivityRecorder` écrit, **personne ne relit**, aucune requête sur `ActivityEntry`
+dans tout le dépôt. La lecture chronologique est donc ajoutée explicitement à
+`L18` : ordre décroissant, fenêtrage, regroupement par jour, libellés depuis
+`ActivityDescribing`, et les entrées dont la cible a disparu doivent rester lisibles.
+
+*`L17` et CloudKit.* Noté sur sa fiche et dans les deux tableaux : la tâche peut
+être écrite et couverte en simulation, mais **rien n'aura tourné contre un vrai
+conteneur** avant le prompt 21 — ni les notifications réelles du coordinateur, ni
+leur charge utile, ni leur ordre, ni les cas de compte et de quota. Au vert, elle
+vaudra « écrite et simulée », pas « vérifiée ». Elle reste ouverte.
+
+*`MediaSlot.backdrop`.* Il **est** lu : `TitleFormat.backdropAsset` →
+`AssetURL.backdrop` → le hero 16/9 de `TitleDetailView`. Et `MediaThumbnail`
+remplit déjà son cadre (`scaledToFill` dans un `aspectRatio`), donc pas de bandes
+noires aujourd'hui. Deux réserves inscrites au tableau des écarts : `crop(for:)`
+n'a **aucun appelant hors du modèle** — le remplissage est un cadrage centré, le
+recadrage choisi n'est pas appliqué — et sans média `backdrop`, la fiche n'affiche
+aucun hero au lieu de se replier sur la jaquette. À trancher avec la nouvelle
+direction.
+
+---
+
+## 2026-08-03 (8) — Fin de session : où on en est, et ce qu'il faut pour reprendre ailleurs
+
+Session de documentation uniquement, close proprement pour une reprise **sur une
+autre machine**.
+
+**Où on en est**
+
+Onze prompts faits (4, 5, 6, 13a, 7, 8, 8bis+9, 10, 11 et trois passes de
+correction). Le modèle, les repositories, le pipeline médias logique, le design
+system intégré, la coquille de navigation et l'écran des Titres tournent, verts sur
+iOS et macOS. `docs/` est à jour et le plan est arbitré.
+
+La direction artistique est en refonte : l'interface des prompts 10 et 11 n'est plus
+qu'un **banc d'essai** pour exercer la logique.
+
+**La prochaine tâche : `L1`**
+
+Rendre les critères de filtre interrogeables en SQL (dénormaliser collection, genres
+et personnes créditées comme `searchText`), ajouter les filtres de personnes et de
+galerie, et sortir le store de préférences d'affichage de `TitlesView` vers
+`CineShelfCore`. Fiche complète dans `docs/PROMPTS.md`.
+
+**Elle n'a pas été commencée, et c'est volontaire :** elle touche le schéma, et une
+modification de modèle laissée à moitié faite au milieu d'un changement de machine
+est exactement le genre de chose qui coûte une journée à démêler. Le magasin local
+est effaçable (`versionIdentifier` à `1.0.0`), donc elle est gratuite aujourd'hui et
+le restera au prochain démarrage.
+
+**Ce qui n'est pas dans Git**
+
+Rien de matériel. Le projet Xcode (`xcodegen generate`), les `.build/` et le
+`DerivedData` se reconstruisent ; `Package.resolved` n'a rien à résoudre puisqu'il
+n'y a aucune dépendance externe ; `.claude/settings.local.json` ne porte que des
+autorisations locales. Les polices Archivo, `colors.tokens.json` et les 73 fichiers
+de `Colors.xcassets` **sont** versionnés : aucun asset à retélécharger, aucun
+transfert de fichier à faire.
+
+La séquence complète depuis un clone est dans le `README.md` de la racine, section
+« Reprise depuis un clone, sur une machine neuve ».
+
+**Poussé**
+
+Neuf commits attendaient sur `main` depuis `ee3b88c` — les sessions précédentes
+avaient commité sans pousser. Tout est maintenant sur `origin/main`.
+
+**Suite**
+
+`L1`.

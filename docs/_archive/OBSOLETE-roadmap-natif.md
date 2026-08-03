@@ -1,3 +1,15 @@
+<!-- ARCHIVE - NE PLUS UTILISER -->
+# ARCHIVE - obsolète depuis le 3 août 2026
+
+> **Ce document est obsolète.** Ses 11 lots et leurs critères de sortie sont
+> remplacés par le **tableau d'état de [`../PROMPTS.md`](../PROMPTS.md)**, seul
+> endroit où se suit l'avancement (une ligne par tâche, son état, le hash du
+> commit), et par le découpage LOGIQUE / VUES du même document.
+>
+> Conservé pour mémoire seulement.
+
+---
+
 # CineShelf — Feuille de route native
 
 > Remplace `05-ROADMAP.md`. Cible unique multiplateforme, web retiré, CSV d'abord.

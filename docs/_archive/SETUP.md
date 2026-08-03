@@ -1,3 +1,13 @@
+<!-- ARCHIVE - INSTALLATION FAITE -->
+# ARCHIVE - l'installation est faite
+
+> Ce prompt d'installation a été exécuté (prompt 4, commit `03fff62`). Le dépôt, le
+> projet XcodeGen, les trois packages, `CLAUDE.md`, le lint et la CI sont en place.
+> Le document est conservé comme trace de la configuration initiale ; il n'est plus
+> à rejouer, et il a divergé de l'état réel du dépôt depuis.
+
+---
+
 # Rayon — Prompt d'installation
 
 Un seul prompt qui met tout en place : dépôt, projet Xcode, packages, `CLAUDE.md`, lint, CI.

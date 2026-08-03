@@ -18,10 +18,17 @@ web React + Express retirée.
 ## Démarrer
 
 ```bash
-brew install xcodegen swiftlint swift-format
+brew install xcodegen swiftlint
 xcodegen generate
 open CineShelf.xcodeproj
 ```
+
+Ce sont les deux seuls outils à installer. `swift-format` n'est **pas** dans le
+`PATH` et n'a pas besoin de l'être : il est livré avec la toolchain Xcode et
+s'appelle par `xcrun swift-format`.
+
+Rien d'autre n'est requis : aucune dépendance de paquet à résoudre, `Package.resolved`
+est gitignoré parce qu'il n'y a rien à résoudre.
 
 ### Pourquoi `xcodegen generate` à chaque fois ?
 
@@ -35,6 +42,49 @@ après tout ajout de fichier hors d'Xcode :
 ```bash
 xcodegen generate && open CineShelf.xcodeproj
 ```
+
+### Reprise depuis un clone, sur une machine neuve
+
+La séquence complète, de zéro à un build vert. Rien d'autre n'est nécessaire : tout
+ce qui compte est dans Git.
+
+```bash
+# 1. Prérequis système
+xcode-select --install                     # si Xcode n'est pas déjà là
+brew install xcodegen swiftlint
+
+# 2. Le dépôt
+git clone https://github.com/FELTRINCyril/CineShelf.git
+cd CineShelf
+
+# 3. Le projet Xcode, qui n'est pas versionné
+xcodegen generate
+
+# 4. Le runtime du simulateur, que Xcode 26 n'embarque plus
+xcodebuild -downloadPlatform iOS
+
+# 5. Vérifier que tout est vert
+xcodebuild -scheme CineShelf -destination 'platform=macOS' build
+xcodebuild -scheme CineShelf -destination 'platform=iOS Simulator,name=iPhone 17' build
+xcodebuild test -scheme CineShelf -destination 'platform=macOS'
+for p in CineShelfCore DesignSystem MediaKit; do (cd "Packages/$p" && swift test); done
+swiftlint --strict
+```
+
+Lancer Xcode une première fois avant tout, pour qu'il installe ses composants.
+
+**Ce qui n'est pas dans Git**, et n'a pas à l'être :
+
+| Absent | Comment le retrouver |
+|---|---|
+| `CineShelf.xcodeproj` | `xcodegen generate` — `project.yml` est la source de vérité |
+| `.build/`, `DerivedData/` | reconstruits au premier build |
+| `Package.resolved` | rien à résoudre : zéro dépendance externe |
+| `.claude/settings.local.json` | autorisations locales de Claude Code, redemandées à l'usage |
+
+Ce qui **est** versionné et qu'on pourrait croire absent : les quatre fichiers
+`Archivo*.ttf` et leur licence, `colors.tokens.json`, et l'intégralité de
+`Colors.xcassets` généré. Aucun asset à retélécharger.
 
 ### Prérequis simulateur iOS
 
@@ -58,21 +108,29 @@ Packages/
   CineShelfCore/      modèles, repositories, services — n'importe jamais SwiftUI
   DesignSystem/       tokens et composants — seul endroit où une couleur est littérale
   MediaKit/           pipeline médias — dépend de CineShelfCore
+Catalog/              app de démonstration du design system (schéma dédié)
 Tests/
-  CineShelfTests/     tests de logique, sans app hôte (futurs CloudKitConformanceTests)
+  CineShelfTests/     tests de logique, sans app hôte (dont CloudKitConformanceTests)
   CineShelfUITests/   tests d'interface (XCUITest) — simulateur iOS uniquement
-docs/                 spécifications, roadmap, prompts, journal
+scripts/              generate-colors.py — génère Colors.xcassets depuis colors.tokens.json
+docs/                 spécifications, plan, journal — voir docs/README.md
+  _archive/           documents remplacés, jamais une référence pour du travail neuf
 ```
 
 Les tests unitaires des packages vivent dans les packages eux-mêmes
 (`Packages/<Nom>/Tests/`), là où SwiftPM les attend.
 
-### Deux schémas
+### Trois schémas
 
 | Schéma | Contenu | Destinations |
 |---|---|---|
 | `CineShelf` | l'app + `CineShelfTests` | iOS **et** macOS |
+| `DesignSystemCatalog` | le catalogue du design system + les tests d'assets et de rendu | iOS et macOS |
 | `CineShelfUITests` | l'app + les tests d'interface | simulateur iOS |
+
+Le catalogue est **le seul endroit où les tests de couleurs et de rendu tournent
+contre un `Colors.xcassets` compilé** : `swift test` ne lance pas `actool`, donc un
+jeu de couleurs manquant y passerait inaperçu.
 
 Les tests UI sont dans un schéma à part parce que, sur macOS, XCUITest réclame
 l'autorisation d'accessibilité — impossible à accorder depuis le terminal, et
@@ -97,10 +155,18 @@ xcodebuild test -scheme CineShelf -destination 'platform=macOS'
 # Tests d'interface
 xcodebuild test -scheme CineShelfUITests -destination 'platform=iOS Simulator,name=iPhone 17'
 
+# Catalogue du design system — build, tests d'assets et de rendu
+xcodebuild -scheme DesignSystemCatalog -destination 'platform=macOS' build
+xcodebuild test -scheme DesignSystemCatalog -destination 'platform=macOS'
+open ~/Library/Developer/Xcode/DerivedData/CineShelf-*/Build/Products/Debug/DesignSystemCatalog.app
+
+# Couleurs : régénère le .xcassets depuis la source unique
+python3 scripts/generate-colors.py   # après toute modif de colors.tokens.json
+
 # Qualité
 swiftlint --strict
-swift-format lint --recursive --strict App Packages Tests
-swift-format format --in-place --recursive App Packages Tests
+xcrun swift-format lint --recursive --strict App Catalog Packages Tests
+xcrun swift-format format --in-place --recursive App Catalog Packages Tests
 ```
 
 ### Règles de lint maison

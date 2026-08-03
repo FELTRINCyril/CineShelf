@@ -9,7 +9,13 @@ React + Express retirée. **Aucun backend.** SwiftData + CloudKit privé.
 - `docs/02-MODELE-SWIFTDATA-CLOUDKIT.md` — le modèle de données **fait foi**
 - `docs/03-FONCTIONNALITES-NATIF.md` — le contrat : ~130 fonctionnalités, **rien ne doit manquer**
 - `docs/04-ARCHITECTURE-SWIFTUI.md` — structure, pipeline médias, tests
-- `docs/01-DESIGN-SYSTEM-APPLE.md` — tokens et composants
+- `docs/06-BRIEF-DESIGN.md` — le brief de design : registre, écrans à concevoir,
+  méthode. Il **remplace** `01-DESIGN-SYSTEM-APPLE.md`, archivé dans
+  `docs/_archive/OBSOLETE-design-system-productivite.md` : ne plus s'y référer.
+- `docs/PROMPTS.md` — le plan et l'avancement : tâches LOGIQUE (L1, L2...), tâches
+  VUES, tableau d'état, écarts connus.
+
+> `docs/_archive/` ne sert jamais de référence pour du travail neuf.
 
 ## Règles non négociables — modèle
 - Toute propriété `@Model` a une valeur par défaut **ou** est optionnelle.
@@ -26,6 +32,17 @@ React + Express retirée. **Aucun backend.** SwiftData + CloudKit privé.
   Détail dans `docs/02` §7.
 
 ## Règles non négociables — design
+
+> **La direction artistique est en refonte complète.** Aucun travail d'interface
+> nouveau sans mon accord explicite : ni écran, ni composant, ni retouche
+> esthétique de l'existant. Si une tâche semble en exiger, arrête-toi et
+> demande-moi. L'interface des prompts 10 et 11 reste en place comme **banc
+> d'essai** pour exercer la logique : on ne la supprime pas, on ne la polit pas,
+> on n'y investit plus rien.
+>
+> Ce qui suit reste valable : ce sont des règles d'architecture et de lint, pas des
+> choix esthétiques. Elles survivront au changement de direction.
+
 - Aucune couleur littérale hors du package `DesignSystem`.
 - Aucune taille de police fixe : `Font.custom(_:size:relativeTo:)` ou `Font.<textStyle>`.
 - `.clipShape(.rect(cornerRadius:style: .continuous))`, jamais `.cornerRadius()`.

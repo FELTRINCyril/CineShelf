@@ -1,37 +1,66 @@
-# CineShelf — Dossier de refonte native
+# CineShelf — état du dossier `docs/`
 
-Refonte de `FELTRINCyril/CineShelf` (app web React + Express, 58 500 lignes) en **app SwiftUI multiplateforme iOS · iPadOS · macOS**, avec SwiftData et CloudKit privé.
+App SwiftUI multiplateforme iOS · iPadOS · macOS, SwiftData + CloudKit privé, aucun
+backend. Réécriture native d'une app web React + Express retirée.
 
-**Décisions actées :** l'app web est retirée · CSV d'abord, XLSX reporté · cible unique multiplateforme dès le départ.
+**Décisions actées :** l'app web est retirée · CSV d'abord, XLSX reporté · cible
+unique multiplateforme dès le départ · **la direction artistique est en refonte
+complète** (voir `06-BRIEF-DESIGN.md`).
 
-## Les 8 documents à utiliser
+## Documents actifs
 
-| Fichier | Contenu | À donner à |
+| Fichier | Contenu | Statut |
 |---|---|---|
-| [`00-AUDIT.md`](./00-AUDIT.md) | État des lieux chiffré de l'app web : ce qui doit être reproduit et ce qu'il ne faut pas reproduire | toi |
-| [`01-DESIGN-SYSTEM-APPLE.md`](./01-DESIGN-SYSTEM-APPLE.md) | Direction artistique, palette, Dynamic Type, tokens Swift, navigation adaptative, SF Symbols, specs de composants | **Claude Design** |
-| [`02-MODELE-SWIFTDATA-CLOUDKIT.md`](./02-MODELE-SWIFTDATA-CLOUDKIT.md) | Contraintes CloudKit, les 17 `@Model` en Swift (dont `Profile` et les flags), recherche sans FTS, migration depuis le web | **Claude Code** |
-| [`03-FONCTIONNALITES-NATIF.md`](./03-FONCTIONNALITES-NATIF.md) | Les ~130 fonctionnalités, transposées une par une. Liste de contrôle : rien ne doit manquer | **Claude Code** |
-| [`04-ARCHITECTURE-SWIFTUI.md`](./04-ARCHITECTURE-SWIFTUI.md) | Structure du projet, pipeline d'images, sync, tests, distribution, coûts | **Claude Code** |
-| [`05-ROADMAP-NATIF.md`](./05-ROADMAP-NATIF.md) | Les 11 lots, critères de sortie, stratégie avant/après l'abonnement | toi |
-| ⭐ [`GUIDE-EXECUTION.md`](./GUIDE-EXECUTION.md) | **Par où commencer.** 24 sessions, chacune avec son agent, ses pièces jointes, son prompt à copier tel quel, sa vérification. Plus le `CLAUDE.md` à mettre à la racine du dépôt. | toi |
-| `_archive-web/` | Documents de la version web. **4 sont marqués `OBSOLETE-` : ignore-les.** Le seul utile est `REFERENCE-app-web-existante.md`, qui décrit l'app actuelle et sert pendant la migration (phase 7). | référence |
+| [`00-AUDIT.md`](./00-AUDIT.md) | État des lieux chiffré de l'app web : ce qu'il faut reproduire, ce qu'il ne faut pas reproduire | référence, figé |
+| [`02-MODELE-SWIFTDATA-CLOUDKIT.md`](./02-MODELE-SWIFTDATA-CLOUDKIT.md) | Contraintes CloudKit, les 17 `@Model`, recherche sans FTS, verrouillage biométrique, migration depuis le web | **fait foi**, amendé au fil des sessions |
+| [`03-FONCTIONNALITES-NATIF.md`](./03-FONCTIONNALITES-NATIF.md) | Les ~130 fonctionnalités transposées une par une. Le contrat : rien ne doit manquer | **fait foi** |
+| [`04-ARCHITECTURE-SWIFTUI.md`](./04-ARCHITECTURE-SWIFTUI.md) | Structure du projet, couche d'accès, pipeline médias, budgets de perf, tests | **fait foi**, amendé au fil des sessions |
+| [`06-BRIEF-DESIGN.md`](./06-BRIEF-DESIGN.md) | Le brief de design : registre média, écrans à concevoir, méthode « rendus d'abord, Swift après ». C'est un **brief**, pas une spécification : les tokens seront déduits des écrans | actif, remplace l'ancien `01` |
+| [`PROMPTS.md`](./PROMPTS.md) | Le plan et **le seul suivi d'avancement** : tâches LOGIQUE (L1, L2...), tâches VUES, tableau d'état avec hash de commit, écarts connus | actif |
+| [`journal.md`](./journal.md) | Une entrée par session : ce qui a été fait, ce qui a été mesuré, ce qui a été décidé | actif |
 
-## Les 6 idées qui structurent le tout
+## Documents archivés — `_archive/`
 
-1. **Concevoir sous contraintes CloudKit dès le premier jour**, même sans l'abonnement. Pas d'unicité, toutes les relations optionnelles, toute propriété avec une valeur par défaut, `sortName` et `searchText` maintenus à l'écriture. Un test de conformité l'impose.
-2. **`actors` + `social_profiles` → une seule entité `Person` avec des rôles.** Supprime ~2 600 lignes de code de fusion et deux écrans.
-3. **Profils façon Netflix.** Un seul compte Apple, plusieurs `Profile` (nom, avatar, listes et préférences propres). Un `Profile` pointe vers une `Library` : deux profils sur la même bibliothèque partagent le catalogue et séparent les listes ; un profil sur sa propre bibliothèque est totalement isolé (l'ancien bac à sable). Verrouillage Face ID au niveau de l'app et au niveau du profil.
-4. **Ne jamais synchroniser les dérivés d'images.** Original en `CKAsset`, vignettes générées et cachées localement. Le quota iCloud appartient à l'utilisateur.
-5. **Natif, pas porté.** `NavigationSplitView`, `Table`, `.inspector`, `Material`, SF Symbols, Dynamic Type. C'est ce qui rend l'app sobre et professionnelle sans effort — et accessible gratuitement.
-6. **Le lot 0 avant tout Swift.** Enregistrer le comportement de l'app actuelle et sortir un dump complet des données. Tant que ce n'est pas fait, ne touche à rien.
+Aucun ne sert de référence pour du travail neuf. Chacun porte un bandeau qui dit
+pourquoi il est là et ce qui l'a remplacé.
 
-## Par où commencer
+| Fichier | Pourquoi |
+|---|---|
+| `OBSOLETE-design-system-productivite.md` | ex-`01-DESIGN-SYSTEM-APPLE.md`. Mauvais registre : app de bureautique Apple au lieu d'app média. Remplacé par `06-BRIEF-DESIGN.md` |
+| `OBSOLETE-roadmap-natif.md` | ex-`05-ROADMAP-NATIF.md`. Les 11 lots sont remplacés par le tableau d'état de `PROMPTS.md` |
+| `OBSOLETE-guide-execution.md` | ex-`GUIDE-EXECUTION.md`. Les 24 sessions sont remplacées par le tableau d'état de `PROMPTS.md` |
+| `SETUP.md` | Le prompt d'installation. Exécuté au prompt 4 (`03fff62`), plus à rejouer |
 
-Ouvre [`GUIDE-EXECUTION.md`](./GUIDE-EXECUTION.md) et fais la **partie I** (préparation, `CLAUDE.md`), puis la **phase 0** dans l'ancien dépôt : enregistrer le comportement de l'app web et sortir un dump complet des données. Tant que ce dump n'est pas archivé hors de ton Mac, ne touche pas à Swift.
+## Les idées qui structurent le tout
+
+1. **Concevoir sous contraintes CloudKit dès le premier jour**, même sans
+   l'abonnement : pas d'unicité, toutes les relations optionnelles, toute propriété
+   avec une valeur par défaut, `sortName` et `searchText` maintenus à l'écriture.
+   `CloudKitConformanceTests` l'impose.
+2. **`actors` + `social_profiles` → une seule entité `Person`** avec des rôles.
+   Supprime ~2 600 lignes de code de fusion et deux écrans.
+3. **Profils façon Netflix.** Un compte Apple, plusieurs `Profile` (nom, avatar,
+   listes et préférences propres), chacun rattaché à une `Library`. Deux profils sur
+   la même bibliothèque partagent le catalogue et séparent les listes ; un profil sur
+   sa propre bibliothèque est isolé (l'ancien bac à sable).
+4. **Ne jamais synchroniser les dérivés d'images.** Original en `CKAsset`, vignettes
+   générées et cachées localement : le quota iCloud appartient à l'utilisateur.
+5. **La logique avant les vues.** Chaque tâche restante est coupée en deux : une part
+   LOGIQUE testable et insensible au design, une part VUES à écrire une seule fois,
+   contre le design final. Découpage dans `PROMPTS.md`.
+6. **Média, pas bureautique.** Le voisinage est l'app TV d'Apple, Plex, Infuse — pas
+   Finder ni Numbers. Sauf pour les surfaces de gestion, où c'est l'inverse et où
+   c'est assumé (`06-BRIEF-DESIGN.md` §3).
+
+## Où en est le projet
+
+Voir le tableau d'état de [`PROMPTS.md`](./PROMPTS.md) — c'est le **seul** endroit
+où l'avancement se suit. Ne rien cocher dans `03-FONCTIONNALITES-NATIF.md` : ses
+symboles décrivent l'intention retenue pour chaque fonctionnalité, pas l'avancement.
 
 ## Estimation
 
-~130 fonctionnalités conservées, **~15 000 à 20 000 lignes** contre 58 500. La division par trois vient de la suppression du backend en double, de l'authentification, de la fusion acteur/social, et du fait que sync, hors-ligne, accessibilité, thèmes et virtualisation sont fournis par la plateforme.
-
-11 lots, ~47 à 65 jours effectifs. Compter 4 à 6 mois en apprenant Swift en parallèle.
+~130 fonctionnalités conservées, **~15 000 à 20 000 lignes** contre 58 500. La
+division par trois vient de la suppression du backend en double, de
+l'authentification, de la fusion acteur/social, et du fait que sync, hors-ligne,
+accessibilité, thèmes et virtualisation sont fournis par la plateforme.

@@ -94,6 +94,21 @@ open ~/Library/Developer/Xcode/DerivedData/CineShelf-*/Build/Products/Debug/Desi
 python3 scripts/generate-colors.py   # après toute modif de colors.tokens.json
 ```
 
+## Une CI rouge bloque la tâche suivante
+Elle se répare **avant**, pas après. Une CI rouge que personne ne regarde est pire
+qu'aucune CI : elle apprend à ignorer le signal, et le jour où elle attrape une vraie
+régression, plus personne ne la croit. `gh run list` au début de session, et si c'est
+rouge, c'est le sujet du jour.
+
+Corollaire sur les seuils de performance : **ne jamais assener un budget d'expérience
+utilisateur sur un runner partagé.** Les runners GitHub sont virtualisés et n'ont pas
+l'accélération d'image — mesuré, sur le même code : décodage de vignette 15 ms en
+local, 266 ms sur le runner. Un test de perf assène (a) des **rapports**, qui sont
+indépendants de la machine et portent le sens, et (b) des plafonds absolus calés sur
+l'environnement le plus lent où il tourne, qui n'attrapent qu'un ordre de grandeur.
+Les budgets de `docs/04` §4 se vérifient avec Instruments sur appareil, comme ce
+document le dit lui-même.
+
 ## Déroulé attendu de chaque tâche
 1. Lire la section pertinente des docs.
 2. **Proposer un plan avant d'écrire du code.** Attendre ma validation.

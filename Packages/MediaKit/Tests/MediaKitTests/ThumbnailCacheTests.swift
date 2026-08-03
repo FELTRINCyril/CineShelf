@@ -228,25 +228,51 @@ struct ThumbnailCacheTests {
             """
         )
 
-        // Budgets de docs/04 §4. Ils ne sont pas un même seuil décliné : chaque
-        // chemin a le sien, parce que chacun a un rôle différent dans le rendu.
+        // Ce que ce test peut affirmer, et ce qu'il ne peut pas.
         //
-        // À 120 Hz une image dure 8,3 ms. Une génération à froid n'y tient pas,
-        // et ne doit donc jamais se produire sur le thread principal — c'est
-        // l'asynchronisme et le préchargement qui protègent le défilement, pas
-        // un seuil. Ce budget-ci sert à détecter une régression algorithmique
-        // (un décodage complet là où on attend un décodage partiel), pas à
-        // garantir une fluidité.
-        #expect(Self.milliseconds(decoding, over: 200) < 30)
+        // Il a longtemps assené les budgets de `docs/04` §4 tels quels — 30 ms de
+        // génération à froid, 5 ms de relecture disque, 1 ms de relecture mémoire —
+        // et il échouait sur la CI depuis le 2 août. Le runner GitHub est virtualisé
+        // et son accélération d'image n'est pas disponible (`AppleM2ScalerParavirtDriver`
+        // échoue au démarrage) : le décodage y retombe sur un chemin logiciel.
+        //
+        //   | Chemin              | En local | Sur le runner |
+        //   |---------------------|----------|---------------|
+        //   | décodage à froid    | 15,2 ms  | 266,5 ms      |
+        //   | relecture disque    |  2,5 ms  |  15,8 ms      |
+        //
+        // Un facteur 17 sur le même code. Assener un budget d'expérience utilisateur
+        // sur ce matériel-là ne mesure pas le code, ça mesure la machine — et
+        // `docs/04` §4 le dit lui-même : ces chiffres se vérifient avec Instruments
+        // sur le plus vieil appareil visé, pas sur un Mac, et encore moins sur un
+        // runner partagé.
+        //
+        // Le test assène donc deux choses différentes.
 
-        // Ces deux-là, en revanche, peuvent arriver pendant un défilement : ils
-        // doivent tenir dans une image, avec de la marge pour le reste du rendu.
-        #expect(Self.milliseconds(fromDisk, over: 200) < 5)
-        #expect(Self.milliseconds(fromMemory, over: 200) < 1)
-
-        // Les relectures ne sont pas comparées entre elles : `NSCache` peut
-        // évincer sous pression, et une mesure qui en dépend serait instable.
+        // 1. Des **rapports**, indépendants de la machine. C'est eux qui portent le
+        //    sens : ce qui protège le défilement, ce n'est pas la vitesse de
+        //    génération, c'est que le défilement n'y passe jamais. Un cache qui
+        //    cesserait d'être lu ramènerait ces rapports à 1 — sur n'importe quelle
+        //    machine, y compris la plus lente.
+        //    Mesuré : disque 6× moins cher que le décodage en local, 17× sur la CI.
+        #expect(
+            Self.seconds(fromDisk) * 3 < Self.seconds(decoding),
+            "La relecture disque doit être franchement moins chère qu'une génération à froid"
+        )
+        #expect(
+            Self.seconds(fromMemory) * 3 < Self.seconds(fromDisk),
+            "La relecture mémoire doit être franchement moins chère que le disque"
+        )
+        // `NSCache` peut évincer sous pression : la comparaison reste au sens large.
         #expect(Self.seconds(fromDisk) < Self.seconds(throughCache))
+
+        // 2. Des **plafonds absolus généreux**, calés sur l'environnement le plus
+        //    lent où ce test tourne réellement — la CI — et non sur le budget. Ils
+        //    n'attrapent qu'une régression d'un ordre de grandeur, ce qui est
+        //    exactement leur rôle : le budget d'UX, lui, se vérifie sur appareil.
+        //    800 ms ≈ 3× les 266 ms du runner ; 60 ms ≈ 4× ses 15,8 ms.
+        #expect(Self.milliseconds(decoding, over: 200) < 800)
+        #expect(Self.milliseconds(fromDisk, over: 200) < 60)
     }
 
     private static func seconds(_ duration: Duration) -> Double {

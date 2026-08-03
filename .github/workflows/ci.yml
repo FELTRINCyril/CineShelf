@@ -30,9 +30,13 @@ jobs:
       - name: SwiftLint
         run: swiftlint --strict
 
-      # swift-format est livré avec la chaîne d'outils Xcode : rien à installer.
+      # swift-format est livré avec la chaîne d'outils Xcode, mais **n'est pas dans
+      # le PATH** : il faut passer par `xcrun`, sur le runner comme en local. Sans
+      # ça, l'étape échoue en `command not found` (exit 127) — ce qui s'est produit
+      # du 2 au 3 août, et ne se voyait pas puisque la commande locale, elle,
+      # utilisait déjà `xcrun`.
       - name: swift-format
-        run: swift-format lint --recursive --strict App Catalog Packages Tests
+        run: xcrun swift-format lint --recursive --strict App Catalog Packages Tests
 
   packages:
     name: Tests des packages

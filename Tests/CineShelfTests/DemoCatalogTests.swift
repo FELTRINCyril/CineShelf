@@ -92,6 +92,48 @@ struct DemoCatalogTests {
             #expect(!person.displayName.isEmpty, "displayName vide")
             #expect(!person.sortName.isEmpty, "sortName vide sur « \(person.displayName) »")
             #expect(!person.searchText.isEmpty, "searchText vide sur « \(person.displayName) »")
+
+            // Même raison que pour les titres : `DemoCatalog` pose les relations à
+            // la main, donc c'est ici que se vérifie que son `refreshDerived()`
+            // vient bien après.
+            #expect(
+                person.filterKeys.contains(FilterKey.pattern(FilterKey.library(library.id))),
+                "Clé de bibliothèque absente sur « \(person.displayName) »"
+            )
+            for role in person.roles {
+                #expect(
+                    person.filterKeys.contains(FilterKey.pattern(FilterKey.role(role))),
+                    "Clé de rôle absente sur « \(person.displayName) »"
+                )
+            }
+
+            // `ageAtDeath` ne vaut que pour les défunts, et se calcule.
+            if person.deathDate == nil {
+                #expect(person.ageAtDeath == nil, "Âge au décès sur un vivant")
+            } else {
+                #expect(person.ageAtDeath != nil, "Âge au décès manquant sur un défunt")
+            }
+        }
+    }
+
+    @Test("Les personnes de démonstration couvrent les trois tranches d'âge")
+    func demoPeopleSpanEveryAgeBand() throws {
+        // Un filtre sans donnée à mordre ne se teste pas à l'œil sur le banc d'essai.
+        // Ce test fixe l'intention : si la génération des dates de naissance se
+        // resserre un jour, les tranches vides se signaleront ici plutôt qu'à l'usage.
+        let (context, library) = try makeFixture()
+        try DemoCatalog.populate(in: context, library: library, count: count)
+        try context.save()
+
+        for band in AgeBand.allCases {
+            var filter = PersonFilter()
+            filter.ageBand = band
+            let found = try context.fetch(
+                FetchDescriptor<Person>(
+                    predicate: filter.predicate(hidingPrivate: false, libraryID: library.id)
+                )
+            )
+            #expect(!found.isEmpty, "Aucune personne dans la tranche « \(band.label) »")
         }
     }
 

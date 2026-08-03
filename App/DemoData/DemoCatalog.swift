@@ -294,6 +294,19 @@
                 )
                 person.library = library
                 person.bio = "\(marker) Personne de démonstration."
+
+                // Réparti sur les trois tranches d'âge, pour la même raison que les
+                // durées le sont sur les trois tranches de `RuntimeBand` : un filtre
+                // sans donnée à mordre ne se teste pas à l'œil. Un sur sept est
+                // décédé, ce qui est le seul cas où `ageAtDeath` sert.
+                let age = 22 + generator.next(upTo: 55)
+                person.birthDate = Calendar(identifier: .gregorian)
+                    .date(byAdding: .year, value: -age, to: .now)
+                if generator.next(upTo: 7) == 0 {
+                    person.deathDate = Calendar(identifier: .gregorian)
+                        .date(byAdding: .year, value: -generator.next(upTo: 12), to: .now)
+                }
+
                 person.refreshDerived()
                 context.insert(person)
                 return person

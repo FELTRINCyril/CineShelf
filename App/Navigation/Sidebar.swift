@@ -11,7 +11,12 @@ struct Sidebar: View {
 
     // `docs/04` §3 autorise les requêtes déclaratives dans la vue : ce sont des
     // listes affichées telles quelles, sans règle métier à appliquer.
-    @Query(filter: #Predicate<Genre> { $0.isPinned }, sort: \Genre.pinIndex)
+    // Un genre à la corbeille ou archivé n'a rien à faire dans la barre
+    // latérale : il y resterait cliquable, menant à une liste vide.
+    @Query(
+        filter: #Predicate<Genre> { $0.isPinned && $0.deletedAt == nil && $0.isArchived == false },
+        sort: \Genre.pinIndex
+    )
     private var pinnedGenres: [Genre]
 
     @Query(sort: \Library.name)

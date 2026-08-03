@@ -15,7 +15,8 @@ struct TitleFilterSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @Query(sort: \TitleCollection.name) private var collections: [TitleCollection]
-    @Query(sort: \Genre.name) private var genres: [Genre]
+    @Query(filter: #Predicate<Genre> { $0.deletedAt == nil }, sort: \Genre.name)
+    private var genres: [Genre]
 
     var body: some View {
         NavigationStack {
@@ -86,8 +87,16 @@ struct TitleFilterSheet: View {
     /// Les genres ciblant les titres : `Genre` sert aussi aux personnes et aux
     /// signets, les mélanger ici n'aurait aucun sens.
     private var titleGenres: [Genre] {
-        // `Genre` n'a pas de suppression douce : l'archivage tient ce rôle.
-        genres.filter { $0.target == .title && !$0.isArchived }
+        // La corbeille est déjà écartée par le `@Query` ; reste l'archivage,
+        // qui masque sans supprimer.
+        genres.filter { genre in
+            guard genre.target == .title, !genre.isArchived else { return false }
+            #if DEBUG
+                // Le marqueur des données de démonstration n'est pas un genre.
+                if genre.name == DemoCatalog.markerGenreName { return false }
+            #endif
+            return true
+        }
     }
 
     private func minuteField(_ label: String, value: Binding<Int?>) -> some View {

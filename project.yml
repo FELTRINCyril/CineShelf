@@ -139,6 +139,11 @@ targets:
       - App/Navigation/AppSection.swift
       - App/Navigation/NavigationModel.swift
       - App/Navigation/TitleFilter.swift
+      # Le générateur de fixtures : auto-suffisant (il n'importe que
+      # CineShelfCore et des frameworks système), donc compilable ici sans
+      # entraîner de vue.
+      - App/DemoData/DemoCatalog.swift
+      - App/DemoData/PosterArtwork.swift
     dependencies:
       - package: CineShelfCore
         product: CineShelfCore

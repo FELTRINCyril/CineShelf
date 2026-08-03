@@ -32,12 +32,31 @@ public struct GenreRepository {
         ActivityRecorder(context: context).record(.update, genre)
     }
 
+    /// Corbeille plutôt que suppression : un genre supprimé en dur emporte
+    /// toutes ses associations avec les titres et les personnes, et les
+    /// recréer ne les ramène pas. Voir `docs/02` §3.5.
+    public func softDelete(_ genre: Genre) {
+        genre.deletedAt = .now
+        genre.updatedAt = .now
+        ActivityRecorder(context: context).record(.delete, genre)
+    }
+
+    public func restore(_ genre: Genre) {
+        genre.deletedAt = nil
+        genre.updatedAt = .now
+        ActivityRecorder(context: context).record(.restore, genre)
+    }
+
     private func find(key: String, target: GenreTarget, in library: Library) throws -> Genre? {
         let targetRaw = target.rawValue
         let libraryID = library.id
         var descriptor = FetchDescriptor<Genre>(
+            // `deletedAt == nil` : sans lui, `findOrCreate` ressusciterait
+            // silencieusement un genre mis à la corbeille, et l'utilisateur
+            // retrouverait ses anciennes associations sans les avoir demandées.
             predicate: #Predicate {
                 $0.nameKey == key && $0.targetRaw == targetRaw && $0.library?.id == libraryID
+                    && $0.deletedAt == nil
             }
         )
         descriptor.fetchLimit = 1

@@ -16,6 +16,23 @@
     // Les jaquettes sont **dessinées par le code** (dégradé + initiales) plutôt
     // qu'embarquées : aucun octet d'image dans le dépôt, aucune question de
     // droits, et un rendu déterministe d'une exécution à l'autre.
+    //
+    // ---------------------------------------------------------------------
+    // Pourquoi ce fichier ne passe pas par les repositories — décision, pas
+    // oubli. Ne pas « corriger ».
+    //
+    // `docs/04` §3 impose que les créations passent par un repository. La règle
+    // vise les actions de l'utilisateur : elle garantit que rien ne contourne
+    // `refreshDerived()`, et elle inscrit chaque geste au fil d'activité. Ici
+    // ce second effet est indésirable — générer une fixture produirait plus de
+    // trois cents `ActivityEntry` fictives, et le fil d'activité du prompt 16
+    // afficherait une bibliothèque construite par un fantôme.
+    //
+    // Ce qui reste non négociable, c'est le **premier** effet : `refreshDerived()`
+    // est appelé sur chaque entité qui en a un, après que tous ses champs source
+    // sont posés. Contourner les repositories ne doit pas contourner l'invariant.
+    // `DemoCatalogTests` échoue si un `sortName` ou un `searchText` reste vide.
+    // ---------------------------------------------------------------------
 
     /// Génère et supprime un catalogue de démonstration.
     @MainActor
@@ -32,7 +49,15 @@
 
         // MARK: Génération
 
-        static func populate(in context: ModelContext, library: Library) throws {
+        /// - Parameters:
+        ///   - context: le magasin où écrire.
+        ///   - library: la bibliothèque d'accueil.
+        ///   - count: le nombre de titres. Paramétrable pour les tests, qui
+        ///     n'ont pas besoin de dessiner cent vingt jaquettes pour vérifier
+        ///     un invariant.
+        /// - Throws: ce que remontent `GenreRepository.findOrCreate` et
+        ///   `ModelContext.save()`.
+        static func populate(in context: ModelContext, library: Library, count: Int = titleCount) throws {
             var generator = SeededGenerator(seed: 20_260_803)
 
             let marker = try GenreRepository(context: context)
@@ -44,7 +69,7 @@
             let people = makePeople(in: context, library: library, using: &generator)
             let collections = makeCollections(in: context, library: library)
 
-            for index in 0..<titleCount {
+            for index in 0..<count {
                 makeTitle(
                     index: index,
                     in: context,
@@ -62,7 +87,15 @@
             try context.save()
         }
 
-        /// Retire tout ce que `populate` a créé, et **rien d'autre**.
+        /// Retire les titres de démonstration et tout ce qui n'appartient qu'à
+        /// eux, sans jamais toucher aux données réelles.
+        ///
+        /// **Les dix genres thématiques ne sont pas supprimés**, et c'est
+        /// volontaire : ils viennent de `findOrCreate`, qui réutilise un genre
+        /// homonyme existant. Rien ne distingue « genre créé par la démo » de
+        /// « genre réel réutilisé », donc les supprimer détruirait
+        /// potentiellement une donnée de l'utilisateur. Seul le marqueur, dont
+        /// le nom est réservé, est retiré.
         ///
         /// La première version supprimait « toutes les personnes sans crédit »
         /// et « toutes les collections vides » du magasin entier : une personne
@@ -80,15 +113,24 @@
                     context.delete(attachment)
                 }
                 for credit in title.credits ?? [] {
-                    // La personne est supprimée seulement si elle porte le
-                    // marqueur de démonstration.
-                    if let person = credit.person, isDemo(person) { context.delete(person) }
                     context.delete(credit)
                 }
-                if let collection = title.collection, isDemo(collection) {
-                    context.delete(collection)
-                }
                 context.delete(title)
+            }
+
+            // Les personnes et les collections ne sont **pas** atteintes par les
+            // titres : `populate` en crée un stock fixe, et un tirage aléatoire
+            // peut n'en distribuer qu'une partie. Les balayer depuis les titres
+            // laissait donc derrière lui toutes celles qui n'avaient reçu ni
+            // crédit ni titre. On les cherche par leur marqueur, qui est le seul
+            // critère fiable.
+            for person in try context.fetch(FetchDescriptor<Person>())
+            where person.library?.id == libraryID && isDemo(person) {
+                context.delete(person)
+            }
+            for collection in try context.fetch(FetchDescriptor<TitleCollection>())
+            where collection.library?.id == libraryID && isDemo(collection) {
+                context.delete(collection)
             }
 
             context.delete(marker)
@@ -99,11 +141,19 @@
             (try? markerGenre(in: context, libraryID: library.id)) != nil
         }
 
-        /// Le genre marqueur de **cette** bibliothèque. Chercher par nom seul
-        /// suffisait à emporter les titres d'un genre homonyme créé à la main.
+        /// Le genre marqueur de **cette** bibliothèque.
+        ///
+        /// Recherche sur `nameKey` et non sur `name` : c'est la clé que
+        /// `GenreRepository.findOrCreate` utilise, et elle est repliée sans
+        /// accents ni casse. Chercher sur `name` laissait passer le cas où la
+        /// bibliothèque contient déjà « demonstration » — `findOrCreate` le
+        /// renvoyait comme marqueur, mais `markerGenre` ne le retrouvait plus :
+        /// le bouton « Vider » devenait un no-op silencieux et les titres de
+        /// démonstration n'étaient plus supprimables.
         private static func markerGenre(in context: ModelContext, libraryID: UUID) throws -> Genre? {
-            let name = markerGenreName
-            let descriptor = FetchDescriptor<Genre>(predicate: #Predicate<Genre> { $0.name == name })
+            let key = Genre.key(for: markerGenreName)
+            let descriptor = FetchDescriptor<Genre>(
+                predicate: #Predicate<Genre> { $0.nameKey == key && $0.deletedAt == nil })
             return try context.fetch(descriptor).first { $0.library?.id == libraryID }
         }
 
@@ -179,11 +229,15 @@
                 title.collection = collection
             }
 
-            title.refreshDerived()
             context.insert(title)
 
             attachPoster(to: title, in: context, using: &generator)
             attachCredits(to: title, people: people, in: context, using: &generator)
+
+            // En dernier, une fois les relations posées : `refreshDerived()`
+            // écrit aussi `updatedAt`, qui serait sinon antérieur à la jaquette
+            // et au casting du titre.
+            title.refreshDerived()
         }
 
         private static func attachPoster(
@@ -286,8 +340,8 @@
         ]
         private static let adjectives = [
             "immobile", "sans fin", "oublié", "d'hiver", "en suspens", "invisible",
-            "des origines", "au loin", "перевод", "fragile"
-        ].filter { $0.allSatisfy { $0.isLetter || $0.isWhitespace || $0 == "'" } }
+            "des origines", "au loin", "fragile", "en creux"
+        ]
         private static let places = [
             "Trieste", "Naples", "Lisbonne", "Oslo", "Tanger", "Kyoto", "Valparaiso",
             "Reykjavik", "Séville", "Bucarest"
@@ -319,151 +373,6 @@
             "L'été où tout aurait pu basculer, raconté trente ans plus tard.",
             "Une cartographe relève une côte qui n'existe sur aucune carte."
         ]
-    }
-
-    // MARK: - Jaquettes dessinées
-
-    // `no_literal_color` interdit les couleurs littérales hors du design system.
-    // La règle vise le **style de l'interface** ; ici on synthétise les pixels
-    // d'un fichier PNG, ce qui n'est pas la même chose : ces valeurs ne teintent
-    // aucune vue, elles remplissent un bitmap de données de démonstration. Aller
-    // les chercher dans le design system reviendrait à faire dépendre le
-    // générateur d'un jeu de couleurs sémantique, qui n'a rien à dire ici.
-    // swiftlint:disable no_literal_color
-
-    /// Des jaquettes générées : dégradé déterministe et initiales du titre.
-    enum PosterArtwork {
-
-        static let size = (width: 600, height: 900)
-
-        static func png(for title: String, seed: Int) -> Data? {
-            let width = size.width
-            let height = size.height
-
-            guard
-                let context = CGContext(
-                    data: nil,
-                    width: width,
-                    height: height,
-                    bitsPerComponent: 8,
-                    bytesPerRow: 0,
-                    space: CGColorSpaceCreateDeviceRGB(),
-                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-                )
-            else { return nil }
-
-            drawGradient(in: context, size: CGSize(width: width, height: height), hue: seed)
-            drawInitials(of: title, in: context, size: CGSize(width: width, height: height))
-
-            guard let image = context.makeImage() else { return nil }
-            return encodePNG(image)
-        }
-
-        private static func drawGradient(in context: CGContext, size: CGSize, hue: Int) {
-            let base = CGFloat(hue % 360) / 360
-            let colors =
-                [
-                    CGColor(red: base, green: 0.35, blue: 0.55, alpha: 1),
-                    CGColor(red: base * 0.4, green: 0.12, blue: 0.28, alpha: 1)
-                ] as CFArray
-
-            guard
-                let gradient = CGGradient(
-                    colorsSpace: CGColorSpaceCreateDeviceRGB(),
-                    colors: colors,
-                    locations: [0, 1]
-                )
-            else { return }
-
-            context.drawLinearGradient(
-                gradient,
-                start: .zero,
-                end: CGPoint(x: size.width, y: size.height),
-                options: []
-            )
-        }
-
-        /// Les initiales, en aplat clair. Pas de police custom : le générateur
-        /// tourne avant tout enregistrement de police.
-        private static func drawInitials(of title: String, in context: CGContext, size: CGSize) {
-            let initials =
-                title
-                .split(separator: " ")
-                .prefix(2)
-                .compactMap(\.first)
-                .map(String.init)
-                .joined()
-                .uppercased()
-
-            guard !initials.isEmpty else { return }
-
-            let side = size.width * 0.42
-            let rect = CGRect(
-                x: (size.width - side) / 2,
-                y: (size.height - side) / 2,
-                width: side,
-                height: side
-            )
-
-            context.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.16))
-            context.fillEllipse(in: rect)
-
-            // Deux barres pour évoquer les initiales sans dépendre du texte :
-            // CoreText demanderait une police, et l'échelle varie selon la
-            // plateforme. Le repère visuel suffit pour juger une grille.
-            let barHeight = side * 0.12
-            context.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.5))
-            context.fill(
-                CGRect(
-                    x: rect.minX + side * 0.2,
-                    y: rect.midY + barHeight * 0.4,
-                    width: side * 0.6 * CGFloat(initials.count) / 2,
-                    height: barHeight
-                ))
-            context.fill(
-                CGRect(
-                    x: rect.minX + side * 0.2,
-                    y: rect.midY - barHeight * 1.6,
-                    width: side * 0.35,
-                    height: barHeight
-                ))
-        }
-
-        private static func encodePNG(_ image: CGImage) -> Data? {
-            let data = NSMutableData()
-            guard
-                let destination = CGImageDestinationCreateWithData(
-                    data, UTType.png.identifier as CFString, 1, nil)
-            else { return nil }
-            CGImageDestinationAddImage(destination, image, nil)
-            guard CGImageDestinationFinalize(destination) else { return nil }
-            return data as Data
-        }
-    }
-
-    // swiftlint:enable no_literal_color
-
-    // MARK: - Aléa reproductible
-
-    /// Générateur déterministe : deux exécutions donnent le même catalogue.
-    ///
-    /// C'est ce qui rend les mesures de performance comparables d'une session à
-    /// l'autre, et les captures d'écran stables.
-    struct SeededGenerator: RandomNumberGenerator {
-        private var state: UInt64
-
-        init(seed: UInt64) { state = seed == 0 ? 0x4d59_5df4_d0f3_3173 : seed }
-
-        mutating func next() -> UInt64 {
-            state ^= state << 13
-            state ^= state >> 7
-            state ^= state << 17
-            return state
-        }
-
-        mutating func next(upTo bound: Int) -> Int {
-            bound <= 0 ? 0 : Int(next() % UInt64(bound))
-        }
     }
 
 #endif

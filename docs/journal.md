@@ -842,3 +842,87 @@ n'existe pas. Tous reportés dans « Écarts connus » de `docs/PROMPTS.md`.
 **Suite**
 
 Prompt 12 — Recherche + Spotlight.
+
+---
+
+## 2026-08-03 (4) — Corbeille des genres, et l'invariant de DemoCatalog
+
+### `Genre` gagne une suppression douce
+
+C'était le dernier modèle de premier plan sans corbeille, et l'asymétrie était
+tracée depuis deux sessions. La raison, écrite dans `docs/02` §3.5 : **ce n'est
+pas le mot qu'on perdrait, ce sont les relations.** Un genre porte des liens
+plusieurs-à-plusieurs vers les titres et vers les personnes ; le supprimer en
+dur les détruit définitivement, et recréer « Policier » ensuite donne un genre
+vide — il faudrait retrouver à la main les quatre-vingts titres qui le
+portaient. `isArchived` ne suffit pas : il masque un genre qu'on garde, il ne
+dit pas qu'on a voulu s'en débarrasser.
+
+`softDelete` / `restore` calqués sur les quatre autres repositories, et
+`deletedAt == nil` répercuté sur les six lectures de genre du dépôt. La plus
+importante est celle de `GenreRepository.find` : sans elle, retaper un genre
+supprimé le ressusciterait avec toutes ses anciennes associations, sans que
+personne ne l'ait demandé.
+
+**Deux conséquences écrites avant que quelqu'un ne bute dessus** : la passe de
+fusion sur `nameKey` prévue par `docs/02` §8 doit se restreindre à
+`deletedAt == nil`, faute de quoi elle refusionnerait le supprimé dans le vivant
+et ramènerait exactement ce que la corbeille mettait de côté ; et tant que l'app
+n'est pas publiée, `CineShelfSchemaV1` accueille un attribut optionnel sans
+nouvelle étape de migration — à la publication, `V1` est gelée.
+
+### `DemoCatalog` : la décision, et l'invariant
+
+La décision de rester hors des repositories est maintenant écrite en tête de
+fichier, pour que personne ne la « corrige » : une fixture n'est pas une action
+de l'utilisateur, et générer 120 titres par les repositories produirait trois
+cents `ActivityEntry` fictives dans le fil du prompt 16.
+
+Ce qui n'est pas négociable, c'est `refreshDerived()`. Vérifié entité par
+entité : `Title`, `Person` et `TitleCollection` l'appellent bien après que tous
+leurs champs sources sont posés — le cas subtil étant `bio` et `summary`, écrits
+*après* l'init qui a déjà rafraîchi. `DemoCatalogTests` verrouille l'invariant,
+avec un contrôle négatif qui prouve qu'une mutation post-init laisse bien les
+dérivés périmés.
+
+**Deux bugs trouvés par les tests, tous deux réels :**
+
+1. `clear()` n'atteignait personnes et collections *que* depuis un titre de
+   démonstration. Or le stock est fixe (30 personnes, 6 collections) et
+   distribué au hasard : certaines n'étaient créditées nulle part et
+   survivaient au vidage. En usage réel aussi, pas seulement en test.
+2. `markerGenre()` cherchait sur `name` quand `findOrCreate` cherche sur
+   `nameKey`, replié sans accents ni casse. Une bibliothèque contenant déjà
+   « demonstration » voyait `findOrCreate` réutiliser ce genre comme marqueur,
+   que `markerGenre` ne retrouvait plus : le bouton « Vider » devenait un no-op
+   silencieux et les 120 titres n'étaient plus supprimables.
+
+Corrigé aussi, sur revue : un filtre par genre ou par collection dont l'entité a
+disparu continuait de restreindre la liste **pour de bon**, avec un sélecteur
+vide et une icône de filtre allumée — et l'état survivait au redémarrage,
+puisque le filtre est persisté. Les filtres orphelins sont maintenant assainis.
+
+Les dix genres thématiques ne sont **pas** supprimés par le vidage, et c'est
+documenté : ils viennent de `findOrCreate`, qui réutilise un genre réel
+homonyme, et rien ne distingue « créé par la démo » de « réutilisé ».
+
+Ménage : `DemoCatalog.swift` scindé (il dépassait 500 lignes), un résidu
+cyrillique dans le vocabulaire de démonstration et le filtre censé l'écarter —
+qui ne l'écartait pas, `isLetter` étant vrai pour le cyrillique — deux boucles
+`refreshDerived()` dont le commentaire énonçait une dépendance inexistante, et
+`isPopulated` qui n'existait que pour son propre test désactive maintenant les
+boutons quand il le faut.
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| Tests `CineShelf` (macOS) | 42 tests |
+| `swift test` Core / DesignSystem / MediaKit | 79 / 19 / 38 |
+| `swiftlint --strict` | 0 violation |
+| `swift-format lint --strict` | 0 avertissement |
+
+**Suite**
+
+Prompt 12 — Recherche + Spotlight.

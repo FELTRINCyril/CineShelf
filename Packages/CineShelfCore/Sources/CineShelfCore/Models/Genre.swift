@@ -18,6 +18,9 @@ public final class Genre {
     public var pinIndex: Int = 0
     public var isPrivate: Bool = false
     public var isArchived: Bool = false
+    /// Corbeille. Supprimer un genre en dur détruirait ses associations avec les
+    /// titres et les personnes : les recréer ne les ramène pas.
+    public var deletedAt: Date?
     public var createdAt = Date()
     public var updatedAt = Date()
 

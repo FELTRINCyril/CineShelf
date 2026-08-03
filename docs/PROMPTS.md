@@ -53,11 +53,10 @@ Version détaillée (vérifications, critères de sortie, dépannage) → `GUIDE
 | `MediaSlot.portrait` (jaquette portrait alternative) jamais lu | 13b |
 | `.navigationTransition(.zoom)` : la source est déclarée par `PosterCard`, mais son `@Namespace` est privé à la grille — le chaînage vers la destination manque | 13b |
 | Pas de `fetchLimit` progressif : `@Query` tout chargé (décision actée, à revoir au-delà de ~10 000 titres) | — |
-| Bornes de durée et de note filtrées en mémoire, pas en SQL — `#Predicate` sature au-delà de ~6 clauses | — |
+| **Quatre critères filtrés en mémoire** (genre, personne, durée, note) : `#Predicate` sature au-delà de ~6 clauses, donc le catalogue entier est rapatrié avant d'être filtré. Sans effet perceptible aujourd'hui ; **à mesurer sur 5 000 titres avant le prompt 20**, et à revoir si nécessaire — par exemple en dénormalisant les identifiants de genre dans un champ interrogeable, sur le modèle de `searchText` | avant 20 |
 | Grille non navigable au clavier sur Mac (`PosterCard` ouvre par `onTapGesture`, sans `focusable()`) | 24 |
 | `MediaEnvironment.displayScale` jamais alimenté : vignettes générées en @2x quelle que soit la dalle | 13b |
-| `DemoCatalog` construit ses objets sans passer par les repositories : pas d'`ActivityRecorder`, `checksum` factice | — |
-| `Genre` n'a pas de `deletedAt` alors que tous les autres modèles en ont — asymétrie à trancher | — |
+| `DemoCatalog` hors des repositories : **décision actée** — une fixture n'est pas une action utilisateur, et on ne veut pas 300 `ActivityEntry` fictives dans le fil. L'invariant `refreshDerived()` tient et `DemoCatalogTests` le vérifie. Reste factice : `MediaAsset.checksum` et `blurHash` non calculés | — |
 | `Profile.requiresBiometry` affiché mais non appliqué | 18 |
 | Préchargement de l'écran suivant | 13b |
 | `MediaRepository.attach` + invariante `hasExactlyOneOwner` | 13b |

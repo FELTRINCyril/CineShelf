@@ -44,14 +44,16 @@ struct SettingsView: View {
                         systemImage: "wand.and.stars"
                     )
                 }
-                .disabled(isWorking || session.current?.library == nil)
+                // Générer deux fois produirait 240 titres : le bouton se
+                // désactive dès qu'un catalogue de démonstration existe.
+                .disabled(isWorking || library == nil || isPopulated)
 
                 Button(role: .destructive) {
                     run { context, library in try DemoCatalog.clear(in: context, library: library) }
                 } label: {
                     Label("Vider le catalogue d'exemple", systemImage: "trash")
                 }
-                .disabled(isWorking)
+                .disabled(isWorking || !isPopulated)
 
                 Text(
                     """
@@ -69,6 +71,13 @@ struct SettingsView: View {
                         .foregroundStyle(.statusDanger)
                 }
             }
+        }
+
+        private var library: Library? { session.current?.library }
+
+        private var isPopulated: Bool {
+            guard let library else { return false }
+            return DemoCatalog.isPopulated(in: modelContext, library: library)
         }
 
         private func run(_ work: @escaping (ModelContext, Library) throws -> Void) {

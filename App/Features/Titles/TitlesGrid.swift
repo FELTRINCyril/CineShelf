@@ -83,6 +83,43 @@ struct TitlesGrid: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.bgCanvas)
+        .task(id: filter.genreID) { discardFilterOnMissingGenre() }
+        .task(id: filter.collectionID) { discardFilterOnMissingCollection() }
+    }
+
+    // MARK: Assainissement des filtres
+    //
+    // Un filtre porte un `UUID`, pas une référence. Si l'entité visée disparaît
+    // — mise à la corbeille, supprimée depuis un autre appareil — le filtre
+    // continue de restreindre la liste pour de bon, alors que le sélecteur ne
+    // propose plus l'entrée correspondante : la grille est vide, l'icône de
+    // filtre est allumée, et rien n'explique pourquoi. Le filtre étant persisté,
+    // l'incohérence survit même au redémarrage.
+
+    private func discardFilterOnMissingGenre() {
+        guard let id = filter.genreID, !entityExists(FetchDescriptor<Genre>(), matching: id) else {
+            return
+        }
+        navigation.titleFilter.genreID = nil
+    }
+
+    private func discardFilterOnMissingCollection() {
+        guard let id = filter.collectionID,
+            !entityExists(FetchDescriptor<TitleCollection>(), matching: id)
+        else { return }
+        navigation.titleFilter.collectionID = nil
+    }
+
+    /// Une entité visible porte-t-elle cet identifiant ?
+    ///
+    /// Le filtre en mémoire plutôt qu'un prédicat par type : deux entités, deux
+    /// prédicats à écrire, pour une requête qui ne rend au plus que quelques
+    /// dizaines de lignes.
+    private func entityExists<T: PersistentModel & Identifiable>(
+        _ descriptor: FetchDescriptor<T>, matching id: UUID
+    ) -> Bool where T.ID == UUID {
+        guard let found = try? modelContext.fetch(descriptor) else { return true }
+        return found.contains { $0.id == id }
     }
 
     #if os(iOS)

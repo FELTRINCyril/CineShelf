@@ -94,4 +94,84 @@ struct GenreRepositoryTests {
         let recreated = try repository.findOrCreate(name: "Action", in: library)
         #expect(recreated.id != genre.id)
     }
+
+    // MARK: Corbeille
+    //
+    // `Genre` a une suppression douce parce qu'un genre supprimé en dur emporte
+    // ses associations avec les titres et les personnes, définitivement — voir
+    // `docs/02` §3.5. Ces tests verrouillent le comportement, en particulier
+    // celui qui n'est pas évident : la recherche ne doit pas ressusciter.
+
+    @Test("Supprimer un genre le met à la corbeille, sans détruire ses associations")
+    func softDeleteKeepsTheGraph() throws {
+        let (context, library) = try makeTestLibrary()
+        let repository = GenreRepository(context: context)
+        let genre = try repository.findOrCreate(name: "Policier", in: library)
+
+        let title = Title(name: "Le Deuxième Souffle")
+        title.library = library
+        title.genres = [genre]
+        title.refreshDerived()
+        context.insert(title)
+        try context.save()
+
+        repository.softDelete(genre)
+        try context.save()
+
+        #expect(genre.deletedAt != nil)
+        // Ce que la corbeille protège : le lien survit, donc une restauration
+        // rend quelque chose d'utile.
+        #expect(title.genres?.contains { $0.id == genre.id } == true)
+    }
+
+    @Test("Restaurer un genre annule la suppression")
+    func restoreClearsTheDeletionDate() throws {
+        let (context, library) = try makeTestLibrary()
+        let repository = GenreRepository(context: context)
+        let genre = try repository.findOrCreate(name: "Policier", in: library)
+
+        repository.softDelete(genre)
+        repository.restore(genre)
+        try context.save()
+
+        #expect(genre.deletedAt == nil)
+    }
+
+    @Test("Retaper un genre supprimé en crée un neuf plutôt que de le ressusciter")
+    func findOrCreateNeverResurrects() throws {
+        let (context, library) = try makeTestLibrary()
+        let repository = GenreRepository(context: context)
+        let original = try repository.findOrCreate(name: "Policier", in: library)
+        try context.save()
+
+        repository.softDelete(original)
+        try context.save()
+
+        let recreated = try repository.findOrCreate(name: "Policier", in: library)
+        try context.save()
+
+        #expect(recreated.id != original.id, "L'ancien genre a été ressuscité avec ses associations")
+        #expect(recreated.deletedAt == nil)
+        #expect(original.deletedAt != nil)
+
+        // Deux lignes de même clé, dont une seule vivante : c'est le
+        // comportement voulu, et ce que la future passe de fusion devra
+        // respecter (`docs/02` §8).
+        #expect(try context.fetchCount(FetchDescriptor<Genre>()) == 2)
+    }
+
+    @Test("La casse et les accents ne font pas échapper un genre supprimé")
+    func deletionIsFoundThroughTheFoldedKey() throws {
+        let (context, library) = try makeTestLibrary()
+        let repository = GenreRepository(context: context)
+        let original = try repository.findOrCreate(name: "Séries policières", in: library)
+        try context.save()
+
+        repository.softDelete(original)
+        try context.save()
+
+        // Même clé repliée : la recherche doit l'écarter tout autant.
+        let recreated = try repository.findOrCreate(name: "series policieres", in: library)
+        #expect(recreated.id != original.id)
+    }
 }

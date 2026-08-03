@@ -516,6 +516,7 @@ public final class Genre {
     public var pinIndex: Int = 0
     public var isPrivate: Bool = false
     public var isArchived: Bool = false
+    public var deletedAt: Date?               // corbeille
     public var createdAt: Date = Date()
     public var updatedAt: Date = Date()
 
@@ -539,6 +540,37 @@ public final class Genre {
 ```
 
 > **Unicité** : CloudKit l'interdit. Passer par un `GenreRepository.findOrCreate(name:target:in:)` qui cherche sur `nameKey` avant d'insérer, et un job de fusion des doublons apparus par sync concurrente (deux appareils créant « Action » en même temps).
+
+> **La future passe de fusion ne doit voir que les genres vivants.**
+>
+> Depuis que `Genre` a une corbeille, deux lignes peuvent légitimement partager
+> le même `nameKey` : une vivante et une à la corbeille. C'est même le
+> comportement voulu — `findOrCreate` filtre `deletedAt == nil`, donc retaper un
+> genre supprimé en crée un neuf plutôt que de ressusciter l'ancien.
+>
+> Une fusion écrite naïvement « sur `nameKey` », comme l'énonce §8, refusionnerait
+> les deux et ramènerait exactement les associations que la suppression mettait
+> de côté. **La fusion se restreint donc à `deletedAt == nil`**, des deux côtés.
+>
+> Même remarque pour `MediaAsset.checksum`, qui a la même forme de clé.
+
+> **Pourquoi `Genre` a une corbeille**, alors qu'un genre n'est qu'un mot.
+>
+> Ce n'est pas le mot qu'on perdrait. Un genre porte des relations
+> plusieurs-à-plusieurs vers les titres **et** vers les personnes : le supprimer
+> en dur détruit ces associations, définitivement. Recréer « Policier » ensuite
+> donne un genre vide — il faudrait retrouver à la main les quatre-vingts titres
+> qui le portaient. La suppression douce est le seul mécanisme qui rende une
+> restauration utile, parce qu'elle préserve le graphe, pas seulement le nom.
+>
+> `isArchived` ne suffit pas : il masque un genre qu'on garde, il ne dit pas
+> qu'on a voulu s'en débarrasser. Les deux coexistent, comme sur `Title` et
+> `Person`.
+>
+> Conséquence sur les lectures : **toute requête de genres filtre
+> `deletedAt == nil`**, y compris `GenreRepository.findOrCreate`. Sans ce filtre
+> dans la recherche, retaper un genre supprimé le ressusciterait avec toutes ses
+> anciennes associations, sans que personne ne l'ait demandé.
 
 ### 3.6 Casting
 
@@ -886,7 +918,8 @@ Garder le dossier `CineShelfExport/` archivé indéfiniment. C'est ton unique fi
 
 | Sujet | À faire |
 |---|---|
-| Doublons par sync concurrente | Deux appareils peuvent créer le même genre hors ligne. Prévoir une passe de fusion sur `nameKey` au démarrage. |
+| Nouveau champ avant publication | `CineShelfSchemaV1` reste en 1.0.0 avec `stages: []` tant que l'app n'est pas publiée : un attribut **optionnel** s'y ajoute sans nouvelle étape de migration, et `CloudKitConformanceTests` le vérifie. À la publication, `V1` est gelée — tout ajout passe alors par un `VersionedSchema` et un `MigrationStage`. |
+| Doublons par sync concurrente | Deux appareils peuvent créer le même genre hors ligne. Prévoir une passe de fusion sur `nameKey` au démarrage, **restreinte à `deletedAt == nil`** — voir l'encadré ci-dessous. |
 | Quota iCloud | Un catalogue de 3 000 jaquettes en 300 Ko = ~900 Mo du quota de l'utilisateur. L'afficher dans les réglages, et proposer une compression HEIC à l'import. |
 | Premier chargement | Sur un nouvel appareil, CloudKit rapatrie progressivement. L'UI doit fonctionner à moitié peuplée sans paraître cassée. |
 | Suppressions | `deletedAt` (corbeille) plutôt que `context.delete`, avec purge à 30 jours. Une suppression synchronisée est irréversible. |

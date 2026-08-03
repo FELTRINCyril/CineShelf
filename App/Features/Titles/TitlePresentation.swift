@@ -144,10 +144,8 @@ enum TitleFormat {
     }
 
     static func genreNames(of title: Title) -> [String] {
-        // `Genre` n'a pas de suppression douce (pas de `deletedAt`) : le seul
-        // retrait possible est l'archivage.
         (title.genres ?? [])
-            .filter { !$0.isArchived }
+            .filter { $0.deletedAt == nil && !$0.isArchived }
             .map(\.name)
             .sorted()
     }

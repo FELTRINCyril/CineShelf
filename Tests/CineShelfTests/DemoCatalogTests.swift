@@ -47,6 +47,36 @@ struct DemoCatalogTests {
         for title in titles {
             #expect(!title.sortName.isEmpty, "sortName vide sur « \(title.name) »")
             #expect(!title.searchText.isEmpty, "searchText vide sur « \(title.name) »")
+
+            // `filterKeys` porte les relations, et `DemoCatalog` les pose à la
+            // main — il n'utilise volontairement pas les repositories (décision
+            // actée). C'est donc ici, et nulle part ailleurs, que se vérifie que
+            // son `refreshDerived()` final intervient bien **après** la
+            // bibliothèque, les genres, la collection et le casting. L'ordre
+            // inversé rendrait tout le catalogue de démonstration invisible dans
+            // sa propre grille, sans casser un seul autre test.
+            #expect(
+                title.filterKeys.contains(FilterKey.pattern(FilterKey.library(library.id))),
+                "Clé de bibliothèque absente sur « \(title.name) »"
+            )
+            for genre in title.genres ?? [] {
+                #expect(
+                    title.filterKeys.contains(FilterKey.pattern(FilterKey.genre(genre.id))),
+                    "Clé de genre absente sur « \(title.name) »"
+                )
+            }
+            if let collection = title.collection {
+                #expect(
+                    title.filterKeys.contains(FilterKey.pattern(FilterKey.collection(collection.id))),
+                    "Clé de collection absente sur « \(title.name) »"
+                )
+            }
+            for person in (title.credits ?? []).compactMap(\.person) {
+                #expect(
+                    title.filterKeys.contains(FilterKey.pattern(FilterKey.person(person.id))),
+                    "Clé de personne absente sur « \(title.name) »"
+                )
+            }
         }
     }
 

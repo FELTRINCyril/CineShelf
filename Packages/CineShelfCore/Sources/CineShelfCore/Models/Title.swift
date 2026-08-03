@@ -35,6 +35,11 @@ public final class Title {
     /// Maintenu par `refreshDerived()`. Remplace l'index FTS5.
     public var searchText: String = ""
 
+    /// Maintenu par `refreshDerived()`. Les identifiants de bibliothèque, de
+    /// collection, de genres et de personnes créditées, sous forme interrogeable.
+    /// Voir `FilterKey` pour la raison d'être de ce champ.
+    public var filterKeys: String = ""
+
     public var createdAt = Date()
     public var updatedAt = Date()
 
@@ -76,6 +81,12 @@ extension Title {
     }
 
     /// À appeler dans chaque `didSet` métier et avant chaque `save`.
+    ///
+    /// Depuis `L1`, cette méthode lit aussi les **relations** du titre pour
+    /// composer `filterKeys`. Conséquence directe : toute mutation d'une relation
+    /// doit l'appeler, y compris celles qui ne passent pas par le titre lui-même
+    /// — un `Credit` inséré depuis la personne, un genre attaché depuis le genre.
+    /// Les cas concernés sont couverts un par un dans `TitleFilterTests`.
     public func refreshDerived() {
         sortName =
             name
@@ -85,6 +96,12 @@ extension Title {
             .compactMap { $0 }
             .joined(separator: " ")
             .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        filterKeys = FilterKey.keys(
+            [library?.id].compactMap { $0 }.map(FilterKey.library)
+                + [collection?.id].compactMap { $0 }.map(FilterKey.collection)
+                + (genres ?? []).map { FilterKey.genre($0.id) }
+                + (credits ?? []).compactMap(\.person?.id).map(FilterKey.person)
+        )
         updatedAt = .now
     }
 }

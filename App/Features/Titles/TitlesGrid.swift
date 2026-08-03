@@ -40,26 +40,29 @@ struct TitlesGrid: View {
         )
     }
 
-    /// Ce que le `#Predicate` ne sait pas exprimer, appliqué après le fetch.
+    /// La correspondance identifiant → titre, pour retrouver l'objet derrière une
+    /// carte.
     ///
-    /// Calculé **une fois** par passe de rendu et non à chaque accès : une
-    /// propriété calculée referait le filtrage deux fois pour le corps, puis une
-    /// fois par carte visible via `actions(for:)`. Sur les 2 000 jaquettes du
-    /// budget de `docs/04` §4, cela faisait des dizaines de milliers
-    /// d'itérations par image, sur le thread principal.
+    /// Calculée **une fois** par passe de rendu et non à chaque accès : une
+    /// propriété calculée la reconstruirait pour le corps, puis une fois par
+    /// carte visible via `actions(for:)`. Sur les 2 000 jaquettes du budget de
+    /// `docs/04` §4, cela faisait des dizaines de milliers d'itérations par
+    /// image, sur le thread principal.
+    ///
+    /// Depuis `L1`, elle ne filtre plus rien : le `#Predicate` porte tous les
+    /// critères, donc `titles` **est** la liste visible.
     private struct Visible {
         let titles: [Title]
         let byID: [UUID: Title]
 
-        init(_ titles: [Title], filter: TitleFilter) {
-            let filtered = titles.filter(filter.matches)
-            self.titles = filtered
-            byID = Dictionary(uniqueKeysWithValues: filtered.map { ($0.id, $0) })
+        init(_ titles: [Title]) {
+            self.titles = titles
+            byID = Dictionary(titles.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         }
     }
 
     var body: some View {
-        let visible = Visible(titles, filter: filter)
+        let visible = Visible(titles)
 
         return Group {
             if visible.titles.isEmpty {

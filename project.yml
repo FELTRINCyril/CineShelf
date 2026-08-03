@@ -130,11 +130,21 @@ targets:
     supportedDestinations: [iOS, macOS]
     sources:
       - Tests/CineShelfTests
+      # La logique de navigation, compilée dans la cible de test plutôt
+      # qu'importée : la lier à la cible app imposerait un TEST_HOST, donc de
+      # lancer l'interface — exactement ce que cette cible évite (voir plus
+      # haut). Ces trois fichiers ne dépendent d'aucune vue de feature, c'est
+      # pour ça qu'`AppSection.destination` vit dans un fichier séparé.
+      - App/Navigation/AppRoute.swift
+      - App/Navigation/AppSection.swift
+      - App/Navigation/NavigationModel.swift
     dependencies:
       - package: CineShelfCore
         product: CineShelfCore
       - package: MediaKit
         product: MediaKit
+      - package: DesignSystem
+        product: DesignSystem
     settings:
       base:
         # cf. bloc SUPPORTED_PLATFORMS ci-dessus (bug XcodeGen 2.46.0)

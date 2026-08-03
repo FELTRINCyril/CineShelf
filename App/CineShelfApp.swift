@@ -6,6 +6,8 @@ import SwiftUI
 @main
 struct CineShelfApp: App {
     @State private var container: ModelContainer
+    @State private var navigation = NavigationModel()
+    @State private var session = ProfileSession()
 
     init() {
         // Archivo vit dans le bundle de ressources du package DesignSystem, que
@@ -27,36 +29,46 @@ struct CineShelfApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environment(navigation)
+                .environment(session)
+                .tint(session.accentColor)
         }
         .modelContainer(container)
         .commands {
-            CineShelfCommands()
+            CineShelfCommands(navigation: navigation, session: session)
         }
 
         #if os(macOS)
             Settings {
                 SettingsScene()
+                    .environment(navigation)
+                    .environment(session)
+                    .modelContainer(container)
             }
+
+            // Fenêtre dédiée plutôt que section : `docs/04` §2. La console de
+            // gestion se consulte à côté de la bibliothèque, pas à sa place.
+            Window("Gestion", id: Self.managementWindowID) {
+                AppSection.libraryAdmin.destination
+                    .frame(minWidth: 720, minHeight: 480)
+                    .environment(navigation)
+                    .environment(session)
+                    .modelContainer(container)
+            }
+            .keyboardShortcut("l", modifiers: [.command, .shift])
         #endif
     }
-}
 
-/// Commandes de barre de menus. Les entrées arriveront avec les fonctionnalités.
-struct CineShelfCommands: Commands {
-    var body: some Commands {
-        CommandGroup(replacing: .newItem) {}
-
-        CommandMenu("Bibliothèque") {
-            EmptyView()
-        }
-    }
+    #if os(macOS)
+        static let managementWindowID = "library-admin"
+    #endif
 }
 
 #if os(macOS)
     /// Fenêtre de réglages macOS, remplie au prompt « Profils & Face ID ».
     struct SettingsScene: View {
         var body: some View {
-            ComingSoonView(title: "Réglages")
+            AppSection.settings.destination
                 .frame(minWidth: 420, minHeight: 260)
         }
     }

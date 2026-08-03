@@ -560,3 +560,184 @@ correction de lint. **À trancher.**
 **Suite**
 
 Prompt 10, ou prompt 13 bis pour refermer le pipeline médias.
+
+---
+
+## 2026-08-03 (2) — Budgets de perf, cohérence des docs, navigation adaptative (prompt 10)
+
+**Commits**
+
+- `ee3b88c` — intégration du DesignSystem (travail de la session précédente, jusque-là non committé)
+- `0aa8d05` — budgets de perf par chemin, chasse Archivo, commandes du catalogue
+
+**Budgets de performance — le seuil de 20 ms remplacé par trois**
+
+Le seuil unique « génération d'une vignette < 20 ms » avait été écrit avant
+toute mesure et ne protégeait rien : à 120 Hz une image dure 8,3 ms, donc une
+génération à froid n'y tient de toute façon pas, ni à 20 ni à 21,5 ms. Ce qui
+protège le défilement, c'est le cache et le préchargement.
+
+| Chemin | Budget | Mesuré |
+|---|---|---|
+| Génération à froid, hors thread principal | < 30 ms | 20,10 ms |
+| Lecture depuis le cache disque | < 5 ms | 2,40 ms |
+| Lecture depuis le cache mémoire | < 1 ms | 0,00 ms |
+
+La justification est écrite dans `docs/04` §4 et dans le test, pour qu'on ne
+relise pas ces chiffres comme un renoncement : le premier détecte une
+régression algorithmique et rien de plus, les deux autres arrivent pendant un
+défilement et doivent tenir dans une image.
+
+**Pour le prompt 13 bis : le vrai correctif de performance, c'est le
+préchargement** de l'écran suivant pendant le défilement. Aucun seuil sur la
+génération ne remplacera ça.
+
+**Cohérence des documents**
+
+`docs/01` §B.2 appliquait une chasse `wdth` à `cardTitle`, qui est en SF Pro :
+l'axe n'existe que pour Archivo. Mention retirée, et il est maintenant écrit
+que le `wdth` 112 de `heroTitle` et `railLabel` correspond au cran
+**SemiExpanded** et non Expanded. §A.5 annonçait la police variable embarquée
+alors qu'on livre des statiques.
+
+**Environnement**
+
+`xcode-select -p` pointe désormais sur `/Applications/Xcode.app/Contents/Developer` :
+plus besoin de `DEVELOPER_DIR`. Il n'y en avait aucune trace dans le dépôt, il
+n'y avait donc rien à retirer.
+
+`which -a xcodegen` ne renvoie qu'un chemin, `/opt/homebrew/bin/xcodegen`, mais
+c'est un **fichier ordinaire de 14 Mo posé à la main** (2.46.0), pas le lien
+symbolique de Homebrew. Le keg 2.45.4 est en Cellar et `brew doctor` le signale
+comme non lié. Rien n'a été supprimé — voir la recommandation en fin de session.
+
+### Prompt 10 — navigation adaptative
+
+**Décisions prises** (les trois ambiguïtés entre documents ont été tranchées
+avec le propriétaire avant d'écrire) :
+
+- Onglets compacts conformes à `docs/01` partie C : Accueil / Catalogue
+  (segmenté Titres·Personnes·Collections) / Galerie / Recherche / Plus. Les six
+  sections auparavant inatteignables sur iPhone le sont maintenant.
+- Nommage : « Plus » pour l'onglet fourre-tout, « Gestion » pour la console et
+  sa fenêtre ⇧⌘L. « Bibliothèque(s) » est réservé à l'entité `Library`.
+- Périmètre Mac complet : inspecteur + ⌥⌘I, fenêtre Gestion + ⇧⌘L, menus ⌘N /
+  ⇧⌘I / ⇧⌘E / ⌘F, ⌃⌘1…9 pour les profils, ⌥↑ / ⌥↓ dans le détail.
+
+**Structure**
+
+`App/Navigation/` : `AppRoute` (destinations poussées), `AppSection` (11
+sections de premier niveau), `CompactTab` (les 5 onglets), `CatalogueSegment`,
+`NavigationModel`, `ProfileSession`, `Sidebar`, `ProfileMenu`, `ProfilePicker`,
+`SectionPlaceholder`, `RouteDestination`, `CineShelfCommands`.
+
+`AppSection` et `CompactTab` sont deux types distincts parce qu'ils ne se
+correspondent pas un pour un : « Catalogue » couvre trois sections, « Plus » en
+couvre cinq. `NavigationModel` maintient leur cohérence dans les deux sens, ce
+qui est ce qui permet à une rotation d'iPad de ne pas perdre l'écran courant.
+
+Une pile de navigation **par section** plutôt qu'une pile unique : en compact
+chaque onglet a son `NavigationStack` et revenir dessus doit retrouver sa pile.
+
+La restauration au lancement est **par profil** et porte sur la section, le
+segment, les piles et l'état de l'inspecteur — pas sur les filtres (ils
+n'existent pas encore) ni sur la largeur des colonnes (le système s'en charge).
+
+`ProfileSession` est séparé de `NavigationModel` : le profil change une fois par
+session, la navigation à chaque écran. Les deux vivent dans `App/Navigation/` et
+non dans `Features/Settings/`, sans quoi la barre latérale importerait une
+feature — ce que `docs/04` §1 interdit.
+
+La teinte de l'app suit `Profile.accentToken`, résolu par le design system, avec
+repli sur l'accent par défaut : un profil mal configuré ne doit pas casser
+l'app. `docs/04` §2 écrivait `.tint(.accentText)` en dur ; le modèle prévoit
+mieux.
+
+**Écrans vides** : `ComingSoonView` (qui utilisait `ContentUnavailableView`) est
+supprimée au profit de `SectionPlaceholder`, qui s'appuie sur `StateView` du
+design system. Onze couples titre/message en français, qui décrivent ce que la
+section contiendra plutôt que le fait qu'elle soit inachevée.
+
+**Un détour à signaler** : `AppSection.destination` — le seul point où la
+navigation touche une feature — a été sorti dans `AppSectionDestination.swift`.
+Sans ça, tester `NavigationModel` imposait de lier la cible app à la cible de
+test, donc un `TEST_HOST`, donc de lancer l'interface — exactement ce que le
+commentaire de `project.yml` dit vouloir éviter. Les trois fichiers de logique
+sont maintenant compilés directement dans `CineShelfTests`.
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| `xcodebuild test -scheme CineShelf` (macOS) | 20 tests (8 + 12 de navigation) |
+| `xcodebuild test -scheme DesignSystemCatalog` macOS / iOS | 20 / 19 tests |
+| `swift test` Core / DesignSystem / MediaKit | 75 / 19 / 38 tests |
+| `swiftlint --strict` | 0 violation |
+| `swift-format lint --strict` | 0 avertissement |
+
+Deux corrections de compilation, remontées par le sous-agent build :
+`.keyboardShortcut(_:modifiers:)` n'accepte pas un `KeyEquivalent?` (passage à
+`KeyboardShortcut?`), et `List(selection:)` à liaison non optionnelle n'existe
+pas sur iOS (pont `Binding<AppSection?>` dans `Sidebar`, sans rendre la section
+du modèle optionnelle).
+
+**Revue — trois bugs bloquants trouvés et corrigés**
+
+Le sous-agent de revue a relu le travail contre `docs/01` partie C, `docs/04` §2
+et `CLAUDE.md`. Trois défauts réels, invisibles à la compilation :
+
+1. **Piles partagées entre onglets.** `TabView` évalue le corps de *tous* les
+   onglets ; « Catalogue » et « Plus » n'ayant pas de section propre, leur
+   `NavigationStack` était lié à `paths[section courante]`. Trois piles vivantes
+   sur un même tableau : pousser un détail depuis Galerie recouvrait la liste
+   « Plus ». Corrigé par une clé de pile dédiée (`NavigationModel.StackID`), qui
+   donne à « Plus » sa propre pile et à « Catalogue » celle de son segment.
+2. **Le réglage « ouvrir directement le dernier profil » ne se rafraîchissait
+   pas.** `@Observable` n'instrumente que les propriétés *stockées* : la
+   propriété calculée sur `UserDefaults` écrivait bien la valeur, mais
+   l'interrupteur ne bougeait pas. Passée en propriété stockée.
+3. **⌃⌘1…9 n'était pas enregistré.** Les raccourcis étaient posés sur des
+   boutons *à l'intérieur* d'un `Menu` de la barre latérale : SwiftUI ne les
+   enregistre qu'une fois le menu déroulé, et jamais colonne repliée. Déplacés
+   dans un `CommandMenu` de la barre de menus.
+
+Corrigé aussi : la restauration abandonnait au lieu de réinitialiser, donc un
+profil sans état enregistré héritait de la section, des piles et de
+l'inspecteur du profil précédent — puis les réenregistrait sous son propre
+identifiant. Les deux régressions les plus graves (1 et la fuite d'état) ont
+maintenant leur test.
+
+Écarts d'interface corrigés dans la foulée : le sélecteur segmenté du Catalogue
+bascule en menu au-delà d'`.accessibility1` (`docs/01` §B.2 : pas de troncature
+à AX5), le sélecteur de profil devient défilable (iPhone SE en AX5), les genres
+épinglés passent à 44 pt, le profil actif est annoncé à VoiceOver et non plus
+signalé par la seule teinte. Sur Mac, « Réglages » passe par `SettingsLink` et
+« Gestion » par sa fenêtre plutôt que par la colonne du milieu — `docs/01` A.2
+remplace justement l'overlay maison par ces deux scènes. Le `CommandMenu`
+« Bibliothèque » devient « Aller à » : il ne contient aucune `Library`. Icônes
+corrigées pour Import/Export (c'était le symbole de tri) et Gestion.
+
+**Toujours ouvert**
+
+- La colonne « Liste » de la disposition large n'a pas encore de contenu réel
+  ni de barre d'outils (tri, filtres, affichage) : `docs/01` partie C les
+  prescrit, ils arrivent avec les prompts de contenu.
+- `Profile.requiresBiometry` est **affiché** dans le sélecteur de profil (un
+  cadenas) mais **pas appliqué** : Face ID est le prompt 18.
+- Le bloc « Bibliothèques » de la barre latérale est affiché mais inerte :
+  changer de `Library` n'est pas dans le périmètre du prompt 10.
+- ⌥↑ / ⌥↓ sont câblés mais toujours désactivés : `navigation.collection` n'est
+  peuplée par aucune vue tant qu'il n'y a pas de liste réelle.
+- ⌘N, ⇧⌘I et ⇧⌘E sont présents et grisés, donc pas encore câblés.
+- Le pont `Binding<AppSection?>` de `Sidebar` avale la désélection. Cohérent
+  tant que `section` est toujours définie ; si un état « rien de sélectionné »
+  devient nécessaire, c'est le modèle qu'il faudra rendre optionnel, pas la vue.
+- `docs/03` n'a aucun mécanisme de cochage alors que `CLAUDE.md` demande d'y
+  cocher les fonctionnalités traitées : c'est un tableau de correspondance à
+  symboles. À arbitrer (voir aussi la colonne d'état de `docs/PROMPTS.md`).
+- Reste du prompt 13 bis inchangé, plus le préchargement noté plus haut.
+
+**Suite**
+
+Prompt 11 — Titres.

@@ -19,7 +19,7 @@ Version détaillée (vérifications, critères de sortie, dépannage) → `GUIDE
 | 8bis+9 | Intégration DesignSystem + catalogue | Code | — | ✅ `ee3b88c` |
 | — | Budgets perf, chasse Archivo, doc | Code | — | ✅ `0aa8d05` |
 | 10 | Navigation adaptative | Code | `01 partie C`, `04 §2` | ✅ `dc15a48` |
-| 11 | Titres (liste + détail + éditeur) | Code | `03 §4` | ✅ `c84710e` |
+| 11 | Titres (liste + détail + éditeur) | Code | `03 §4` | ✅ `58b4b26` |
 | **12** | **Recherche + Spotlight** | Code | `02 §5` | 🔜 **suivant** |
 | 13b | Médias — **UI** : PhotosPicker, import fichier, glisser-déposer, `CropEditor`, branchement `MediaThumbnail`, `attach` + invariante, préchargement | Code | `04 §4` | ⬜ |
 | 14 | Galerie + visionneuse | Code | `03 §7` | ⬜ |
@@ -92,33 +92,7 @@ Termine par un commit et une mise à jour de docs/journal.md et du tableau
 d'état de docs/PROMPTS.md, avec le hash.
 ```
 
----|---|---|---|
-| 1 | Tests de référence | **Code** (dépôt web) | `03-FONCTIONNALITES-NATIF.md` |
-| 2 | Dump des données | **Code** (dépôt web) | `02-MODELE-SWIFTDATA-CLOUDKIT.md` |
-| 3 | Captures d'écran | toi | — |
-| 4 | **Installation complète du projet** | **Code** | voir `SETUP.md` |
-| 5 | Modèle de données | **Code** | `02` + `04` |
-| 6 | Repositories & outillage | **Code** | `04` |
-| 7 | Tokens | **Design** | `01-DESIGN-SYSTEM-APPLE.md` |
-| 8 | Composants | **Design** | (même conversation que 7) |
-| **8 bis** | **Passer le design à Claude Code** | toi + **Code** | — |
-| 9 | Intégration du DesignSystem | **Code** | — |
-| 10 | Navigation | **Code** | `01` + `04` |
-| 11 | Titres | **Code** | `03` |
-| 12 | Recherche | **Code** | `02` |
-| 13 | Pipeline médias | **Code** | `04` |
-| 14 | Galerie | **Code** | `03` |
-| 15 | Personnes | **Code** | `03` |
-| 16 | Collections, genres, liens | **Code** | `03` |
-| 17 | Console de gestion | **Code** | `03` |
-| 18 | Profils & Face ID | **Code** | `02` + `03` |
-| 19 | Import/export CSV | **Code** | `03` + `04` |
-| 20 | Migration des vraies données | **Code** | `02` |
-| 21 | Config CloudKit | toi | — |
-| 22 | Synchronisation | **Code** | `04` + `02` |
-| 23 | Intégrations système | **Code** | `03` |
-| 24 | Accessibilité | **Code** | `01` |
-| 25 | Publication | toi | — |
+---
 
 ---
 

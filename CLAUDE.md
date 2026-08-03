@@ -25,11 +25,14 @@ React + Express retirée. **Aucun backend.** SwiftData + CloudKit privé.
 - Les enums sont persistées en `rawValue: String`, exposées en propriété calculée.
 - `sortName` et `searchText` maintenus par `refreshDerived()`, appelé à **chaque** écriture.
 - `CloudKitConformanceTests` doit passer avant tout commit.
-- **`versionIdentifier` du schéma reste à `1.0.0` pendant tout le développement.**
-  Tout changement de modèle est libre, sans étape de migration : le magasin local
-  est effacé si besoin. La version **gèle au prompt 20**, à l'import des vraies
-  données ; à partir de là, tout changement de modèle exige un plan de migration.
-  Détail dans `docs/02` §7.
+- **Le schéma est FERMÉ depuis le 2026-08-03.** Dix-neuf entités. La fenêtre où
+  l'on ajoutait un champ en effaçant le magasin local est close : **toute**
+  modification du modèle — un champ, un renommage, une relation — exige un
+  `VersionedSchema` nouveau et un `MigrationStage` qui l'atteint depuis
+  `CineShelfSchemaV1`. Pas d'exception pour « ce n'est qu'un champ optionnel » :
+  c'est la forme que prend la première migration oubliée.
+  La passe d'inventaire qui a précédé la fermeture, les six manques qu'elle a
+  trouvés et les deux non-ajouts assumés sont dans `docs/02` étape 0 bis.
 
 ## Règles non négociables — design
 
@@ -76,6 +79,11 @@ xcodebuild -scheme CineShelf -destination 'platform=macOS' build
 xcodebuild test -scheme CineShelf -destination 'platform=macOS'
 xcodebuild test -scheme CineShelfUITests -destination 'platform=iOS Simulator,name=iPhone 17'
 for p in CineShelfCore DesignSystem MediaKit; do (cd "Packages/$p" && swift test); done
+
+# Un paquet qui dépend de CineShelfCore peut échouer sur « cannot find type X in
+# scope » alors que CineShelfCore compile seul : son graphe de build a été mis en
+# cache avant l'ajout du fichier. Ce n'est pas un défaut de code.
+(cd Packages/MediaKit && rm -rf .build && swift test)
 
 swiftlint --strict
 # swift-format n'est pas dans le PATH : il est livré avec la toolchain Xcode.

@@ -29,6 +29,13 @@ public final class Library {
 
     @Relationship(deleteRule: .nullify, inverse: \Profile.library)
     public var profiles: [Profile]? = []
+    /// Le côté inverse de `ImportMapping.library`.
+    ///
+    /// Sans lui, le miroir CloudKit refuse le schéma **entier** — « all relationships
+    /// have an inverse ». C'est le deuxième cas du projet, après `TitleCollection.links`
+    /// (`docs/02` §3.7), et `CloudKitConformanceTests` l'a attrapé au premier lancement
+    /// en nommant la relation fautive.
+    public var importMappings: [ImportMapping]? = []
 
     public init(name: String = "Ma bibliothèque", isDefault: Bool = false) {
         self.name = name

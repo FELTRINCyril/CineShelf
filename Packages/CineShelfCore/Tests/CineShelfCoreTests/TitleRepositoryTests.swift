@@ -29,7 +29,7 @@ struct TitleRepositoryTests {
         let entries = try context.fetch(FetchDescriptor<ActivityEntry>())
         #expect(entries.count == 1)
         #expect(entries.first?.action == .create)
-        #expect(entries.first?.entityTypeRaw == "Title")
+        #expect(entries.first?.entityType == .title)
         #expect(entries.first?.summary == "Solaris")
     }
 

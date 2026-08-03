@@ -97,7 +97,26 @@ de découpage sur sa fiche.
 >    auraient cessé de l'être au premier changement : une seconde source de vérité ne se
 >    surveille pas, elle s'élimine.
 
-> **Prochaine passe transverse : la fermeture du schéma, avant `L10`.** La fenêtre de
+> ## ✅ Le schéma est fermé — 2026-08-03
+>
+> **Dix-neuf entités. Toute modification ultérieure exige un plan de migration
+> versionné** : un `VersionedSchema` nouveau et un `MigrationStage` qui l'atteint depuis
+> `CineShelfSchemaV1`. La fenêtre où l'on ajoutait un champ en effaçant le magasin est
+> close, et il n'y a pas d'exception pour « ce n'est qu'un champ optionnel ».
+>
+> Six manques trouvés par la passe d'inventaire et ajoutés avant fermeture :
+> `ActivityEntry.payload` et `.undoneAt` (`L20`), `ActivityEntityType` (`L18` `L20`),
+> `MediaAsset.isGenerated` (`L6`), `ImportMapping` (`L11`), `LegacyRecord` (`L13`).
+> **Les champs sont posés, aucune logique ne les consomme** — c'est le travail des
+> fiches citées. Détail et raisons dans `docs/02` étape 0 bis.
+>
+> Deux décisions de non-ajout, assumées : les « champs libres » à l'import sont écartés
+> (contrepartie : le rapport nomme les colonnes ignorées), et `Genre.colorToken` reste
+> une chaîne libre en attendant une réponse du design.
+
+---
+
+> **~~Prochaine passe transverse : la fermeture du schéma, avant `L10`.~~ Faite.** La fenêtre de
 > gratuité se referme à `L13`, et un champ manquant découvert après le gel coûte un plan
 > de migration. La passe balaie tout ce qui pourrait encore réclamer une modification de
 > schéma — `ActivityEntry.payload` pour `L20`, ce que `L4` a révélé sur `MediaCrop` (rien :
@@ -124,7 +143,9 @@ de découpage sur sa fiche.
 | Pas de `fetchLimit` progressif : `@Query` tout chargé (décision actée, à revoir au-delà de ~10 000 titres). **Chiffré par `L1`** : matérialiser 5 000 titres sans filtre coûte **248 ms**, contre 5,3 ms pour une requête filtrée qui en rend 32. Ce n'est donc pas le prédicat qui coûte, c'est le nombre d'objets rendus — et c'est ce chiffre-là qu'un `fetchLimit` ferait baisser. `TitleFilterPerformanceTests` le mesure à chaque exécution. **C'est une tâche `V`, pas `L`** : la vue sans filtre est l'écran par défaut, donc ce qui reste à faire est un `fetchLimit` progressif et son déclenchement au défilement — de l'interface, pas de la logique. Rien à décider avant que le nouveau design dise comment la grille se charge | `V3` · `V6` |
 | **Les prédicats de `TitleFilter` et `PersonFilter` sont construits à la main**, pas par `#Predicate` : la macro plafonne à **cinq clauses** sur un `@Model` (mesures dans `docs/02` §5). Ce n'est pas une dette, c'est la seule forme qui tienne — mais elle a un coût de lisibilité, et deux règles en découlent. **Une** : tout critère nouveau passe par `predicateClause(active:)` et rejoint un sous-arbre existant, il ne se rajoute pas à une chaîne `&&`. **Deux** : ne jamais rallonger un `#Predicate` existant sans mesurer, parce qu'un prédicat dont la compilation passe de 200 ms à 1,3 s ne se signale pas. Concerne `L2`, `L3`, `L18` et tout ce qui interroge le magasin | permanent |
 | **Les items Spotlight n'ont pas encore de vignette.** `SpotlightIndexer` prend une fermeture qui les fournit, et la valeur par défaut ne rend rien : `CineShelfCore` ne peut pas importer `MediaKit`, la règle de dépendances de `04 §1` va dans l'autre sens, donc c'est à l'appelant de brancher le cache. Les items sont indexés sans image — moins joli, jamais faux. À brancher quand `L5` aura le préchargement et l'échelle d'écran, avec le preset `thumb` de `04 §4` | `L5` |
+| **`Genre.colorToken` est une chaîne libre que rien ne valide** — exactement le défaut que `ProfileAccent` a corrigé (« un jeton invalide doit être impossible à écrire, pas avalé à la lecture »). Il n'a **pas** été typé à la fermeture du schéma, pour deux raisons : la palette de la nouvelle direction n'est pas intégrée, donc la liste fermée n'est pas connue ; et la question est d'abord de savoir si des pastilles de genre colorées ont encore un sens sous une direction à **un seul accent ambre** — c'est une addition postérieure à la v1, pas une fonctionnalité reprise. **La question part chez Claude Design.** En attendant, la précaution qui compte est déjà tenue : aucun repository ne l'expose à l'écriture, donc le défaut de `ProfileAccent` ne peut pas se reproduire par une vue. Le typer plus tard exigera un plan de migration | `V5` · question ouverte au design |
 | **`TitleCollection` et `SavedLink` n'ont volontairement pas de `filterKeys`**, contrairement à `Title` et `Person`. Ce n'est pas une harmonisation en retard, c'est un arbitrage : la dénormalisation coûte un **invariant permanent** — un champ dérivé de plus à recalculer à chaque écriture, et une porte de plus à garder fermée — alors que ces deux tables comptent des dizaines de lignes, pas des milliers. La jointure `library?.id` ne se paie qu'en SQL, où elle est négligeable à cette échelle. Ce que la traversée coûtait vraiment, c'était le budget de vérification de types (7 253 ms et 7 446 ms avec `#Predicate`), et l'arbre manuel de `CollectionQuery` / `SavedLinkQuery` le règle sans rien dénormaliser. **Ne pas « harmoniser » sans mesurer d'abord** : la bonne raison d'ajouter `filterKeys` serait un critère de filtre que la jointure ne sait pas exprimer, ou un volume qui a changé d'ordre | permanent |
+| **La densité a deux crans, pas trois.** `docs/03` §2 annonçait « compacte / standard / confortable » ; le handoff livre `.dense | .roomy`, et ce sont des écrans dessinés. `docs/03` est corrigé. Le cran est posé une fois par plateforme dans l'environnement — ample par défaut sur iPad, dense au pointeur — et c'est la seule valeur dynamique du système de design | `V5` |
 | **Le store de préférences d'affichage ne portera que `layout` et `size`**, alors que `02 §3.10` décrit `{layout, size, pageSize, sort, dir}`. `pageSize` est abandonné par `03` (§2 : `LazyVGrid` charge à la demande). `sort` et `dir` sont déjà portés par `TitleFilter`, que `NavigationModel` sérialise et restaure au lancement : les mettre aussi dans le store créerait deux sources de vérité, et les y mettre sans les brancher serait du code « au cas où ». **Le jour où le tri doit persister par contexte, c'est `TitleFilter` qui lira le store — jamais le store qui dupliquera `TitleFilter`.** Le sens de cette dépendance n'est pas négociable : l'inverse redonne deux vérités | `L1 bis` |
 | `AppIcon.appiconset` déclare 11 emplacements sans un seul nom de fichier : `actool` ne produit rien et l'app n'a **pas d'icône**. L'icône viendra de Claude Design | avant 25 |
 | `Typo.sectionTitle` inutilisé dans `App/` : **décision actée** — aucun en-tête de section n'est aujourd'hui sans style, donc rien à y brancher. Les quatre en-têtes de contenu de `TitleDetailView` gardent `railLabelStyle()` ; les promouvoir serait un changement de hiérarchie visuelle (12 → 20 pt de base sur iOS, perte des majuscules et du `tracking`), pas un branchement. À reprendre au prompt 16, qui écrit Accueil, Collections et Genres — de vrais groupes de contenu. Poser alors `sectionTitle` **une fois**, dans un `sectionTitleStyle()` sur le modèle de `railLabelStyle()`, plutôt que sur chaque appelant : ce serait un ajout aux composants, dont l'anatomie est désormais à refaire (voir la bascule) | `V5` |
@@ -324,6 +345,13 @@ quand, y compris après le gel du prompt 20.
   vers `CineShelfCore` : clé `(profil, contexte)`, les 8 contextes, valeurs par
   défaut. Les prompts 14 à 17 le réutiliseront, il ne peut pas rester dans une vue.
   Charge utile `layout` + `size` seulement — voir l'écart correspondant.
+- **Réconcilier les huit contextes vers ceux du handoff**, qui sont ceux de la v1 :
+  `movies` · `actors` · `collections` · `social` · `home_movies` · `home_actors` ·
+  `home_collections` · `home_social`. Le jeu actuel de `CardDisplayContext`
+  (`home, titles, people, collections, gallery, bookmarks, genre, filmography`) est une
+  invention de l'intégration, pas une reprise : il compte bien huit entrées mais ce ne
+  sont pas les mêmes. La matrice `layout × size` est une **fonctionnalité existante**
+  (`06` §5), donc c'est le jeu d'origine qui fait foi.
 
 **Deux pièges relevés à l'avance, à vérifier avant de construire dessus.**
 
@@ -560,6 +588,14 @@ sélection.
   Reprise **par élément** et non par lot (écart connu).
 - Profil de mappage « Movix » préconfiguré, et enregistrement de mappages personnels.
 - Fixtures : fichiers malformés, accents, colonnes manquantes, doublons intra-lot.
+- **Le rapport d'import liste nommément les colonnes ignorées.** C'est la contrepartie
+  d'avoir écarté les « champs libres » de l'addendum 1 (voir ci-dessous) : une colonne
+  non reconnue n'est pas une erreur et n'interrompt pas l'import, mais elle ne doit pas
+  disparaître en silence. L'utilisateur doit lire « la colonne *Support* a été ignorée »,
+  pas deviner qu'il manque quelque chose trois semaines plus tard.
+- `ImportMapping` existe depuis la fermeture du schéma : nom, signature d'en-tête,
+  correspondance en JSON, drapeau « livré avec l'app ». Aucune logique ne l'écrit
+  encore — c'est cette tâche qui le fait, y compris le profil Movix préconfiguré.
 
 **Dépend de `L10`** pour la correction en masse dans l'aperçu.
 
@@ -589,6 +625,25 @@ sélection.
 - Rapport de vérification : les 9 assertions de `02 §7` étape 3, chacune avec son
   écart chiffré.
 - D'abord un bundle factice réduit et son test. Les vraies données ensuite.
+- **Écrire un `LegacyRecord` par entité importée** (type, identifiant natif, table et
+  clé d'origine). Il existe depuis la fermeture du schéma, et il change la nature de
+  deux choses :
+  - le **rapport de vérification** devient spécifique — il nomme les enregistrements
+    manquants au lieu d'annoncer un écart de compte ;
+  - la **comparaison champ à champ des cinquante titres** (`02 §7` étape 3) se mécanise,
+    puisque chaque titre natif sait de quel enregistrement web il vient. Sans ce lien,
+    la comparaison se fait à la main ou pas du tout.
+- Il rend surtout possible la **réconciliation** : le mode de défaillance réaliste n'est
+  pas « la migration a planté » mais « trois semaines plus tard je remarque que les dates
+  de sortie sont toutes au 1er janvier ». À ce moment-là il faut recouper avec la source
+  et corriger, sans toucher à ce que l'utilisateur a saisi depuis. Et « effacer et
+  recommencer » aura cessé d'être une issue : après le prompt 21, effacer se propage à
+  tous les appareils.
+- La purge des `LegacyRecord` est une **action explicite** de l'utilisateur, jamais
+  automatique — une purge silencieuse retirerait le recours au moment précis où il
+  servirait.
+- Compter les recadrages importés dont le `zoom` est inférieur à 100 : ils sont relevés
+  à l'affichage, c'est le seul endroit où la v1 et le natif divergent visiblement (`L4`).
 
 **Point de contrôle.** Après cette tâche, `versionIdentifier` gèle et tout changement
 de modèle exige un plan de migration. Tout ce qui touche au schéma doit être passé

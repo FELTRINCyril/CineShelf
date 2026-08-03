@@ -19,13 +19,26 @@ struct ActivityRecorderTests {
 
         #expect(entry.action == .update)
         #expect(entry.actionRaw == "update")
-        #expect(entry.entityTypeRaw == "Title")
+        #expect(entry.entityType == .title)
+        #expect(entry.entityTypeRaw == "title")
         #expect(entry.entityID == title.id)
         #expect(entry.summary == "Andreï Roublev")
     }
 
-    @Test("Le type d'entité vient du nom du modèle")
-    func entityTypeComesFromTheModelName() throws {
+    @Test("Le type d'entité ne dépend pas du nom Swift du modèle")
+    func entityTypeIsStableAcrossRenames() throws {
+        // **Ce test disait l'inverse jusqu'à la fermeture du schéma**, et son ancien nom
+        // — « le type d'entité vient du nom du modèle » — nommait exactement le défaut :
+        // `entityTypeRaw` recevait `String(describing: Self.self)`, sous un commentaire
+        // qui prétendait que ça « suivait les renommages ». C'est le contraire. Renommer
+        // un `@Model` aurait changé la chaîne, les anciennes entrées auraient gardé
+        // l'ancienne, et le fil se serait scindé en deux seaux sans que rien ne le dise.
+        //
+        // Les `rawValue` sont maintenant choisis à la main et stables. Le cas de
+        // `TitleCollection` le montre : son jeton est « collection », pas le nom de la
+        // classe — la classe s'appelle ainsi pour ne pas masquer `Collection` de la
+        // bibliothèque standard, ce qui est un détail de Swift et n'a rien à faire dans
+        // le magasin.
         let (context, library) = try makeTestLibrary()
         let recorder = ActivityRecorder(context: context)
         let person = Person(firstName: "Chantal", lastName: "Akerman")
@@ -35,9 +48,19 @@ struct ActivityRecorderTests {
         context.insert(person)
         context.insert(collection)
 
-        #expect(recorder.record(.create, person).entityTypeRaw == "Person")
-        #expect(recorder.record(.create, collection).entityTypeRaw == "TitleCollection")
-        #expect(recorder.record(.create, library).entityTypeRaw == "Library")
+        #expect(recorder.record(.create, person).entityTypeRaw == "person")
+        #expect(recorder.record(.create, collection).entityTypeRaw == "collection")
+        #expect(recorder.record(.create, library).entityTypeRaw == "library")
+    }
+
+    @Test("Un type d'entité illisible n'est pas deviné")
+    func unknownEntityTypeStaysNil() throws {
+        // Même règle que pour l'action : dans une piste d'audit, mieux vaut l'absence
+        // qu'une valeur de repli plausible et fausse.
+        let entry = ActivityEntry()
+        entry.entityTypeRaw = "Title"
+
+        #expect(entry.entityType == nil, "L'ancien format ne se relit pas comme le neuf")
     }
 
     @Test("Le résumé d'une personne est son nom d'affichage")
@@ -56,12 +79,19 @@ struct ActivityRecorderTests {
         let recorder = ActivityRecorder(context: context)
         let batchID = UUID()
 
-        recorder.record(.merge, entityType: "Person", entityID: batchID, summary: "2 personnes fusionnées")
-        recorder.record(.import, entityType: "Bundle", entityID: batchID, summary: "412 titres importés")
+        recorder.record(.merge, entityType: .person, entityID: batchID, summary: "2 personnes fusionnées")
+        recorder.record(.import, entityType: .batch, entityID: batchID, summary: "412 titres importés")
         try context.save()
 
         #expect(try activityCount(in: context, action: .merge) == 1)
         #expect(try activityCount(in: context, action: .import) == 1)
+
+        // Le type d'entité est désormais une énumération, pas le nom Swift de la
+        // classe : c'est ce qui permet à `L18` de filtrer le fil par entité et à `L20`
+        // de router une annulation. Un import ne vise aucune entité unique, d'où `.batch`.
+        let entries = try context.fetch(FetchDescriptor<ActivityEntry>())
+        #expect(entries.compactMap(\.entityType).contains(.batch))
+        #expect(entries.allSatisfy { $0.entityType != nil }, "Aucun type illisible")
     }
 
     @Test("Une action inconnue n'est pas devinée")

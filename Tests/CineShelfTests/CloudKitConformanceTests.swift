@@ -31,10 +31,10 @@ struct CloudKitConformanceTests {
         }
     }
 
-    @Test("Le schéma décrit les 17 entités du modèle")
+    @Test("Le schéma décrit les 19 entités du modèle")
     func schemaDescribesEveryEntity() {
-        #expect(Persistence.schema.entities.count == 17)
-        #expect(CineShelfSchemaV1.models.count == 17)
+        #expect(Persistence.schema.entities.count == 19)
+        #expect(CineShelfSchemaV1.models.count == 19)
     }
 
     @Test("Aucune entité ne porte de contrainte d'unicité")

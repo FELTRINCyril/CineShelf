@@ -26,13 +26,13 @@ public struct ActivityRecorder {
     @discardableResult
     public func record(
         _ action: ActivityAction,
-        entityType: String,
+        entityType: ActivityEntityType,
         entityID: UUID,
         summary: String
     ) -> ActivityEntry {
         let entry = ActivityEntry()
         entry.actionRaw = action.rawValue
-        entry.entityTypeRaw = entityType
+        entry.entityTypeRaw = entityType.rawValue
         entry.entityID = entityID
         entry.summary = summary
         context.insert(entry)

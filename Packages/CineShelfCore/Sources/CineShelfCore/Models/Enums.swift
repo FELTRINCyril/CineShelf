@@ -81,6 +81,35 @@ public enum SavedLinkKind: String, Codable, CaseIterable, Sendable {
     case website, video, article, store, social, other
 }
 
+/// Le type d'entité visé par une entrée du fil d'activité.
+///
+/// **Pourquoi cette énumération existe, alors que le champ était déjà rempli.**
+/// `entityTypeRaw` recevait `String(describing: Self.self)`, c'est-à-dire le nom Swift
+/// du type, sous un commentaire qui prétendait que ça « suit les renommages sans table
+/// à part ». C'était l'inverse : renommer un `@Model` change la chaîne, les anciennes
+/// entrées gardent l'ancienne et le fil se scinde silencieusement en deux seaux.
+/// Personne ne l'aurait vu avant que `L18` filtre par entité, ou que `L20` route une
+/// annulation selon le type.
+///
+/// Les `rawValue` sont donc choisis **stables et lisibles**, sans chercher à coller aux
+/// noms Swift d'aujourd'hui : ce sont eux qui vivent dans le magasin, et ils doivent
+/// survivre à n'importe quel renommage de classe.
+public enum ActivityEntityType: String, Codable, CaseIterable, Sendable {
+    case library
+    case profile
+    case title
+    case person
+    case collection
+    case genre
+    case credit
+    case media
+    case link
+    case savedLink = "saved_link"
+    /// Un lot : édition en masse, import, fusion. L'entrée ne vise pas une entité
+    /// unique, et son `entityID` désigne le lot lui-même.
+    case batch
+}
+
 /// Les actions du fil d'activité. Absente de §3.1, qui décrit `actionRaw` en
 /// texte libre : `ActivityRecorder` a besoin d'un vocabulaire fermé.
 public enum ActivityAction: String, Codable, CaseIterable, Sendable {

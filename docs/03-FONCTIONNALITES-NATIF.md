@@ -69,7 +69,7 @@ Deux notions séparées, ce qui couvre les deux usages avec un seul lien :
 | `page_size` | 🔀 disparaît — `LazyVGrid` charge à la demande, pas de pagination |
 | Menu d'affichage inline | ♻️ `Menu` dans la barre d'outils |
 | Thème | ➕ suit le système, avec forçage clair/sombre optionnel |
-| Densité | ➕ compacte / standard / confortable, pilotée par token |
+| Densité | ➕ **deux crans** — dense / ample, posés une fois par plateforme dans l'environnement. *Corrigé le 2026-08-03 : ce document annonçait trois crans (compacte / standard / confortable), le handoff de design en livre deux, et ce sont des écrans dessinés.* |
 
 ## 3. Visibilité
 

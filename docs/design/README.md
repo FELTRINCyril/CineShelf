@@ -209,7 +209,18 @@ Refus à la validation : rien n'est fermé, rien n'est perdu, aucune valeur remi
 ### Import, parcours complet (addendum 1, blocs 11d–11g, 11j)
 Quatre étapes : correspondance des colonnes, aperçu, corrections, import.
 
-1. **Correspondance** — une ligne par colonne du fichier, avec ses trois premières valeurs et le champ CineShelf visé. Trois qualités de correspondance : sûre, déduite du contenu (à vérifier), non reconnue. Une colonne non reconnue **n'est pas une erreur** : elle est ignorée par défaut et l'import peut avancer ; le menu propose aussi de créer un champ libre. Correspondance mémorisable pour les fichiers de même en-tête. Aucune donnée écrite à cette étape.
+1. **Correspondance** — une ligne par colonne du fichier, avec ses trois premières valeurs et le champ CineShelf visé. Trois qualités de correspondance : sûre, déduite du contenu (à vérifier), non reconnue. Une colonne non reconnue **n'est pas une erreur** : elle est ignorée par défaut et l'import peut avancer. ~~Le menu propose aussi de créer un champ libre.~~
+
+   > **Option écartée le 2026-08-03, à la fermeture du schéma.** Créer un champ libre à
+   > l'import, c'est un modèle de données défini par l'utilisateur — une fonctionnalité
+   > majeure déguisée en entrée de menu. Le stocker en blob opaque serait pire que de ne
+   > pas le stocker : la valeur ne serait ni interrogeable, ni cherchable, ni filtrable,
+   > ni affichable dans la console, et l'utilisateur croirait pourtant l'avoir sauvée.
+   > Le besoin est déjà couvert autrement — `summary` est du texte libre, et les genres
+   > sont définis par l'utilisateur.
+   >
+   > **En échange, une exigence** : le rapport d'import **nomme** les colonnes ignorées.
+   > Pas de perte silencieuse. Inscrit sur la fiche `L11`. Correspondance mémorisable pour les fichiers de même en-tête. Aucune donnée écrite à cette étape.
 2. **Aperçu à forte proportion d'erreurs** — 1 284 lignes, 771 prêtes, 417 en erreur, 96 doublons. Les erreurs sont groupées **par cause, pas par ligne** : six causes, chacune avec son action de masse. Filtres Toutes / En erreur / Doublons / Prêtes. Deux sorties possibles dès cet écran : importer les lignes prêtes, ou tout importer avec les erreurs en brouillon.
 3. **Correction en masse** — un dialogue par cause, plusieurs stratégies avec le nombre de lignes que chacune résout, et un aperçu avant → après sur les premières lignes concernées. Réversible jusqu'à l'import, annulable correction par correction.
 4. **Abandon à mi-parcours** — trois issues, aucune destructrice par défaut : reprendre plus tard (brouillon conservé : fichier, correspondance, corrections), importer les lignes prêtes maintenant, tout abandonner (seule action destructrice, confirmation standard). Fermer la fenêtre ou quitter l'app équivaut à « reprendre plus tard ». Un seul brouillon d'import à la fois. Au retour, un bandeau de reprise se pose sur l'écran Titres.

@@ -1900,3 +1900,90 @@ pas l'apparence.
 La fermeture du schéma, avant `L10`. Le handoff est maintenant lisible, donc son
 balayage — « qu'est-ce qu'il suppose qu'on ne stocke pas ? » — peut se faire pour de
 vrai.
+
+---
+
+## 2026-08-03 (15) — Fermeture du schéma
+
+Passe transverse avant `L10`, pour ne rien découvrir après le gel. Balayage du handoff
+de design (maintenant lisible), de `docs/03`, et des tâches `L` et `V` restantes, avec
+une seule question : **qu'est-ce qui suppose une donnée qu'on ne stocke pas ?**
+
+**Six manques, tous ajoutés**
+
+| Ajout | Pour | Ce qui l'a révélé |
+|---|---|---|
+| `ActivityEntry.payload` | `L20` | Annuler une édition en masse suppose un diff |
+| `ActivityEntry.undoneAt` | `L20` | Sans état, rien n'empêche d'annuler deux fois le même lot |
+| `ActivityEntityType` | `L18` `L20` | Voir plus bas — le pire des six |
+| `MediaAsset.isGenerated` | `L6` | Une mosaïque régénérable ne doit pas écraser une image posée par l'utilisateur |
+| `ImportMapping` | `L11` | « Correspondance mémorisable » du handoff, « mappages personnels » de la fiche : aucun support |
+| `LegacyRecord` | `L13` | Sans lien vers la source, une migration ne peut être que refaite, jamais réconciliée |
+
+**Le pire des six, parce qu'il était déjà là et faux**
+
+`ActivityEntry.entityTypeRaw` recevait `String(describing: Self.self)` — le nom Swift de
+la classe — sous un commentaire affirmant que ça « suit les renommages sans table à
+part ». C'est l'exact contraire : renommer un `@Model` change la chaîne, les anciennes
+entrées gardent l'ancienne, et le fil se scinde silencieusement en deux seaux. Personne
+ne l'aurait vu avant que `L18` filtre par entité ou que `L20` route une annulation.
+
+Le champ est maintenant alimenté par une énumération à `rawValue` choisis stables, sans
+chercher à coller aux noms Swift : le cas de `TitleCollection` le montre, son jeton est
+`collection` — la classe s'appelle ainsi pour ne pas masquer `Collection` de la
+bibliothèque standard, ce qui est un détail de Swift et n'a rien à faire dans le
+magasin. Le test qui encodait l'ancienne intention s'appelait « le type d'entité vient
+du nom du modèle » ; il affirme maintenant l'inverse, avec la raison.
+
+**Deux non-ajouts, assumés**
+
+Les **champs libres** à l'import de l'addendum 1 sont écartés : un modèle de données
+défini par l'utilisateur est une fonctionnalité majeure déguisée en entrée de menu, et
+le stocker en blob opaque serait pire que rien — ni interrogeable, ni cherchable, ni
+filtrable, alors que l'utilisateur croirait l'avoir sauvé. Contrepartie inscrite sur
+`L11` : **le rapport d'import nomme les colonnes ignorées.** Pas de perte silencieuse.
+
+`Genre.colorToken` reste une chaîne libre. La palette n'est pas intégrée, et la question
+de fond — des pastilles de genre colorées ont-elles un sens sous une direction à un seul
+accent ambre ? — appartient au design. La précaution qui compte est déjà tenue : aucun
+repository ne l'expose à l'écriture, donc le défaut de `ProfileAccent` ne peut pas se
+reproduire par une vue.
+
+**Ce que la conformité CloudKit a attrapé, encore une fois**
+
+`ImportMapping.library` sans inverse : le miroir refuse le schéma **entier**.
+Deuxième cas du projet après `TitleCollection.links`, et là encore
+`CloudKitConformanceTests` a nommé la relation fautive au premier lancement. C'est
+exactement pourquoi ce test existe et pourquoi il tourne avant chaque commit.
+
+**Deux corrections venues du balayage, hors schéma**
+
+Les **huit contextes d'affichage** de `CardDisplayContext` (`home, titles, people,
+collections, gallery, bookmarks, genre, filmography`) sont une invention de
+l'intégration. La v1 avait `movies · actors · collections · social · home_movies ·
+home_actors · home_collections · home_social`, et le handoff liste exactement ça. Huit
+de chaque côté, ensembles différents. La matrice est une fonctionnalité existante, donc
+c'est le jeu d'origine qui fait foi — réconciliation inscrite sur `L1 bis`.
+
+La **densité** a deux crans et non trois. `docs/03` annonçait « compacte / standard /
+confortable » ; le handoff livre `.dense | .roomy`, et ce sont des écrans dessinés.
+`docs/03` est corrigé.
+
+**La fermeture**
+
+Dix-neuf entités. `docs/02` (étape 0 bis), `docs/PROMPTS.md` et `CLAUDE.md` disent
+maintenant la même chose : toute modification ultérieure exige un `VersionedSchema`
+nouveau et un `MigrationStage`. Pas d'exception pour « ce n'est qu'un champ optionnel ».
+
+Les champs sont posés, **aucune logique ne les consomme** — c'est le travail de `L6`,
+`L11`, `L13`, `L18` et `L20`.
+
+**Un piège d'outillage qui récidive**
+
+`swift test` de MediaKit a de nouveau échoué sur « cannot find type in scope » alors que
+`CineShelfCore` compilait seul : graphe de build mis en cache avant l'ajout du fichier.
+Deuxième fois, donc c'est inscrit dans `CLAUDE.md` au lieu d'être re-diagnostiqué.
+
+**Suite**
+
+`L10` — édition en masse.

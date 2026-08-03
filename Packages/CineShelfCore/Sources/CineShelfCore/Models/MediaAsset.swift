@@ -25,6 +25,14 @@ public final class MediaAsset {
     /// Dédoublonnage applicatif : CloudKit interdit `@Attribute(.unique)`.
     public var checksum: String = ""
 
+    /// Ce média a-t-il été **fabriqué par l'app** plutôt que fourni par l'utilisateur ?
+    ///
+    /// Une mosaïque de couverture (`L6`) doit rester régénérable : « la mosaïque d'hier
+    /// ne doit pas empêcher celle de demain ». Sans ce drapeau, rien ne distingue une
+    /// couverture calculée d'une image que l'utilisateur a posée lui-même — et la
+    /// régénérer détruirait la seconde, sans avertissement et sans recours.
+    public var isGenerated: Bool = false
+
     public var isPrivate: Bool = false
     public var isArchived: Bool = false
     public var deletedAt: Date?

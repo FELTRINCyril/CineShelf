@@ -861,6 +861,7 @@ public enum Persistence {
             TitleCollection.self, Genre.self, Credit.self,
             MediaAsset.self, MediaAttachment.self, MediaCrop.self,
             ResourceLink.self, SavedLink.self, ActivityEntry.self,
+            ImportMapping.self, LegacyRecord.self,
         ])
         let config = ModelConfiguration(
             schema: schema,
@@ -991,6 +992,42 @@ budget (`04 §4`). Aucun `#Index` n'a été ajouté — un index B-tree n'aide p
 ## 7. Migration depuis l'app web
 
 Le web est retiré, donc **une seule passe, un seul sens**.
+
+### Étape 0 bis — Le schéma est fermé depuis le 2026-08-03
+
+**Dix-neuf entités, et la fenêtre est close.** Jusqu'ici, ajouter un champ ne coûtait
+rien : `versionIdentifier` restait à `1.0.0` et le magasin local s'effaçait au besoin.
+Ce n'est plus vrai. **Toute modification du modèle — un champ, un renommage, une
+relation — exige désormais un `VersionedSchema` nouveau et un `MigrationStage` qui
+l'atteint depuis `CineShelfSchemaV1`.**
+
+Pas d'exception pour « ce n'est qu'un champ optionnel » : c'est exactement la forme que
+prend la première migration oubliée.
+
+Une passe d'inventaire a précédé la fermeture, pour ne rien découvrir après le gel. Elle
+a balayé le handoff de design, `docs/03`, et les tâches `L` et `V` restantes avec une
+seule question — *qu'est-ce qui suppose une donnée qu'on ne stocke pas ?* Six manques
+trouvés, tous ajoutés avant fermeture :
+
+| Ajout | Pour | Ce qui l'a révélé |
+|---|---|---|
+| `ActivityEntry.payload` | `L20` | Annuler une édition en masse suppose un diff, et rien ne pouvait le porter |
+| `ActivityEntry.undoneAt` | `L20` | Sans état, rien n'empêche d'annuler deux fois le même lot |
+| `ActivityEntityType` | `L18` `L20` | `entityTypeRaw` recevait `String(describing:)` — un renommage de classe aurait scindé le fil en deux seaux |
+| `MediaAsset.isGenerated` | `L6` | Une mosaïque doit rester régénérable sans détruire une image posée par l'utilisateur |
+| `ImportMapping` | `L11` | « Correspondance mémorisable » du handoff, et « mappages personnels » de la fiche : aucun support dans le modèle |
+| `LegacyRecord` | `L13` | Sans lien vers la source, une migration ne peut jamais être réconciliée — seulement refaite |
+
+**Écarté volontairement** : les « champs libres » à l'import de l'addendum 1. Un modèle
+de données défini par l'utilisateur est une fonctionnalité majeure, et le stocker en
+blob opaque serait pire que rien — ni interrogeable, ni cherchable, ni filtrable, alors
+que l'utilisateur croirait l'avoir sauvé. En échange, le rapport d'import **nomme** les
+colonnes ignorées.
+
+**Laissé en l'état, sciemment** : `Genre.colorToken` reste une chaîne libre. La palette
+de la nouvelle direction n'est pas intégrée, et la question de fond — des pastilles de
+genre colorées ont-elles un sens sous une direction à un seul accent ? — appartient au
+design. Le typer plus tard coûtera un plan de migration ; c'est assumé.
 
 ### Étape 0 — Version du schéma : quand elle gèle
 

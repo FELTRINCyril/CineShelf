@@ -12,6 +12,18 @@ struct RouteDestination: View {
     @Environment(NavigationModel.self) private var navigation
 
     var body: some View {
+        switch route {
+        case .title(let id):
+            TitleDetailView(titleID: id)
+                .toolbar { toolbarContent }
+        default:
+            placeholder
+        }
+    }
+
+    /// Les fiches non encore écrites — Personnes, Collections, Genres, Images —
+    /// arrivent avec leurs prompts respectifs.
+    private var placeholder: some View {
         StateView(
             .empty(
                 symbol: symbol,

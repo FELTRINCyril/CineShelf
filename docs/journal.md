@@ -741,3 +741,104 @@ corrigées pour Import/Export (c'était le symbole de tri) et Gestion.
 **Suite**
 
 Prompt 11 — Titres.
+
+---
+
+## 2026-08-03 (3) — Suivi d'avancement, puis les Titres (prompt 11)
+
+**Commit préalable** — `3789eb5` : nouveau `docs/PROMPTS.md` avec sa colonne
+d'état comme unique suivi d'avancement. Cinq points ouverts que le journal
+portait manquaient au tableau « Écarts connus » (pression mémoire jamais
+branchée, primitives non lues, bloc « Bibliothèques » inerte, raccourcis grisés,
+pont de sélection de la barre latérale). `CLAUDE.md` ne demande plus de cocher
+`docs/03` : ses symboles décrivent l'intention par fonctionnalité, pas
+l'avancement.
+
+### Prompt 11 — Titres
+
+**La frontière de couche**, demandée comme patron pour les prompts 14 à 17 :
+`App/Features/Titles/TitlePresentation.swift`. `DesignSystem` ne connaît pas
+`Title`, `CineShelfCore` ne connaît pas SwiftUI, les deux se rencontrent là et
+nulle part ailleurs. Trois règles à reprendre : la conversion est un `init` sur
+le type de présentation et non une méthode sur le `@Model` ; tout formatage
+destiné à l'œil (durée, année, note sur 5) vit là ; les données de profil sont
+passées en paramètre, jamais lues depuis le titre — `Title.flags` contient les
+flags de tous les profils.
+
+**Le pont image** — `MediaThumbnail` est enfin relié à `ThumbnailCache`. Le
+design system ne connaît qu'une `URL?`, le cache ne connaît que des `UUID` :
+une URL synthétique `cineshelf-asset://<uuid>?preset=card` porte l'un jusqu'à
+l'autre, décodée par `MediaEnvironment` qui fournit l'`ImageLoader`. Le cache
+n'était **instancié par personne** jusqu'ici : rien n'était mis en cache, tout
+était redécodé à chaque affichage.
+
+**Données de démonstration** — `App/DemoData/DemoCatalog.swift`, `#if DEBUG`
+intégralement. 120 titres, 30 personnes créditées, 6 collections, jaquettes
+dessinées par le code (dégradé + repères, aucun octet d'image dans le dépôt).
+Générateur déterministe : deux exécutions donnent le même catalogue, donc des
+mesures comparables et des captures stables. Accessible depuis Réglages, avec
+un bouton pour vider.
+
+**Le point dur : `#Predicate` ne se type-check plus au-delà de ~6 clauses.**
+Bissection en dix builds : `(title.genres ?? []).contains { … }` n'est pas
+typable par `PredicateExpressions`, et la conjonction sature le vérificateur.
+Le filtre est donc réparti — visibilité, recherche et collection dans le
+prédicat SwiftData ; genre, personne, durée et note en mémoire dans
+`matches(_:)`. **Aucun critère n'a disparu**, et `TitleFilterTests` vérifie
+chacun des neuf, précisément parce que le risque est qu'un critère tombe entre
+les deux mécanismes. Compromis assumé : les bornes ne sont plus poussées en
+SQL. À plusieurs dizaines de milliers de titres il faudra dénormaliser plutôt
+que forcer `#Predicate`.
+
+**Revue — deux corruptions de données trouvées et corrigées**
+
+1. **L'inspecteur écrivait les valeurs du titre précédent sur le suivant.**
+   `TitleEditor` initialise son brouillon en `@State`, et SwiftUI réutilisait la
+   vue quand la route changeait (⌥↑ / ⌥↓ avec l'inspecteur ouvert). Un
+   « Enregistrer » appliquait alors l'ancien brouillon au nouveau titre.
+   Corrigé par `.id(title.id)`.
+2. **Chaque enregistrement détruisait la date de sortie exacte.** L'éditeur ne
+   saisit qu'une année et réécrivait `releaseDate` au 1er janvier avec
+   `precision = .year` — y compris quand on ne modifiait que la note. Une date
+   connue au jour près était dégradée en silence. La date n'est désormais
+   réécrite que si l'année a réellement changé.
+
+Corrigé aussi : `DemoCatalog.clear()` supprimait **toutes** les personnes sans
+crédit et **toutes** les collections vides du magasin entier, en dur — une
+personne réelle saisie sans filmographie disparaissait. Le marquage est
+maintenant explicite et le genre marqueur cherché dans la bonne bibliothèque.
+
+Écarts d'interface corrigés : la bascule d'affichage persistait sans redessiner
+(`UserDefaults` n'invalide aucune vue) ; ⌘N depuis une autre section levait un
+drapeau que personne ne consommait ; le bouton « Ajouter un film » de l'écran
+vide ne faisait rien ; l'inspecteur était inatteignable sur iPad (test de
+plateforme au lieu de classe de taille) ; la recherche échouait sur les accents,
+`Title.searchText` étant replié d'un seul côté ; un titre créé puis abandonné
+par glissement restait sans nom en tête du tri ; le filtrage en mémoire était
+refait deux fois par passe de rendu plus une fois par carte, avec une recherche
+linéaire — mémoïsé et indexé. La bascule « archivés » remonte dans la barre
+d'outils, comme le demande `docs/03` §3. Le balayage de la fiche ne vole plus
+le défilement ni le retour système. La fiche respecte `hidesPrivateContent`.
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| Tests `CineShelf` (macOS) | 33 tests |
+| Tests catalogue (macOS) | `** TEST SUCCEEDED **` |
+| `swift test` Core / DesignSystem / MediaKit | 75 / 19 / 38 |
+| `swiftlint --strict` | 0 violation |
+| `swift-format lint --strict` | 0 avertissement |
+
+**Non couvert du §4, reporté** — suggestion de casting (§4.11, aucune
+infrastructure, va au prompt 15) ; édition du casting, des genres et de la
+collection depuis l'éditeur ; `seasonCount` / `episodeCount` lus mais non
+éditables ; duplication d'un titre ; `MediaSlot.portrait` jamais lu ;
+`.navigationTransition(.zoom)` — la source est déclarée par `PosterCard` mais
+le namespace est privé à la grille, donc le chaînage vers la destination
+n'existe pas. Tous reportés dans « Écarts connus » de `docs/PROMPTS.md`.
+
+**Suite**
+
+Prompt 12 — Recherche + Spotlight.

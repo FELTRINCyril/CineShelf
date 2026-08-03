@@ -72,6 +72,14 @@ public struct MediaRepository {
         asset.checksum = draft.checksum
     }
 
+    /// L'asset d'un identifiant, pour le cache de vignettes qui ne connaît que
+    /// des `UUID`.
+    public func asset(withID id: UUID) throws -> MediaAsset? {
+        var descriptor = FetchDescriptor<MediaAsset>(predicate: #Predicate { $0.id == id })
+        descriptor.fetchLimit = 1
+        return try context.fetch(descriptor).first
+    }
+
     public func update(_ asset: MediaAsset, _ mutate: (MediaAsset) -> Void) {
         mutate(asset)
         asset.updatedAt = .now

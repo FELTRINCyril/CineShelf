@@ -37,6 +37,7 @@ struct RootView: View {
         .onChange(of: navigation.section) { _, _ in saveNavigation() }
         .onChange(of: navigation.paths) { _, _ in saveNavigation() }
         .onChange(of: navigation.isInspectorPresented) { _, _ in saveNavigation() }
+        .onChange(of: navigation.titleFilter) { _, _ in saveNavigation() }
     }
 
     @ViewBuilder

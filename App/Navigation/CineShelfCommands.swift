@@ -10,12 +10,12 @@ struct CineShelfCommands: Commands {
     let session: ProfileSession
 
     var body: some Commands {
-        // Rien à créer tant qu'il n'y a pas de fiche : on remplace l'entrée
-        // système plutôt que de laisser « Nouveau document ».
         CommandGroup(replacing: .newItem) {
-            Button("Nouveau titre") {}
-                .keyboardShortcut("n", modifiers: .command)
-                .disabled(true)
+            Button("Nouveau titre") {
+                navigation.section = .titles
+                navigation.wantsNewTitle = true
+            }
+            .keyboardShortcut("n", modifiers: .command)
         }
 
         CommandGroup(replacing: .importExport) {

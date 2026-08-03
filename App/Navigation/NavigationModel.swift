@@ -45,6 +45,18 @@ final class NavigationModel {
     /// remplaçant de l'overlay « Réglages » de la version web.
     var isInspectorPresented = false
 
+    /// Les filtres de la liste des titres. Ici et non dans la feature : le
+    /// prompt 11 exige qu'ils survivent au redémarrage, donc qu'ils entrent
+    /// dans l'instantané ci-dessous.
+    var titleFilter = TitleFilter()
+
+    /// Demande de création en attente, posée par ⌘N et consommée par la vue.
+    ///
+    /// La barre de menus n'a ni `ModelContext` ni bibliothèque courante : elle
+    /// ne peut pas créer un titre elle-même. Elle lève ce drapeau, la liste le
+    /// voit et ouvre son éditeur.
+    var wantsNewTitle = false
+
     /// Ce que ⌥↑ et ⌥↓ parcourent depuis un détail : la liste dans laquelle
     /// l'élément affiché a été ouvert. Renseignée par la vue de liste au moment
     /// où elle pousse une route, vide tant qu'on n'a ouvert aucun détail.
@@ -161,14 +173,18 @@ final class NavigationModel {
 
 extension NavigationModel {
 
-    /// Ce qui traverse un redémarrage. Pas les filtres ni la largeur des
-    /// colonnes : les premiers n'existent pas encore, la seconde est déjà
-    /// restaurée par le système.
+    /// Ce qui traverse un redémarrage. Pas la largeur des colonnes : le système
+    /// la restaure déjà. Pas `wantsNewTitle` : une intention n'a pas à survivre
+    /// à la fermeture de l'app.
+    ///
+    /// `titleFilter` est optionnel au décodage pour que les instantanés écrits
+    /// avant le prompt 11 restent lisibles au lieu d'être jetés en bloc.
     private struct Snapshot: Codable {
         var section: AppSection
         var catalogueSegment: CatalogueSegment
         var paths: [String: [AppRoute]]
         var isInspectorPresented: Bool
+        var titleFilter: TitleFilter?
     }
 
     /// La restauration est **par profil** : deux profils sur le même Mac n'ont
@@ -182,7 +198,8 @@ extension NavigationModel {
             section: section,
             catalogueSegment: catalogueSegment,
             paths: Dictionary(uniqueKeysWithValues: paths.map { ($0.key.storageKey, $0.value) }),
-            isInspectorPresented: isInspectorPresented
+            isInspectorPresented: isInspectorPresented,
+            titleFilter: titleFilter
         )
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         defaults.set(data, forKey: Self.storageKey(profileID: profileID))
@@ -212,6 +229,7 @@ extension NavigationModel {
             }
         )
         isInspectorPresented = snapshot.isInspectorPresented
+        titleFilter = snapshot.titleFilter ?? TitleFilter()
     }
 
     private func reset() {
@@ -219,5 +237,6 @@ extension NavigationModel {
         section = .home
         paths = [:]
         isInspectorPresented = false
+        titleFilter = TitleFilter()
     }
 }

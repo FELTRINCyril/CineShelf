@@ -138,6 +138,7 @@ targets:
       - App/Navigation/AppRoute.swift
       - App/Navigation/AppSection.swift
       - App/Navigation/NavigationModel.swift
+      - App/Navigation/TitleFilter.swift
     dependencies:
       - package: CineShelfCore
         product: CineShelfCore

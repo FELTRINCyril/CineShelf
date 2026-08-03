@@ -8,6 +8,7 @@ struct CineShelfApp: App {
     @State private var container: ModelContainer
     @State private var navigation = NavigationModel()
     @State private var session = ProfileSession()
+    @State private var media: MediaEnvironment
 
     init() {
         // Archivo vit dans le bundle de ressources du package DesignSystem, que
@@ -19,6 +20,9 @@ struct CineShelfApp: App {
             let container = try Persistence.makeContainer(cloudKit: FeatureFlags.cloudKitEnabled)
             try Bootstrap.ensureDefaults(in: container.mainContext)
             self.container = container
+            // Le cache de vignettes n'était instancié par personne jusqu'ici :
+            // rien n'était mis en cache, tout était redécodé à chaque affichage.
+            media = MediaEnvironment(container: container)
         } catch {
             // Sans magasin, il n'y a pas d'app. Les états de synchronisation
             // auront leur propre interface au prompt « Synchronisation ».
@@ -31,7 +35,10 @@ struct CineShelfApp: App {
             RootView()
                 .environment(navigation)
                 .environment(session)
+                .environment(media)
+                .imageLoader(media.imageLoader())
                 .tint(session.accentColor)
+                .task { media.startObservingMemoryPressure() }
         }
         .modelContainer(container)
         .commands {

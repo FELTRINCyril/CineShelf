@@ -19,8 +19,8 @@ Version détaillée (vérifications, critères de sortie, dépannage) → `GUIDE
 | 8bis+9 | Intégration DesignSystem + catalogue | Code | — | ✅ `ee3b88c` |
 | — | Budgets perf, chasse Archivo, doc | Code | — | ✅ `0aa8d05` |
 | 10 | Navigation adaptative | Code | `01 partie C`, `04 §2` | ✅ `dc15a48` |
-| **11** | **Titres (liste + détail + éditeur)** | Code | `03 §4` | 🔜 **suivant** |
-| 12 | Recherche + Spotlight | Code | `02 §5` | ⬜ |
+| 11 | Titres (liste + détail + éditeur) | Code | `03 §4` | ✅ `c84710e` |
+| **12** | **Recherche + Spotlight** | Code | `02 §5` | 🔜 **suivant** |
 | 13b | Médias — **UI** : PhotosPicker, import fichier, glisser-déposer, `CropEditor`, branchement `MediaThumbnail`, `attach` + invariante, préchargement | Code | `04 §4` | ⬜ |
 | 14 | Galerie + visionneuse | Code | `03 §7` | ⬜ |
 | 15 | Personnes + doublons + fusion | Code | `03 §5` | ⬜ |
@@ -46,10 +46,18 @@ Version détaillée (vérifications, critères de sortie, dépannage) → `GUIDE
 
 | Sujet | Où ça se règle |
 |---|---|
-| Barre d'outils de la colonne « Liste » | 11 |
-| `⌥↑` / `⌥↓` câblés mais inactifs (aucune collection peuplée) | 11 |
-| `MediaThumbnail` non relié à `ThumbnailCache` | 11 |
-| `⌘N` « Nouveau titre » présent mais grisé | 11 |
+| Édition du casting, des genres et de la collection depuis l'éditeur de titre | 15 · 16 |
+| `seasonCount` / `episodeCount` lus mais non éditables | 11 bis |
+| Duplication d'un titre (`contextMenu` « Dupliquer » de `docs/01` partie C) | 11 bis |
+| Suggestion de casting (`docs/03` §4.11) : aucune infrastructure | 15 |
+| `MediaSlot.portrait` (jaquette portrait alternative) jamais lu | 13b |
+| `.navigationTransition(.zoom)` : la source est déclarée par `PosterCard`, mais son `@Namespace` est privé à la grille — le chaînage vers la destination manque | 13b |
+| Pas de `fetchLimit` progressif : `@Query` tout chargé (décision actée, à revoir au-delà de ~10 000 titres) | — |
+| Bornes de durée et de note filtrées en mémoire, pas en SQL — `#Predicate` sature au-delà de ~6 clauses | — |
+| Grille non navigable au clavier sur Mac (`PosterCard` ouvre par `onTapGesture`, sans `focusable()`) | 24 |
+| `MediaEnvironment.displayScale` jamais alimenté : vignettes générées en @2x quelle que soit la dalle | 13b |
+| `DemoCatalog` construit ses objets sans passer par les repositories : pas d'`ActivityRecorder`, `checksum` factice | — |
+| `Genre` n'a pas de `deletedAt` alors que tous les autres modèles en ont — asymétrie à trancher | — |
 | `Profile.requiresBiometry` affiché mais non appliqué | 18 |
 | Préchargement de l'écran suivant | 13b |
 | `MediaRepository.attach` + invariante `hasExactlyOneOwner` | 13b |

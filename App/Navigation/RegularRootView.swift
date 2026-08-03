@@ -23,7 +23,7 @@ struct RegularRootView: View {
                     .navigationDestination(for: AppRoute.self) { RouteDestination(route: $0) }
             }
             .inspector(isPresented: $navigation.isInspectorPresented) {
-                InspectorPlaceholder()
+                RouteInspector(route: navigation.path(for: navigation.section).last)
             }
         }
     }
@@ -44,21 +44,5 @@ private struct DetailPlaceholder: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.bgCanvas)
         .navigationTitle(section.title)
-    }
-}
-
-/// Le panneau d'édition latéral — ⌥⌘I.
-private struct InspectorPlaceholder: View {
-    var body: some View {
-        StateView(
-            .empty(
-                symbol: "slider.horizontal.3",
-                title: "Inspecteur.",
-                message: "L'édition de l'élément sélectionné se fera ici, sans quitter la liste."
-            )
-        )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.bgSurface)
-        .inspectorColumnWidth(min: 260, ideal: 320, max: 420)
     }
 }

@@ -1765,3 +1765,81 @@ brancher avec `L5`, écart inscrit.
 **Suite**
 
 `L4` — mathématiques du recadrage.
+
+---
+
+## 2026-08-03 (13) — `L4` : le recadrage, et la sémantique qui n'était écrite nulle part
+
+**Le trou trouvé en cherchant autre chose**
+
+`docs/02` §2.4 disait ce que `(x, y, zoom)` **remplace** et donnait les bornes, mais
+jamais ce que ces nombres **signifient**. Deux lectures étaient plausibles — « point
+focal à centrer » ou « pourcentage du jeu restant » — et elles donnent des images
+différentes. `L13` aurait importé les 21 colonnes de la v1 de travers sans que rien ne
+le signale.
+
+Sémantique arrêtée, et maintenant dans `docs/02` §2.4 : `zoom` est un facteur sur
+l'échelle « couvrir » recalculée pour le cadre visé, `x` et `y` sont des pourcentages du
+jeu restant. C'est `object-position` sur `object-fit: cover`, ce que la version web
+faisait presque certainement — ses colonnes étaient des pourcentages avec 50 pour
+défaut.
+
+**La question du stockage, tranchée par le calcul et pas par la lecture**
+
+La matrice du design impose 2:3 et 16:9 pour les mêmes contextes. Faut-il stocker deux
+recadrages ? **Non**, et c'est démontrable :
+
+> l'échelle « couvrir » vaut `max(fw/sw, fh/sh)`, donc la largeur visible en pixels
+> source vaut `fw / couvrir ≤ fw / (fw/sw) = sw`, et de même en hauteur.
+
+Le rect visible ne déborde donc jamais, le jeu restant n'est jamais négatif, et une
+position exprimée en pourcentage de ce jeu est valide **par construction** — pour tout
+ratio, y compris un troisième qui apparaîtrait. Un test balaie deux ratios de la matrice
+et deux cas extrêmes, sur toutes les positions et tous les zooms : aucun débordement.
+
+Ce que le handoff suggérait par son aperçu simultané 16:9 et 2:3 est donc exact, mais
+maintenant on sait *pourquoi*, et la propriété survivra à un changement de matrice.
+
+**Une valeur stockable qui n'est pas applicable**
+
+La v1 laissait le zoom descendre à 50, ce qui laisserait du vide dans le cadre —
+interdit par la règle du hero. L'application relève à 100 **sans réécrire la valeur
+stockée** : réécrire la donnée de l'utilisateur au premier affichage serait pire que le
+défaut qu'on corrige. Deux fonctions distinctes, `clampedZoom` (ce qu'on stocke) et
+`applicableZoom` (ce qu'on applique), pour que la distinction ne se perde pas.
+
+`L13` doit compter les recadrages importés à zoom < 100 : c'est le seul endroit où la v1
+et le natif peuvent diverger visiblement, et ça se voit dans un rapport, pas à l'œil sur
+5 000 titres. Noté sur la fiche.
+
+**`crop(for:)` est branché**
+
+C'était l'autre moitié de la tâche, et l'écart le disait depuis deux sessions : la
+méthode existait sans appelant, donc chaque média était affiché centré quel que soit le
+recadrage choisi, et `CropContext.hero` n'était lu nulle part.
+
+`App/Media/CropDisplay.swift` est maintenant son unique appelant de production. Trois
+contextes sont lus pour de vrai : `.hero` pour le fond de la fiche, `.detail` pour sa
+jaquette, `.card` pour les cartes de la grille.
+
+La couture passe par les modèles de présentation, comme `PosterCardModel` :
+`DesignSystem` ne connaît ni `MediaCrop` ni `CropContext`, il reçoit trois nombres dans
+un `MediaCropDisplay`. Sans `sourceAspect` — un média dont les dimensions ne sont pas
+enregistrées, un aperçu de catalogue — le composant retombe sur le remplissage centré
+d'avant : moins fidèle, jamais cassé.
+
+Le calcul est écrit deux fois, une en pixels source (`CropGeometry.sourceRect`) et une
+en points (`MediaThumbnail.cropped`), et c'est noté aux deux endroits : ils doivent
+rester d'accord. `V2` réécrira le composant ; la plomberie, elle, est juste.
+
+**Ce qui reste**
+
+Les vignettes Spotlight ne sont toujours pas alimentées (`L5`), et le hero ne se replie
+pas sur la jaquette quand il n'y a pas de `backdrop` — ça, c'est une décision de design,
+donc `V2`.
+
+**Suite**
+
+La **fermeture du schéma**, avant `L10` : la fenêtre de gratuité se referme à `L13`, et
+la liste se rend avant d'écrire. `L4` n'y ajoute rien — un seul recadrage sert tous les
+ratios, donc `MediaCrop` est complet.

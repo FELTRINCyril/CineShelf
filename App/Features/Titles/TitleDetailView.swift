@@ -106,7 +106,8 @@ struct TitleDetailView: View {
                     url: backdrop,
                     blurHash: TitleFormat.backdropAsset(of: title)?.blurHash,
                     aspect: Ratio.backdrop,
-                    label: title.name
+                    label: title.name,
+                    crop: CropDisplay.of(TitleFormat.backdropAsset(of: title), in: .hero)
                 )
             }
 
@@ -115,7 +116,8 @@ struct TitleDetailView: View {
                     url: AssetURL.poster(for: title),
                     blurHash: TitleFormat.primaryAsset(of: title)?.blurHash,
                     aspect: Ratio.poster,
-                    label: title.name
+                    label: title.name,
+                    crop: CropDisplay.of(TitleFormat.primaryAsset(of: title), in: .detail)
                 )
                 .frame(width: 148)
 

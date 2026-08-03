@@ -54,6 +54,7 @@ public struct MediaThumbnail: View {
     private let radius: CGFloat
     private let fallbackSymbol: String
     private let label: String?
+    private let crop: MediaCropDisplay
 
     @State private var phase: Phase = .placeholder
 
@@ -77,7 +78,8 @@ public struct MediaThumbnail: View {
         aspect: CGFloat = Ratio.poster,
         radius: CGFloat = Radius.lg,
         fallbackSymbol: String = Icon.titles,
-        label: String? = nil
+        label: String? = nil,
+        crop: MediaCropDisplay = .neutral
     ) {
         self.url = url
         self.blurHash = blurHash
@@ -85,21 +87,54 @@ public struct MediaThumbnail: View {
         self.radius = radius
         self.fallbackSymbol = fallbackSymbol
         self.label = label
+        self.crop = crop
     }
 
     public init(_ model: MediaThumbnailModel, radius: CGFloat = Radius.lg) {
         self.init(
             url: model.imageURL, blurHash: model.blurHash, aspect: model.aspect,
-            radius: radius, label: model.caption)
+            radius: radius, label: model.caption, crop: model.crop)
+    }
+
+    /// L'image, positionnée selon son recadrage.
+    ///
+    /// **Sans `sourceAspect`, on retombe sur `scaledToFill`** — le remplissage centré
+    /// d'avant `L4`. C'est le cas d'un média dont les dimensions ne sont pas
+    /// enregistrées et des aperçus du catalogue : moins fidèle au recadrage choisi,
+    /// mais jamais cassé.
+    ///
+    /// Avec, le calcul reproduit exactement `CropGeometry.sourceRect` : l'image est
+    /// posée à sa taille « couvrir », multipliée par le zoom, puis décalée du jeu
+    /// restant au prorata de `focus`. Les deux chemins doivent rester d'accord — c'est
+    /// la même arithmétique, écrite une fois en pixels source et une fois en points.
+    @ViewBuilder
+    private func cropped(_ image: Image) -> some View {
+        if let sourceAspect = crop.sourceAspect, sourceAspect > 0 {
+            GeometryReader { proxy in
+                let box = proxy.size
+                let cover = max(box.width / sourceAspect, box.height)
+                let rendered = CGSize(width: cover * sourceAspect * crop.zoom, height: cover * crop.zoom)
+                let slack = CGSize(
+                    width: max(0, rendered.width - box.width),
+                    height: max(0, rendered.height - box.height))
+
+                image
+                    .resizable()
+                    .frame(width: rendered.width, height: rendered.height)
+                    .offset(x: -slack.width * crop.focus.x, y: -slack.height * crop.focus.y)
+            }
+        } else {
+            image
+                .resizable()
+                .scaledToFill()
+        }
     }
 
     public var body: some View {
         placeholderLayer
             .overlay {
                 if case .loaded(let image) = phase {
-                    image
-                        .resizable()
-                        .scaledToFill()
+                    cropped(image)
                         .transition(reduceMotion ? .identity : .opacity)
                 }
             }

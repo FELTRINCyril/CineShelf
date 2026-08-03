@@ -39,6 +39,7 @@ ordre :
 | — | CI réparée, invariant des relations verrouillé | Code | — | ✅ `8ae4dfb` |
 | `L2` | Service de recherche | Code | `02 §5`, `04 §6` | ✅ `bc96a3f` |
 | `L3` | Indexation Spotlight | Code | `02 §5`, `04 §6`, `03 §9` | ✅ `6c9e5d9` |
+| `L4` | Mathématiques du recadrage | Code | `02 §2.4 §3.7`, `04 §4` | ✅ `2a1f7b8` |
 
 ### Ce qui reste — chaque prompt est coupé en deux
 
@@ -73,12 +74,31 @@ de découpage sur sa fiche.
 > **Suivi de l'avancement : ce document uniquement.** `docs/03` garde ses symboles (✅ ♻️ 🔀 ⛔ ⏸ ➕) — ils décrivent *l'intention* pour chaque fonctionnalité, pas l'état d'avancement. Ne pas mélanger les deux.
 > À la fin de chaque tâche : cocher sa ligne, ici et dans le tableau des tâches `L`, avec le hash du commit.
 
+> **Bloquant amont : `design_handoff_cineshelf` n'est pas dans le dépôt.** Vérifié —
+> arbre propre, aucun fichier non suivi. La chaîne `I` ne peut pas démarrer tant qu'il
+> n'y est pas, et sa **section 7 est à corriger** : elle écrit que le contenu privé
+> serait « géré au niveau du profil, pas du titre », ce qui est faux dans notre modèle.
+> `isPrivate` est porté par l'entité, un `Title` appartient à une `Library` et non à un
+> `Profile`, et c'est `Profile.hidesPrivateContent` qui décide de l'affichage. La règle
+> retenue et son argument sont dans `docs/04` §6.
+
+> **Prochaine passe transverse : la fermeture du schéma, avant `L10`.** La fenêtre de
+> gratuité se referme à `L13`, et un champ manquant découvert après le gel coûte un plan
+> de migration. La passe balaie tout ce qui pourrait encore réclamer une modification de
+> schéma — `ActivityEntry.payload` pour `L20`, ce que `L4` a révélé sur `MediaCrop` (rien :
+> un seul recadrage sert tous les ratios), le handoff de design et `docs/03` relus en
+> cherchant les données supposées mais non stockées, les tâches `L` et `V` restantes lues
+> avec la même question, et les champs mal typés ou mal nommés qui méritent d'être
+> corrigés maintenant plutôt que jamais. **La liste se rend avant d'écrire.** On ajoute
+> les champs sans la logique qui les consomme, puis `docs/02` et ce document marquent le
+> schéma comme fermé.
+
 **Écarts connus, à reprendre plus tard** (tenus à jour au fil des sessions) :
 
 | Sujet | Où ça se règle |
 |---|---|
 | **L'interface des prompts 10 et 11 est un banc d'essai.** Coquille de navigation, grille des titres, fiche, éditeur, filtres : ils restent en place pour exercer la logique et voir tourner les tâches `L`, pas pour être livrés. On n'y investit plus rien — aucune retouche esthétique, aucun composant nouveau, aucun polissage — et on ne les supprime pas. Les écarts d'apparence qu'on y trouvera ne sont pas des bugs : ils seront tranchés par le nouveau design. Les écarts de **logique**, eux, restent à corriger normalement | `V1`…`V12`, après validation du design |
-| **Le hero remplit toujours son cadre.** Les médias sont de formats variés (2:3, 16:9, ce qu'on veut) et un hero ne doit **jamais** laisser de bandes noires : il remplit et recadre. `MediaSlot.backdrop` et `CropContext.hero` existent pour ça. **Vérifié aujourd'hui** : `backdrop` est bien lu (`TitleFormat.backdropAsset` → `AssetURL.backdrop` → hero 16/9 de `TitleDetailView`), et `MediaThumbnail` remplit déjà par `scaledToFill` dans un cadre `aspectRatio` — donc pas de bandes. Deux réserves : (a) **`MediaAsset.crop(for:)` n'a aucun appelant hors du modèle**, donc le recadrage choisi n'est pas appliqué, le remplissage est un cadrage centré par défaut ; (b) sans média `backdrop`, la fiche n'affiche **aucun** hero, au lieu de se replier sur la jaquette. À trancher avec la nouvelle direction, pas maintenant | `L4` (appliquer le recadrage) · `V2` |
+| **Le hero remplit toujours son cadre.** Les médias sont de formats variés (2:3, 16:9, ce qu'on veut) et un hero ne doit **jamais** laisser de bandes noires : il remplit et recadre. `MediaSlot.backdrop` et `CropContext.hero` existent pour ça. **Vérifié aujourd'hui** : `backdrop` est bien lu (`TitleFormat.backdropAsset` → `AssetURL.backdrop` → hero 16/9 de `TitleDetailView`), et `MediaThumbnail` remplit déjà par `scaledToFill` dans un cadre `aspectRatio` — donc pas de bandes. **`crop(for:)` est branché depuis `L4`** — `App/Media/CropDisplay.swift` est son appelant, et `CropContext.hero`, `.card` et `.detail` sont lus pour de vrai. Reste une réserve :  sans média `backdrop`, la fiche n'affiche **aucun** hero, au lieu de se replier sur la jaquette. À trancher avec la nouvelle direction | `V2` |
 | Tous les écarts ci-dessous étiquetés d'un numéro de prompt d'interface (13b, 15, 16, 18, 24) sont **suspendus** au même titre : leur part logique passe dans une tâche `L`, leur part visible attend le design | Tâches `L` · tâches `V` |
 | Édition du casting, des genres et de la collection depuis l'éditeur de titre. **`V4` et `V5` doivent passer par les mutateurs de relations de `TitleRepository` et `PersonRepository`** (`setCollection`, `setGenres`, `addCredit`, `removeCredit`, `move`, `setRoles`) — écrire dans `.genres`, `.credits`, `.collection` ou `.library` depuis une vue rendrait le filtre correspondant faux **en silence**, puisque `filterKeys` en dérive. La règle SwiftLint `no_relation_write_outside_core` le refuse à la compilation, donc le sujet ne peut plus être manqué : il ne reste qu'à brancher l'interface sur ces méthodes | `V4` · `V5` |
 | `seasonCount` / `episodeCount` lus mais non éditables | 11 bis |
@@ -193,8 +213,8 @@ L1 → L2 → L3 → L4 → L10 → L11 → L12 → prompt 2 → L13
 | 1 | `L1` | Rendre interrogeables en SQL les critères de filtre des titres **et** des personnes | `02 §3 §5`, `04 §3`, écarts ci-dessus | — | ✅ `eb05149` `e347b11` |
 | 2 | `L2` | Service de recherche : portées, résultats groupés, comptes, recherches récentes | `02 §5`, `04 §6` | `L1` | ✅ `bc96a3f` |
 | 3 | `L3` | Indexation Spotlight : indexer, désindexer, réindexer, jamais le privé | `02 §5`, `04 §6`, `03 §9` | `L2` | ✅ `6c9e5d9` |
-| 4 | `L4` | Mathématiques du recadrage : geste ↔ `MediaCrop`, bornes, rect final | `02 §2.4 §3.7`, `04 §4` | — | ⬜ **suivant** |
-| 5 | `L10` | Édition en masse : décrire une mutation, l'appliquer à une sélection | `03 §12` | — | ⬜ |
+| 4 | `L4` | Mathématiques du recadrage : geste ↔ `MediaCrop`, bornes, rect final | `02 §2.4 §3.7`, `04 §4` | — | ✅ `2a1f7b8` |
+| 5 | `L10` | Édition en masse : décrire une mutation, l'appliquer à une sélection | `03 §12` | — | ⬜ **suivant** — mais voir « fermeture du schéma » ci-dessous |
 | 6 | `L11` | CSV : lire, écrire, valider, résoudre les références, appliquer par lots | `03 §10`, `04 §7` | `L10` | ⬜ |
 | 7 | `L12` | Archive `.cineshelfarchive` : écriture et relecture | `04 §7`, `03 §10` | `L11` | ⬜ |
 | 8 | **prompt 2** | **Dump du bundle depuis l'app web** — dans le dépôt web, pas ici | `02 §7` étape 1 | — | ⬜ **dépendance dure de `L13`** |

@@ -94,7 +94,8 @@ public struct PosterCard: View {
             aspect: metrics.aspect,
             radius: metrics.radius,
             fallbackSymbol: model.kind == .person ? Icon.people : Icon.titles,
-            label: model.title
+            label: model.title,
+            crop: model.crop
         )
         .overlay(alignment: .topTrailing) { badges }
         .overlay(alignment: .bottom) { hoverActions }

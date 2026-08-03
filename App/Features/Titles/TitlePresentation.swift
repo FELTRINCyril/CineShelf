@@ -38,6 +38,7 @@ extension PosterCardModel {
             rating: TitleFormat.fiveStarRating(title.rating),
             imageURL: AssetURL.poster(for: title),
             blurHash: TitleFormat.primaryAsset(of: title)?.blurHash,
+            crop: CropDisplay.of(TitleFormat.primaryAsset(of: title), in: .card),
             isFavorite: flag?.isFavorite ?? false,
             isInWatchlist: flag?.isInWatchlist ?? false,
             isWatched: flag?.isWatched ?? false,

@@ -85,6 +85,34 @@ Trois niveaux, indépendants, décrits en détail au §9 :
 
 Les 21 colonnes `*_position_x/_y/_zoom` deviennent des enregistrements `(asset, context, x, y, zoom)`. Résolution : contexte demandé → `default` → `(50, 50, 100)`.
 
+**Ce que ces trois nombres veulent dire** — arrêté par `L4`, parce qu'aucune référence
+ne le disait et que deux lectures plausibles donnaient des images différentes :
+
+- **`zoom` est un facteur appliqué à l'échelle « couvrir »**, recalculée pour le cadre
+  visé. `zoom = 100` = « juste ce qu'il faut pour remplir ce cadre-ci ».
+- **`x` et `y` sont des pourcentages du jeu restant**, pas les coordonnées d'un point de
+  l'image. `x = 0` colle le bord gauche, `x = 50` centre — pour n'importe quel ratio.
+
+C'est la sémantique de `object-position` en CSS sur une image en `object-fit: cover`,
+ce que la version web faisait presque certainement : ses colonnes étaient des
+pourcentages avec 50 pour défaut.
+
+> **Un seul `MediaCrop` par contexte sert 2:3 et 16:9.** Ce n'est pas une commodité,
+> c'est une propriété du calcul, et la matrice du design qui impose les deux ratios pour
+> les mêmes contextes n'exige donc **aucun stockage supplémentaire**. Démonstration :
+> l'échelle « couvrir » vaut `max(fw/sw, fh/sh)`, donc la largeur visible en pixels
+> source vaut `fw / couvrir ≤ sw`, et de même en hauteur. Le rect visible ne déborde
+> jamais, le jeu restant n'est jamais négatif, et une position en pourcentage de ce jeu
+> est valide par construction — pour tout ratio, y compris un troisième qui
+> apparaîtrait. Vérifié par `CropGeometryTests`.
+
+> **`zoom < 100` est stockable mais pas applicable.** La borne basse de la v1 est 50, ce
+> qui laisserait du vide dans le cadre. L'application relève à 100 **sans réécrire la
+> valeur stockée** : on ne modifie pas la donnée de l'utilisateur au premier affichage.
+> `L13` doit compter les recadrages importés concernés — c'est le seul endroit où la v1
+> et le natif peuvent diverger visiblement, et ça se voit dans un rapport, pas à l'œil
+> sur 5 000 titres.
+
 ### 2.5 Médias — ne jamais synchroniser les dérivés
 
 Décision opposée à la version web. En base privée, chaque octet compte sur le quota iCloud de l'utilisateur :

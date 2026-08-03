@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - Modèles de présentation
 //
@@ -20,6 +21,8 @@ public struct PosterCardModel: Identifiable, Hashable, Sendable {
     public let imageURL: URL?
     /// Placeholder blurhash le temps du chargement, pour éviter tout saut de mise en page.
     public let blurHash: String?
+    /// Le recadrage résolu pour le contexte « carte ».
+    public let crop: MediaCropDisplay
     public let isFavorite: Bool
     public let isInWatchlist: Bool
     public let isWatched: Bool
@@ -34,6 +37,7 @@ public struct PosterCardModel: Identifiable, Hashable, Sendable {
         rating: Double? = nil,
         imageURL: URL? = nil,
         blurHash: String? = nil,
+        crop: MediaCropDisplay = .neutral,
         isFavorite: Bool = false,
         isInWatchlist: Bool = false,
         isWatched: Bool = false,
@@ -47,6 +51,7 @@ public struct PosterCardModel: Identifiable, Hashable, Sendable {
         self.rating = rating
         self.imageURL = imageURL
         self.blurHash = blurHash
+        self.crop = crop
         self.isFavorite = isFavorite
         self.isInWatchlist = isInWatchlist
         self.isWatched = isWatched
@@ -99,21 +104,58 @@ public struct ShelfRailModel: Identifiable, Hashable, Sendable {
     public var accessibilityLabel: String { "\(label), \(totalCount) titres" }
 }
 
+/// Le recadrage d'un média, sous la seule forme dont une vue a besoin.
+///
+/// `DesignSystem` ne connaît ni `MediaCrop` ni `CropContext` — la règle de dépendances
+/// de `docs/04` §1 lui interdit `CineShelfCore`. L'app résout le recadrage pour son
+/// contexte (`MediaAsset.crop(for:)`), le convertit avec `CropGeometry`, et ne passe
+/// ici que trois nombres. Même couture que `PosterCardModel`.
+public struct MediaCropDisplay: Hashable, Sendable {
+    /// La position, en coordonnées unitaires : `(0,0)` en haut à gauche, `(0.5,0.5)`
+    /// centré. C'est un pourcentage du **jeu restant**, pas un point de l'image.
+    public var focus: UnitPoint
+    /// Le facteur appliqué par-dessus le remplissage. Jamais moins de 1, sans quoi le
+    /// cadre ne serait pas rempli.
+    public var zoom: Double
+    /// Le rapport largeur / hauteur de l'image source.
+    ///
+    /// `nil` quand il n'est pas connu — un média sans dimensions enregistrées, ou une
+    /// aperçu de catalogue. Le composant retombe alors sur un remplissage centré, qui
+    /// est le comportement d'avant `L4` : moins fidèle, jamais cassé.
+    public var sourceAspect: Double?
+
+    public init(focus: UnitPoint = .center, zoom: Double = 1, sourceAspect: Double? = nil) {
+        self.focus = focus
+        self.zoom = max(1, zoom)
+        self.sourceAspect = sourceAspect
+    }
+
+    /// Centré, sans agrandissement.
+    public static let neutral = MediaCropDisplay()
+}
+
 public struct MediaThumbnailModel: Identifiable, Hashable, Sendable {
     public let id: String
     public let imageURL: URL?
     public let blurHash: String?
     public let aspect: Double
     public let caption: String?
+    public let crop: MediaCropDisplay
 
     public init(
-        id: String, imageURL: URL? = nil, blurHash: String? = nil, aspect: Double = 2.0 / 3.0, caption: String? = nil
+        id: String,
+        imageURL: URL? = nil,
+        blurHash: String? = nil,
+        aspect: Double = 2.0 / 3.0,
+        caption: String? = nil,
+        crop: MediaCropDisplay = .neutral
     ) {
         self.id = id
         self.imageURL = imageURL
         self.blurHash = blurHash
         self.aspect = aspect
         self.caption = caption
+        self.crop = crop
     }
 }
 

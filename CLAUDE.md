@@ -100,7 +100,11 @@ python3 scripts/generate-colors.py   # après toute modif de colors.tokens.json
 3. Écrire, compiler, corriger jusqu'à build vert sur iOS **et** macOS.
 4. Lancer les tests.
 5. Ajouter une ligne à `docs/journal.md`.
-6. Un commit par tâche, message conventionnel.
+6. **Un commit par sujet cohérent, message conventionnel** — une tâche peut en
+   produire plusieurs. Le critère est la bissectabilité : chaque commit doit
+   pouvoir être compris, et le cas échéant révoqué, sans entraîner les autres.
+   Une tâche qui touche trois sujets indépendants fait trois commits, et reste
+   **une seule ligne** du tableau d'état.
 7. Cocher la ligne du prompt dans le **tableau d'état de `docs/PROMPTS.md`**,
    avec le hash du commit. C'est le seul endroit où se suit l'avancement.
    Y reporter aussi les nouveaux écarts, dans « Écarts connus ».

@@ -44,7 +44,7 @@ La colonne **LOGIQUE** renvoie aux tâches `L…`, la colonne **VUES** aux tâch
 |---|---|---|---|---|
 | 12 | Recherche + Spotlight | `L2` `L3` | `V1` | ⬜ |
 | 13b | Médias — recadrage, préchargement, import d'images | `L4` `L5` | `V2` | ⬜ |
-| 14 | Galerie + visionneuse | `L1` (source, mélange) | `V3` | ⬜ |
+| 14 | Galerie + visionneuse | `L1 bis` (source, mélange) | `V3` | ⬜ |
 | 15 | Personnes + doublons + fusion | `L8` `L9` | `V4` | ⬜ |
 | 16 | Collections, genres, liens, accueil, fil | `L6` `L7` `L18` | `V5` | ⬜ |
 | 17 | Console de gestion | `L10` | `V6` | ⬜ |
@@ -62,7 +62,8 @@ La colonne **LOGIQUE** renvoie aux tâches `L…`, la colonne **VUES** aux tâch
 
 Deux tâches logiques n'appartiennent à aucun prompt existant et se placent en tête :
 `L1` (requêtes interrogeables, avant le gel du schéma) et, à la suite, tout le reste
-dans l'ordre du tableau des tâches `L`.
+dans l'ordre du tableau des tâches `L`. `L1 bis` en a été détachée — voir le critère
+de découpage sur sa fiche.
 
 > **Les docs ne se joignent plus** : elles sont dans `docs/` du dépôt, Claude Code les lit sur disque.
 > **Suivi de l'avancement : ce document uniquement.** `docs/03` garde ses symboles (✅ ♻️ 🔀 ⛔ ⏸ ➕) — ils décrivent *l'intention* pour chaque fonctionnalité, pas l'état d'avancement. Ne pas mélanger les deux.
@@ -83,6 +84,7 @@ dans l'ordre du tableau des tâches `L`.
 | `.navigationTransition(.zoom)` : la source est déclarée par `PosterCard`, mais son `@Namespace` est privé à la grille — le chaînage vers la destination manque | `V2` |
 | Pas de `fetchLimit` progressif : `@Query` tout chargé (décision actée, à revoir au-delà de ~10 000 titres) | — |
 | **Cinq critères filtrés en mémoire** (collection, genre, personne, durée, note) : `#Predicate` sature au-delà de ~6 clauses, donc le catalogue entier est rapatrié avant d'être filtré. La collection a rejoint la liste quand la clause de bibliothèque a pris sa place dans le prédicat — **mesuré** : deux traversées `(x.rel?.id ?? noID) == cible` dans la même chaîne font échouer la vérification de types des *deux* prédicats. Sans effet perceptible aujourd'hui ; **à mesurer sur 5 000 titres avant le prompt 20**, et à revoir si nécessaire — par exemple en dénormalisant les identifiants de collection et de genre dans des champs interrogeables, sur le modèle de `searchText` | `L1`, avant le gel du schéma |
+| **Le store de préférences d'affichage ne portera que `layout` et `size`**, alors que `02 §3.10` décrit `{layout, size, pageSize, sort, dir}`. `pageSize` est abandonné par `03` (§2 : `LazyVGrid` charge à la demande). `sort` et `dir` sont déjà portés par `TitleFilter`, que `NavigationModel` sérialise et restaure au lancement : les mettre aussi dans le store créerait deux sources de vérité, et les y mettre sans les brancher serait du code « au cas où ». **Le jour où le tri doit persister par contexte, c'est `TitleFilter` qui lira le store — jamais le store qui dupliquera `TitleFilter`.** Le sens de cette dépendance n'est pas négociable : l'inverse redonne deux vérités | `L1 bis` |
 | `AppIcon.appiconset` déclare 11 emplacements sans un seul nom de fichier : `actool` ne produit rien et l'app n'a **pas d'icône**. L'icône viendra de Claude Design | avant 25 |
 | `Typo.sectionTitle` inutilisé dans `App/` : **décision actée** — aucun en-tête de section n'est aujourd'hui sans style, donc rien à y brancher. Les quatre en-têtes de contenu de `TitleDetailView` gardent `railLabelStyle()` ; les promouvoir serait un changement de hiérarchie visuelle (12 → 20 pt de base sur iOS, perte des majuscules et du `tracking`), pas un branchement. À reprendre au prompt 16, qui écrit Accueil, Collections et Genres — de vrais groupes de contenu. Poser alors `sectionTitle` **une fois**, dans un `sectionTitleStyle()` sur le modèle de `railLabelStyle()`, plutôt que sur chaque appelant : ce serait un ajout aux composants, dont l'anatomie est désormais à refaire (voir la bascule) | `V5` |
 | Prédicats de production sans aucune couverture : `Bootstrap.existingProfile` (structurellement inatteignable en test, il ne sert qu'au cas d'une relation inverse désynchronisée par CloudKit), et ceux déclarés dans des vues (`MediaEnvironment`, `TitleDetailView`, `RouteInspector`, `Sidebar`, `TitleFilterSheet`) — aucune cible de test ne monte les vues | `L17` · `V12` |
@@ -182,7 +184,7 @@ L1 → L2 → L3 → L4 → L10 → L11 → L12 → prompt 2 → L13
 
 | # | Tâche | Objectif en une ligne | Docs à lire | Dépend de | État |
 |---|---|---|---|---|---|
-| 1 | `L1` | Rendre les critères de filtre interrogeables en SQL, et sortir le store de préférences d'affichage d'une vue | `02 §3 §5`, `04 §3`, écarts ci-dessus | — | ⬜ **suivant** |
+| 1 | `L1` | Rendre interrogeables en SQL les critères de filtre des titres **et** des personnes | `02 §3 §5`, `04 §3`, écarts ci-dessus | — | ⬜ **suivant** |
 | 2 | `L2` | Service de recherche : portées, résultats groupés, comptes, recherches récentes | `02 §5`, `04 §6` | `L1` | ⬜ |
 | 3 | `L3` | Indexation Spotlight : indexer, désindexer, réindexer, jamais le privé | `02 §5`, `04 §6`, `03 §9` | `L2` | ⬜ |
 | 4 | `L4` | Mathématiques du recadrage : geste ↔ `MediaCrop`, bornes, rect final | `02 §2.4 §3.7`, `04 §4` | — | ⬜ |
@@ -205,6 +207,7 @@ dépend. Utiles quand tu veux souffler ou avancer sur un autre front.
 
 | Tâche | Objectif en une ligne | Docs à lire | Dépend de | État |
 |---|---|---|---|---|
+| `L1 bis` | Filtres de galerie (source, mélange à graine stable) et store de préférences d'affichage hors des vues | `02 §3.7 §3.10`, `04 §1 §3` | — | ⬜ |
 | `L5` | Préchargement de vignettes, pression mémoire, échelle d'écran | `04 §4` | — | ⬜ |
 | `L6` | Génération d'une couverture en mosaïque | `03 §6`, `04 §4` | `L4` | ⬜ |
 | `L7` | Aperçu de lien : `LPMetadataProvider`, délai, repli, libellé déduit | `03 §8` | — | ⬜ |
@@ -217,7 +220,7 @@ dépend. Utiles quand tu veux souffler ou avancer sur un autre front.
 | `L18` | Sélections éditoriales (hero, rayons, ma liste, **fil d'activité**) et statistiques | `03 §11`, `06 §5.2` | `L1` | ⬜ |
 | `L19` | App Intents, Handoff, partage entrant, données du widget | `03 §13`, `04 §12` | `L2` `L7` `L18` | ⬜ |
 
-Parmi elles, `L5` `L7` `L8` `L14` `L16` `L17` ne dépendent de rien du tout.
+Parmi elles, `L1 bis` `L5` `L7` `L8` `L14` `L16` `L17` ne dépendent de rien du tout.
 
 Les fiches détaillées qui suivent sont rangées par **numéro** (`L1` à `L19`), pas dans
 l'ordre d'exécution : c'est l'ordre où l'on retrouve une tâche quand on la cherche.
@@ -229,34 +232,71 @@ design : elle touche le schéma, et doit donc passer **avant** le gel de
 
 ---
 
-### `L1` — Requêtes interrogeables et préférences d'affichage
+### `L1` — Requêtes interrogeables
 
-**Objectif.** Sortir du filtrage en mémoire, et sortir la persistance des
-préférences d'affichage d'un fichier de vue.
+**Objectif.** Sortir du filtrage en mémoire, pour les titres et pour les personnes.
+
+**Pourquoi cette tâche s'arrête là où elle s'arrête.** Le découpage entre `L1` et
+`L1 bis` suit un seul critère : **est-ce que ça touche au schéma ?** Ce qui le touche
+appartient à `L1`, parce que le schéma est modifiable gratuitement aujourd'hui
+(`versionIdentifier` à `1.0.0`, magasin effaçable) et coûtera un plan de migration
+après le prompt 20. Ce qui ne le touche pas n'a aucune raison d'occuper la fenêtre de
+gratuité, et part dans `L1 bis`, insérable n'importe quand. C'est le critère qui
+justifiait la priorité de `L1` ; c'est donc lui qui doit la délimiter.
 
 - Dénormaliser dans `Title` les identifiants aujourd'hui filtrés en Swift
-  (collection, genres, personnes créditées) en champs interrogeables, sur le modèle
-  de `searchText` — une chaîne de clés séparées, ou un champ par critère. Objectif
-  chiffré : les cinq critères de l'écart connu passent dans le `#Predicate`, sur
-  5 000 titres, sous les 50 ms de `04 §4`.
+  (bibliothèque, collection, genres, personnes créditées) en champs interrogeables, sur
+  le modèle de `searchText`. Objectif chiffré : les cinq critères de l'écart connu
+  passent dans le `#Predicate`, sur 5 000 titres, sous les 50 ms de `04 §4`.
 - Maintenir ces champs dans `refreshDerived()`, et couvrir le cas qui les invalide
   sans passer par le titre : ajouter un crédit, renommer un genre, déplacer une
   collection.
 - Filtres de personnes : tranches d'âge (jeune < 35, moyen 35–55, senior > 55), rôle,
-  genre — mêmes bornes que la v1 (`04 §12`).
+  genre — mêmes bornes que la v1 (`04 §12`). Rôles et genres dénormalisés comme pour
+  les titres ; l'âge **non**, voir sa fiche de raisonnement dans le code.
+- Mesure du prédicat complet sur 5 000 titres, et l'écart « cinq critères filtrés en
+  mémoire » rayé.
+
+**Ce qui n'en fait pas partie :** les filtres de galerie et le store de préférences
+d'affichage. Aucun des deux ne modifie le schéma → `L1 bis`.
+
+**Terminé quand :** le catalogue n'est plus rapatrié en entier pour filtrer, un test
+mesure le prédicat complet sur 5 000 titres, et l'écart « cinq critères filtrés en
+mémoire » est rayé.
+
+---
+
+### `L1 bis` — Galerie et préférences d'affichage
+
+**Objectif.** Ce que `L1` a laissé de côté parce que **ça ne touche pas au schéma** :
+détaché pour ne pas occuper la fenêtre de gratuité du modèle, insérable n'importe
+quand, y compris après le gel du prompt 20.
+
 - Filtres de galerie : par source (titre / personne / collection / orphelin), et
   mélange à **graine stable** (le même ordre tant qu'on ne rafraîchit pas).
 - Déplacer le store de préférences d'affichage de `App/Features/Titles/TitlesView.swift`
   vers `CineShelfCore` : clé `(profil, contexte)`, les 8 contextes, valeurs par
   défaut. Les prompts 14 à 17 le réutiliseront, il ne peut pas rester dans une vue.
+  Charge utile `layout` + `size` seulement — voir l'écart correspondant.
 
-**Attention.** Cette tâche modifie le schéma. Elle est libre aujourd'hui
-(`versionIdentifier` à `1.0.0`, magasin effaçable) et deviendrait un plan de
-migration après le prompt 20. C'est pour ça qu'elle est première.
+**Deux pièges relevés à l'avance, à vérifier avant de construire dessus.**
 
-**Terminé quand :** le catalogue n'est plus rapatrié en entier pour filtrer, un test
-mesure le prédicat complet sur 5 000 titres, et l'écart « cinq critères filtrés en
-mémoire » est rayé.
+1. **« Orphelin » écrit `asset.attachments?.isEmpty ?? true` est exactement la
+   traversée de relation optionnelle qui fait sauter le budget de vérification de
+   types** — c'est la découverte de `L1` : ce qui sature `#Predicate`, ce n'est pas le
+   nombre de clauses, ce sont les traversées de relation optionnelle. À mesurer avant
+   d'en faire la base du filtre de source. Les deux issues connues : interroger
+   `MediaAttachment` plutôt que `MediaAsset` (le propriétaire y est une colonne, et
+   « orphelin » devient une absence de ligne), ou dénormaliser sur `MediaAsset` — ce
+   qui **retomberait dans le schéma** et ramènerait la tâche dans `L1`. Trancher par la
+   mesure, pas par le goût.
+2. **Les énumérations en double entre `CineShelfCore` et `DesignSystem`** (`layout`,
+   `size`, les 8 contextes) sont acceptables — la règle de dépendances de `04 §1`
+   interdit à l'un de connaître l'autre — mais elles deviennent un bug le jour où
+   quelqu'un ajoute un cas d'un seul côté. **Écrire un test qui affirme que les deux
+   jeux de `rawValue` sont identiques**, sans quoi la divergence sera silencieuse : un
+   contexte présent d'un seul côté ne casse aucune compilation, il perd juste sa
+   préférence au runtime.
 
 ---
 
@@ -583,7 +623,7 @@ sert de banc d'essai en attendant.
 |---|---|---|---|
 | `V1` | Recherche : champ, portées, suggestions, résultats groupés | 12 | `L2` `L3` |
 | `V2` | Médias : `PhotosPicker`, import de fichier, glisser-déposer, collage, `CropEditor`, branchement de `MediaThumbnail` | 13b | `L4` `L5` |
-| `V3` | Galerie : masonry, matrice `layout × size` rendue, visionneuse, immersif | 14 | `L1` `L4` `L5` |
+| `V3` | Galerie : masonry, matrice `layout × size` rendue, visionneuse, immersif | 14 | `L1 bis` `L4` `L5` |
 | `V4` | Personnes : grille, fiche, éditeur, écran de fusion champ par champ | 15 | `L8` `L9` |
 | `V5` | Collections, genres, liens et signets, accueil, fil | 16 | `L6` `L7` `L18` |
 | `V6` | Console de gestion : tableau par entité, édition inline, édition en masse | 17 | `L10` |

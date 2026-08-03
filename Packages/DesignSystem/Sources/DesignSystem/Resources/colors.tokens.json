@@ -1,0 +1,1391 @@
+{
+  "$schema": "cineshelf.designsystem.colors/1",
+  "target": "DesignSystem/Resources/Colors.xcassets",
+  "colorSpace": "display-p3",
+  "notes": [
+    "Chaque entrée `primitives[]` est un Color Set universel (une seule apparence Any).",
+    "Chaque entrée `semantics[]` est un Color Set à 4 apparences : any (clair), dark, anyHighContrast, darkHighContrast.",
+    "Les composantes `displayP3` sont la conversion colorimétrique exacte des hex sRGB de référence : à écrire telles quelles dans le .xcassets (color-space \"display-p3\", input \"components\", float).",
+    "Le `/` dans le nom = dossier avec \"Provides Namespace\" coché. Ex. bg/canvas -> Colors.xcassets/bg/canvas.colorset.",
+    "Les primitives ne sont jamais lues par une vue (niveau 1)."
+  ],
+  "primitives": [
+    {
+      "name": "Graphite/0",
+      "universal": {
+        "hex": "#FFFFFF",
+        "alpha": 1,
+        "displayP3": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "name": "Graphite/50",
+      "universal": {
+        "hex": "#F7F8F9",
+        "alpha": 1,
+        "displayP3": [
+          0.9693,
+          0.9724,
+          0.9761
+        ]
+      }
+    },
+    {
+      "name": "Graphite/100",
+      "universal": {
+        "hex": "#EDEFF2",
+        "alpha": 1,
+        "displayP3": [
+          0.9308,
+          0.937,
+          0.9478
+        ]
+      }
+    },
+    {
+      "name": "Graphite/200",
+      "universal": {
+        "hex": "#DCDFE4",
+        "alpha": 1,
+        "displayP3": [
+          0.8648,
+          0.8741,
+          0.8922
+        ]
+      }
+    },
+    {
+      "name": "Graphite/300",
+      "universal": {
+        "hex": "#BFC4CC",
+        "alpha": 1,
+        "displayP3": [
+          0.7525,
+          0.768,
+          0.7969
+        ]
+      }
+    },
+    {
+      "name": "Graphite/400",
+      "universal": {
+        "hex": "#949BA5",
+        "alpha": 1,
+        "displayP3": [
+          0.5854,
+          0.607,
+          0.6433
+        ]
+      }
+    },
+    {
+      "name": "Graphite/500",
+      "universal": {
+        "hex": "#6E757F",
+        "alpha": 1,
+        "displayP3": [
+          0.4364,
+          0.4579,
+          0.4943
+        ]
+      }
+    },
+    {
+      "name": "Graphite/600",
+      "universal": {
+        "hex": "#515861",
+        "alpha": 1,
+        "displayP3": [
+          0.3227,
+          0.3442,
+          0.377
+        ]
+      }
+    },
+    {
+      "name": "Graphite/700",
+      "universal": {
+        "hex": "#3A4048",
+        "alpha": 1,
+        "displayP3": [
+          0.2318,
+          0.2502,
+          0.2794
+        ]
+      }
+    },
+    {
+      "name": "Graphite/800",
+      "universal": {
+        "hex": "#262B31",
+        "alpha": 1,
+        "displayP3": [
+          0.1527,
+          0.168,
+          0.1899
+        ]
+      }
+    },
+    {
+      "name": "Graphite/850",
+      "universal": {
+        "hex": "#1C2026",
+        "alpha": 1,
+        "displayP3": [
+          0.1127,
+          0.125,
+          0.1469
+        ]
+      }
+    },
+    {
+      "name": "Graphite/900",
+      "universal": {
+        "hex": "#14171B",
+        "alpha": 1,
+        "displayP3": [
+          0.0806,
+          0.0898,
+          0.1044
+        ]
+      }
+    },
+    {
+      "name": "Graphite/950",
+      "universal": {
+        "hex": "#0D0F12",
+        "alpha": 1,
+        "displayP3": [
+          0.0524,
+          0.0586,
+          0.0695
+        ]
+      }
+    },
+    {
+      "name": "Graphite/1000",
+      "universal": {
+        "hex": "#07080A",
+        "alpha": 1,
+        "displayP3": [
+          0.0281,
+          0.0312,
+          0.0384
+        ]
+      }
+    },
+    {
+      "name": "Ember/50",
+      "universal": {
+        "hex": "#FFF1F3",
+        "alpha": 1,
+        "displayP3": [
+          0.9905,
+          0.947,
+          0.9532
+        ]
+      }
+    },
+    {
+      "name": "Ember/100",
+      "universal": {
+        "hex": "#FFE0E5",
+        "alpha": 1,
+        "displayP3": [
+          0.9799,
+          0.8828,
+          0.8985
+        ]
+      }
+    },
+    {
+      "name": "Ember/200",
+      "universal": {
+        "hex": "#FFC5CE",
+        "alpha": 1,
+        "displayP3": [
+          0.9647,
+          0.7815,
+          0.8092
+        ]
+      }
+    },
+    {
+      "name": "Ember/300",
+      "universal": {
+        "hex": "#FF9BAB",
+        "alpha": 1,
+        "displayP3": [
+          0.9456,
+          0.6263,
+          0.6738
+        ]
+      }
+    },
+    {
+      "name": "Ember/400",
+      "universal": {
+        "hex": "#F76A84",
+        "alpha": 1,
+        "displayP3": [
+          0.9016,
+          0.4495,
+          0.5235
+        ]
+      }
+    },
+    {
+      "name": "Ember/500",
+      "universal": {
+        "hex": "#E8395B",
+        "alpha": 1,
+        "displayP3": [
+          0.8384,
+          0.2857,
+          0.3687
+        ]
+      }
+    },
+    {
+      "name": "Ember/600",
+      "universal": {
+        "hex": "#CE2148",
+        "alpha": 1,
+        "displayP3": [
+          0.7421,
+          0.2066,
+          0.2947
+        ]
+      }
+    },
+    {
+      "name": "Ember/700",
+      "universal": {
+        "hex": "#A9173A",
+        "alpha": 1,
+        "displayP3": [
+          0.6079,
+          0.1578,
+          0.2373
+        ]
+      }
+    },
+    {
+      "name": "Ember/800",
+      "universal": {
+        "hex": "#7E1330",
+        "alpha": 1,
+        "displayP3": [
+          0.4526,
+          0.119,
+          0.1929
+        ]
+      }
+    },
+    {
+      "name": "Ember/900",
+      "universal": {
+        "hex": "#4E0C1E",
+        "alpha": 1,
+        "displayP3": [
+          0.2791,
+          0.0709,
+          0.1199
+        ]
+      }
+    },
+    {
+      "name": "Jade/400",
+      "universal": {
+        "hex": "#4FD99A",
+        "alpha": 1,
+        "displayP3": [
+          0.4702,
+          0.8398,
+          0.6228
+        ]
+      }
+    },
+    {
+      "name": "Jade/500",
+      "universal": {
+        "hex": "#34C97E",
+        "alpha": 1,
+        "displayP3": [
+          0.3987,
+          0.7772,
+          0.5198
+        ]
+      }
+    },
+    {
+      "name": "Jade/600",
+      "universal": {
+        "hex": "#22A566",
+        "alpha": 1,
+        "displayP3": [
+          0.3132,
+          0.6377,
+          0.4216
+        ]
+      }
+    },
+    {
+      "name": "Amber/400",
+      "universal": {
+        "hex": "#F0B849",
+        "alpha": 1,
+        "displayP3": [
+          0.9072,
+          0.7303,
+          0.366
+        ]
+      }
+    },
+    {
+      "name": "Amber/500",
+      "universal": {
+        "hex": "#E0A32E",
+        "alpha": 1,
+        "displayP3": [
+          0.8423,
+          0.6491,
+          0.2809
+        ]
+      }
+    },
+    {
+      "name": "Amber/600",
+      "universal": {
+        "hex": "#BF861A",
+        "alpha": 1,
+        "displayP3": [
+          0.7158,
+          0.5349,
+          0.2077
+        ]
+      }
+    },
+    {
+      "name": "Crimson/400",
+      "universal": {
+        "hex": "#FF8A73",
+        "alpha": 1,
+        "displayP3": [
+          0.9394,
+          0.5647,
+          0.4749
+        ]
+      }
+    },
+    {
+      "name": "Crimson/500",
+      "universal": {
+        "hex": "#F4664B",
+        "alpha": 1,
+        "displayP3": [
+          0.8899,
+          0.4347,
+          0.3303
+        ]
+      }
+    },
+    {
+      "name": "Crimson/600",
+      "universal": {
+        "hex": "#D6462C",
+        "alpha": 1,
+        "displayP3": [
+          0.776,
+          0.3162,
+          0.2176
+        ]
+      }
+    },
+    {
+      "name": "Azure/400",
+      "universal": {
+        "hex": "#6FB0EE",
+        "alpha": 1,
+        "displayP3": [
+          0.4932,
+          0.6836,
+          0.9126
+        ]
+      }
+    },
+    {
+      "name": "Azure/500",
+      "universal": {
+        "hex": "#4E9BE8",
+        "alpha": 1,
+        "displayP3": [
+          0.3824,
+          0.6008,
+          0.8859
+        ]
+      }
+    },
+    {
+      "name": "Azure/600",
+      "universal": {
+        "hex": "#2F7BC9",
+        "alpha": 1,
+        "displayP3": [
+          0.2684,
+          0.4759,
+          0.7653
+        ]
+      }
+    }
+  ],
+  "semantics": [
+    {
+      "name": "bg/canvas",
+      "appearances": {
+        "any": {
+          "hex": "#F7F8F9",
+          "alpha": 1,
+          "displayP3": [
+            0.9693,
+            0.9724,
+            0.9761
+          ]
+        },
+        "dark": {
+          "hex": "#0D0F12",
+          "alpha": 1,
+          "displayP3": [
+            0.0524,
+            0.0586,
+            0.0695
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#F7F8F9",
+          "alpha": 1,
+          "displayP3": [
+            0.9693,
+            0.9724,
+            0.9761
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#0D0F12",
+          "alpha": 1,
+          "displayP3": [
+            0.0524,
+            0.0586,
+            0.0695
+          ]
+        }
+      }
+    },
+    {
+      "name": "bg/surface",
+      "appearances": {
+        "any": {
+          "hex": "#FFFFFF",
+          "alpha": 1,
+          "displayP3": [
+            1,
+            1,
+            1
+          ]
+        },
+        "dark": {
+          "hex": "#14171B",
+          "alpha": 1,
+          "displayP3": [
+            0.0806,
+            0.0898,
+            0.1044
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#FFFFFF",
+          "alpha": 1,
+          "displayP3": [
+            1,
+            1,
+            1
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#14171B",
+          "alpha": 1,
+          "displayP3": [
+            0.0806,
+            0.0898,
+            0.1044
+          ]
+        }
+      }
+    },
+    {
+      "name": "bg/surfaceRaised",
+      "appearances": {
+        "any": {
+          "hex": "#FFFFFF",
+          "alpha": 1,
+          "displayP3": [
+            1,
+            1,
+            1
+          ]
+        },
+        "dark": {
+          "hex": "#1C2026",
+          "alpha": 1,
+          "displayP3": [
+            0.1127,
+            0.125,
+            0.1469
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#FFFFFF",
+          "alpha": 1,
+          "displayP3": [
+            1,
+            1,
+            1
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#1C2026",
+          "alpha": 1,
+          "displayP3": [
+            0.1127,
+            0.125,
+            0.1469
+          ]
+        }
+      }
+    },
+    {
+      "name": "bg/inset",
+      "appearances": {
+        "any": {
+          "hex": "#F7F8F9",
+          "alpha": 1,
+          "displayP3": [
+            0.9693,
+            0.9724,
+            0.9761
+          ]
+        },
+        "dark": {
+          "hex": "#262B31",
+          "alpha": 1,
+          "displayP3": [
+            0.1527,
+            0.168,
+            0.1899
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#F7F8F9",
+          "alpha": 1,
+          "displayP3": [
+            0.9693,
+            0.9724,
+            0.9761
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#262B31",
+          "alpha": 1,
+          "displayP3": [
+            0.1527,
+            0.168,
+            0.1899
+          ]
+        }
+      }
+    },
+    {
+      "name": "bg/selected",
+      "appearances": {
+        "any": {
+          "hex": "#CE2148",
+          "alpha": 0.1,
+          "displayP3": [
+            0.7421,
+            0.2066,
+            0.2947
+          ]
+        },
+        "dark": {
+          "hex": "#E8395B",
+          "alpha": 0.12,
+          "displayP3": [
+            0.8384,
+            0.2857,
+            0.3687
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#CE2148",
+          "alpha": 0.16,
+          "displayP3": [
+            0.7421,
+            0.2066,
+            0.2947
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#E8395B",
+          "alpha": 0.2,
+          "displayP3": [
+            0.8384,
+            0.2857,
+            0.3687
+          ]
+        }
+      }
+    },
+    {
+      "name": "text/primary",
+      "appearances": {
+        "any": {
+          "hex": "#0D0F12",
+          "alpha": 1,
+          "displayP3": [
+            0.0524,
+            0.0586,
+            0.0695
+          ]
+        },
+        "dark": {
+          "hex": "#EDEFF2",
+          "alpha": 1,
+          "displayP3": [
+            0.9308,
+            0.937,
+            0.9478
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#07080A",
+          "alpha": 1,
+          "displayP3": [
+            0.0281,
+            0.0312,
+            0.0384
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#FFFFFF",
+          "alpha": 1,
+          "displayP3": [
+            1,
+            1,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "name": "text/secondary",
+      "appearances": {
+        "any": {
+          "hex": "#515861",
+          "alpha": 1,
+          "displayP3": [
+            0.3227,
+            0.3442,
+            0.377
+          ]
+        },
+        "dark": {
+          "hex": "#BFC4CC",
+          "alpha": 1,
+          "displayP3": [
+            0.7525,
+            0.768,
+            0.7969
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#3A4048",
+          "alpha": 1,
+          "displayP3": [
+            0.2318,
+            0.2502,
+            0.2794
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#DCDFE4",
+          "alpha": 1,
+          "displayP3": [
+            0.8648,
+            0.8741,
+            0.8922
+          ]
+        }
+      }
+    },
+    {
+      "name": "text/tertiary",
+      "appearances": {
+        "any": {
+          "hex": "#6E757F",
+          "alpha": 1,
+          "displayP3": [
+            0.4364,
+            0.4579,
+            0.4943
+          ]
+        },
+        "dark": {
+          "hex": "#949BA5",
+          "alpha": 1,
+          "displayP3": [
+            0.5854,
+            0.607,
+            0.6433
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#515861",
+          "alpha": 1,
+          "displayP3": [
+            0.3227,
+            0.3442,
+            0.377
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#BFC4CC",
+          "alpha": 1,
+          "displayP3": [
+            0.7525,
+            0.768,
+            0.7969
+          ]
+        }
+      }
+    },
+    {
+      "name": "text/onAccent",
+      "appearances": {
+        "any": {
+          "hex": "#FFFFFF",
+          "alpha": 1,
+          "displayP3": [
+            1,
+            1,
+            1
+          ]
+        },
+        "dark": {
+          "hex": "#FFFFFF",
+          "alpha": 1,
+          "displayP3": [
+            1,
+            1,
+            1
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#FFFFFF",
+          "alpha": 1,
+          "displayP3": [
+            1,
+            1,
+            1
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#FFFFFF",
+          "alpha": 1,
+          "displayP3": [
+            1,
+            1,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "name": "border/subtle",
+      "appearances": {
+        "any": {
+          "hex": "#000000",
+          "alpha": 0.08,
+          "displayP3": [
+            0,
+            0,
+            0
+          ]
+        },
+        "dark": {
+          "hex": "#FFFFFF",
+          "alpha": 0.08,
+          "displayP3": [
+            1,
+            1,
+            1
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#515861",
+          "alpha": 1,
+          "displayP3": [
+            0.3227,
+            0.3442,
+            0.377
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#515861",
+          "alpha": 1,
+          "displayP3": [
+            0.3227,
+            0.3442,
+            0.377
+          ]
+        }
+      }
+    },
+    {
+      "name": "border/default",
+      "appearances": {
+        "any": {
+          "hex": "#DCDFE4",
+          "alpha": 1,
+          "displayP3": [
+            0.8648,
+            0.8741,
+            0.8922
+          ]
+        },
+        "dark": {
+          "hex": "#3A4048",
+          "alpha": 1,
+          "displayP3": [
+            0.2318,
+            0.2502,
+            0.2794
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#BFC4CC",
+          "alpha": 1,
+          "displayP3": [
+            0.7525,
+            0.768,
+            0.7969
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#515861",
+          "alpha": 1,
+          "displayP3": [
+            0.3227,
+            0.3442,
+            0.377
+          ]
+        }
+      }
+    },
+    {
+      "name": "border/strong",
+      "appearances": {
+        "any": {
+          "hex": "#BFC4CC",
+          "alpha": 1,
+          "displayP3": [
+            0.7525,
+            0.768,
+            0.7969
+          ]
+        },
+        "dark": {
+          "hex": "#515861",
+          "alpha": 1,
+          "displayP3": [
+            0.3227,
+            0.3442,
+            0.377
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#949BA5",
+          "alpha": 1,
+          "displayP3": [
+            0.5854,
+            0.607,
+            0.6433
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#6E757F",
+          "alpha": 1,
+          "displayP3": [
+            0.4364,
+            0.4579,
+            0.4943
+          ]
+        }
+      }
+    },
+    {
+      "name": "accent/text",
+      "appearances": {
+        "any": {
+          "hex": "#A9173A",
+          "alpha": 1,
+          "displayP3": [
+            0.6079,
+            0.1578,
+            0.2373
+          ]
+        },
+        "dark": {
+          "hex": "#E8395B",
+          "alpha": 1,
+          "displayP3": [
+            0.8384,
+            0.2857,
+            0.3687
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#7E1330",
+          "alpha": 1,
+          "displayP3": [
+            0.4526,
+            0.119,
+            0.1929
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#F76A84",
+          "alpha": 1,
+          "displayP3": [
+            0.9016,
+            0.4495,
+            0.5235
+          ]
+        }
+      }
+    },
+    {
+      "name": "accent/solid",
+      "appearances": {
+        "any": {
+          "hex": "#CE2148",
+          "alpha": 1,
+          "displayP3": [
+            0.7421,
+            0.2066,
+            0.2947
+          ]
+        },
+        "dark": {
+          "hex": "#CE2148",
+          "alpha": 1,
+          "displayP3": [
+            0.7421,
+            0.2066,
+            0.2947
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#CE2148",
+          "alpha": 1,
+          "displayP3": [
+            0.7421,
+            0.2066,
+            0.2947
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#CE2148",
+          "alpha": 1,
+          "displayP3": [
+            0.7421,
+            0.2066,
+            0.2947
+          ]
+        }
+      }
+    },
+    {
+      "name": "accent/soft",
+      "appearances": {
+        "any": {
+          "hex": "#CE2148",
+          "alpha": 0.1,
+          "displayP3": [
+            0.7421,
+            0.2066,
+            0.2947
+          ]
+        },
+        "dark": {
+          "hex": "#E8395B",
+          "alpha": 0.14,
+          "displayP3": [
+            0.8384,
+            0.2857,
+            0.3687
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#CE2148",
+          "alpha": 0.16,
+          "displayP3": [
+            0.7421,
+            0.2066,
+            0.2947
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#E8395B",
+          "alpha": 0.22,
+          "displayP3": [
+            0.8384,
+            0.2857,
+            0.3687
+          ]
+        }
+      }
+    },
+    {
+      "name": "status/success",
+      "appearances": {
+        "any": {
+          "hex": "#22A566",
+          "alpha": 1,
+          "displayP3": [
+            0.3132,
+            0.6377,
+            0.4216
+          ]
+        },
+        "dark": {
+          "hex": "#4FD99A",
+          "alpha": 1,
+          "displayP3": [
+            0.4702,
+            0.8398,
+            0.6228
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#22A566",
+          "alpha": 1,
+          "displayP3": [
+            0.3132,
+            0.6377,
+            0.4216
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#4FD99A",
+          "alpha": 1,
+          "displayP3": [
+            0.4702,
+            0.8398,
+            0.6228
+          ]
+        }
+      }
+    },
+    {
+      "name": "status/warning",
+      "appearances": {
+        "any": {
+          "hex": "#BF861A",
+          "alpha": 1,
+          "displayP3": [
+            0.7158,
+            0.5349,
+            0.2077
+          ]
+        },
+        "dark": {
+          "hex": "#F0B849",
+          "alpha": 1,
+          "displayP3": [
+            0.9072,
+            0.7303,
+            0.366
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#BF861A",
+          "alpha": 1,
+          "displayP3": [
+            0.7158,
+            0.5349,
+            0.2077
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#F0B849",
+          "alpha": 1,
+          "displayP3": [
+            0.9072,
+            0.7303,
+            0.366
+          ]
+        }
+      }
+    },
+    {
+      "name": "status/danger",
+      "appearances": {
+        "any": {
+          "hex": "#D6462C",
+          "alpha": 1,
+          "displayP3": [
+            0.776,
+            0.3162,
+            0.2176
+          ]
+        },
+        "dark": {
+          "hex": "#FF8A73",
+          "alpha": 1,
+          "displayP3": [
+            0.9394,
+            0.5647,
+            0.4749
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#D6462C",
+          "alpha": 1,
+          "displayP3": [
+            0.776,
+            0.3162,
+            0.2176
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#FF8A73",
+          "alpha": 1,
+          "displayP3": [
+            0.9394,
+            0.5647,
+            0.4749
+          ]
+        }
+      }
+    },
+    {
+      "name": "status/info",
+      "appearances": {
+        "any": {
+          "hex": "#2F7BC9",
+          "alpha": 1,
+          "displayP3": [
+            0.2684,
+            0.4759,
+            0.7653
+          ]
+        },
+        "dark": {
+          "hex": "#6FB0EE",
+          "alpha": 1,
+          "displayP3": [
+            0.4932,
+            0.6836,
+            0.9126
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#2F7BC9",
+          "alpha": 1,
+          "displayP3": [
+            0.2684,
+            0.4759,
+            0.7653
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#6FB0EE",
+          "alpha": 1,
+          "displayP3": [
+            0.4932,
+            0.6836,
+            0.9126
+          ]
+        }
+      }
+    },
+    {
+      "name": "media/placeholder",
+      "appearances": {
+        "any": {
+          "hex": "#DCDFE4",
+          "alpha": 1,
+          "displayP3": [
+            0.8648,
+            0.8741,
+            0.8922
+          ]
+        },
+        "dark": {
+          "hex": "#262B31",
+          "alpha": 1,
+          "displayP3": [
+            0.1527,
+            0.168,
+            0.1899
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#DCDFE4",
+          "alpha": 1,
+          "displayP3": [
+            0.8648,
+            0.8741,
+            0.8922
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#262B31",
+          "alpha": 1,
+          "displayP3": [
+            0.1527,
+            0.168,
+            0.1899
+          ]
+        }
+      }
+    },
+    {
+      "name": "media/ring",
+      "appearances": {
+        "any": {
+          "hex": "#000000",
+          "alpha": 0.1,
+          "displayP3": [
+            0,
+            0,
+            0
+          ]
+        },
+        "dark": {
+          "hex": "#FFFFFF",
+          "alpha": 0.08,
+          "displayP3": [
+            1,
+            1,
+            1
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#515861",
+          "alpha": 1,
+          "displayP3": [
+            0.3227,
+            0.3442,
+            0.377
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#515861",
+          "alpha": 1,
+          "displayP3": [
+            0.3227,
+            0.3442,
+            0.377
+          ]
+        }
+      }
+    },
+    {
+      "name": "state/private",
+      "appearances": {
+        "any": {
+          "hex": "#BF861A",
+          "alpha": 1,
+          "displayP3": [
+            0.7158,
+            0.5349,
+            0.2077
+          ]
+        },
+        "dark": {
+          "hex": "#F0B849",
+          "alpha": 1,
+          "displayP3": [
+            0.9072,
+            0.7303,
+            0.366
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#BF861A",
+          "alpha": 1,
+          "displayP3": [
+            0.7158,
+            0.5349,
+            0.2077
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#F0B849",
+          "alpha": 1,
+          "displayP3": [
+            0.9072,
+            0.7303,
+            0.366
+          ]
+        }
+      }
+    },
+    {
+      "name": "state/archived",
+      "appearances": {
+        "any": {
+          "hex": "#6E757F",
+          "alpha": 1,
+          "displayP3": [
+            0.4364,
+            0.4579,
+            0.4943
+          ]
+        },
+        "dark": {
+          "hex": "#949BA5",
+          "alpha": 1,
+          "displayP3": [
+            0.5854,
+            0.607,
+            0.6433
+          ]
+        },
+        "anyHighContrast": {
+          "hex": "#6E757F",
+          "alpha": 1,
+          "displayP3": [
+            0.4364,
+            0.4579,
+            0.4943
+          ]
+        },
+        "darkHighContrast": {
+          "hex": "#949BA5",
+          "alpha": 1,
+          "displayP3": [
+            0.5854,
+            0.607,
+            0.6433
+          ]
+        }
+      }
+    }
+  ]
+}

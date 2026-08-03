@@ -32,7 +32,7 @@ jobs:
 
       # swift-format est livré avec la chaîne d'outils Xcode : rien à installer.
       - name: swift-format
-        run: swift-format lint --recursive --strict App Packages Tests
+        run: swift-format lint --recursive --strict App Catalog Packages Tests
 
   packages:
     name: Tests des packages
@@ -73,6 +73,38 @@ jobs:
           set -o pipefail
           xcodebuild build \
             -scheme "$SCHEME" \
+            -destination "${{ matrix.destination }}" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO
+
+  # Le catalogue du design system : app a part, et surtout seul endroit ou les
+  # tests d'assets et de rendu tournent avec un Colors.xcassets compile
+  # (SwiftPM ne lance pas actool, cf. project.yml).
+  catalog:
+    name: Catalogue ${{ matrix.platform }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: iOS
+            destination: platform=iOS Simulator,name=iPhone 17,OS=latest
+          - platform: macOS
+            destination: platform=macOS
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer XcodeGen
+        run: brew install xcodegen
+
+      - name: Generer le projet
+        run: xcodegen generate
+
+      - name: Tests du catalogue
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -scheme DesignSystemCatalog \
             -destination "${{ matrix.destination }}" \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO

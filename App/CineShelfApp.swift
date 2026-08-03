@@ -1,4 +1,5 @@
 import CineShelfCore
+import DesignSystem
 import SwiftData
 import SwiftUI
 
@@ -7,6 +8,11 @@ struct CineShelfApp: App {
     @State private var container: ModelContainer
 
     init() {
+        // Archivo vit dans le bundle de ressources du package DesignSystem, que
+        // `UIAppFonts` ne sait pas atteindre : l'enregistrement est explicite.
+        // `FontResolutionTests` échoue si une police cesse de se résoudre.
+        DesignSystemFonts.register()
+
         do {
             let container = try Persistence.makeContainer(cloudKit: FeatureFlags.cloudKitEnabled)
             try Bootstrap.ensureDefaults(in: container.mainContext)

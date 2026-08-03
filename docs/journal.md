@@ -393,3 +393,170 @@ JPEG, la pression mémoire par `DispatchSource`, et l'écriture différée.
 
 Prompt 9 — intégration du `DesignSystem`, dès que Claude Design a livré. Sinon
 prompt 13 bis.
+
+---
+
+## 2026-08-03 — Intégration du DesignSystem (prompts 8 bis et 9)
+
+**Débloqué avant de commencer : le projet ne compilait plus**
+
+Reprise sur une nouvelle machine, `xcodegen generate` puis build : échec.
+XcodeGen 2.46.0 (dernière stable) écrit `SUPPORTED_PLATFORMS = ""` **et**
+`TARGETED_DEVICE_FAMILY = ""` pour toute cible déclarée en
+`supportedDestinations`. Deux symptômes distincts :
+
+- plateforme non résolue -> Xcode compile la cible app avec un triplet
+  indéterminé et rejette les modules SwiftPM (`Unable to resolve module
+  dependency: 'CineShelfCore'`) ;
+- device family vide -> plus aucun simulateur iOS ne correspond à la cible,
+  même désigné par UDID.
+
+Reproduit sur un spec minimal de six lignes, indépendant de `xcodeVersion`.
+Les deux réglages sont donc explicités par cible dans `project.yml`, avec le
+bloc de commentaire qui donne version, symptômes et commande de reproduction.
+`ONLY_ACTIVE_ARCH: YES` ajouté en Debug seulement (Release reste universel).
+
+Corrigé au passage : `PRODUCT_NAME` n'était écrit nulle part et Xcode 26 ne lui
+donne plus de valeur par défaut. Les cibles de test échouaient sur
+`module name "" is not a valid identifier` — `CineShelfTests` avait la même
+bombe à retardement, simplement jamais déclenchée.
+
+**Livraison Claude Design**
+
+Archive `CineShelf Design System.zip` : 6 fichiers de fondations, 7 composants,
+`colors.tokens.json`, une app de démonstration. Composants bien présents, ce
+n'était pas une livraison tokens seuls.
+
+Croisement des 23 jeux sémantiques avec `docs/01` §B.1 : **aucun oubli**. Noms,
+ordre et valeurs identiques — les 59 valeurs `any`/`dark` ont été vérifiées une
+à une contre les primitives citées par le doc, zéro écart. Aucun rôle n'est
+dérivé par `.opacity()` : les quatre jeux à alpha (`bg/selected`, `accent/soft`,
+`border/subtle`, `media/ring`) sont des Color Sets à part entière, ce qui permet
+au contraste élevé de changer teinte *et* alpha. Le JSON applique en HC plus que
+les trois règles du doc (aussi `media/ring`, `bg/selected`, `accent/soft`,
+`accent/text`) : extension délibérée, documentée dans `COLORS.md`.
+
+**Trois bugs dans le code livré**
+
+- `StateView.Kind` : les fabriques `empty`/`failure` avaient tous leurs
+  paramètres défaultés, donc exactement la signature des cases — redéclaration
+  invalide, le package ne compilait pas. Corrigé en réduisant les paramètres.
+- `StateView.body` : `message(...)` appelait la valeur liée par le motif au lieu
+  de la méthode. `self.` manquant.
+- Sept `.font(.system(size:))` sans `relativeTo:`, en violation de
+  `no_fixed_font_size`. Remplacés par des styles de texte.
+
+**Couleurs**
+
+`scripts/generate-colors.py` génère les 59 Color Sets depuis le JSON : 4
+apparences sur les sémantiques, display-p3, composantes float, dossiers à
+espace de noms. Le script émet aussi `ColorTokens.generated.swift`, qui porte la
+liste des tokens et un `switch` vers les accesseurs typés — ajouter un jeu au
+JSON sans écrire son accesseur casse la **compilation**, pas seulement un test.
+
+**Police — deux écarts avec la consigne, tranchés sur mesure**
+
+1. `"Archivo"` n'est pas un nom PostScript. Relevé réel via
+   `CTFontManagerCreateFontDescriptorsFromURL` : `Archivo-SemiBold`,
+   `Archivo-Bold`, `ArchivoSemiExpanded-SemiBold`, `ArchivoSemiExpanded-ExtraBold`.
+2. La variable `Archivo[wdth,wght].ttf` de Google Fonts n'expose que neuf
+   instances nommées, **toutes en graisse, aucune en largeur**. L'axe `wdth` a
+   six crans (62 / 75 / 87,5 / 100 / 112,5 / 125, relevés dans la source Glyphs
+   upstream) : le `wdth` 112 demandé par `docs/01` §B.2 est donc le cran 112,5,
+   dont le nom de famille est **« Archivo SemiExpanded »** — pas « Archivo
+   Expanded », qui est le cran 125. Quatre statiques embarqués depuis
+   Omnibus-Type/Archivo (la source amont référencée par Google Fonts), pas de
+   `fontTools` requis. `heroTitle` et `railLabel` pointent sur SemiExpanded.
+
+`cardTitle` reste en **SF Pro**, chasse normale : `docs/01` §B.2 le déclare en
+SF Pro et Claude Design l'a livré ainsi. L'axe `wdth` ne s'applique qu'à Archivo.
+
+Pas de `UIAppFonts` : Archivo vit dans le bundle de ressources du package, que
+`UIAppFonts` ne sait pas atteindre. Enregistrement par
+`CTFontManagerRegisterFontURLs`, appelé depuis `CineShelfApp.init()`.
+
+**Indépendance du package : vérifiée**
+
+Imports : `SwiftUI`, `Foundation`, `CoreText`. Rien d'autre.
+`swift package show-dependencies` -> « No external dependencies found ».
+Le catalogue le prouve aussi : il compile en ne liant que `DesignSystem`.
+
+**Catalogue**
+
+Cible `DesignSystemCatalog` (iOS + macOS) : planche des 59 Color Sets avec nom
+et valeur résolue, onze rôles typographiques, rayons / espacements / élévations
+/ proportions dessinés à taille réelle, et chaque composant dans ses états.
+Barre d'outils : clair/sombre, contraste élevé, Dynamic Type normale/AX3/AX5,
+largeur de plateforme simulée.
+
+`\.colorSchemeContrast` est en lecture seule dans SwiftUI : la bascule contraste
+agit au niveau **fenêtre** (`NSAppearance` sur macOS, `traitOverrides` sur iOS),
+seul moyen de faire réellement résoudre les apparences HC du catalogue d'assets.
+
+**Tests — trois découvertes qui changeaient la donne**
+
+1. `Font.custom` retombe silencieusement sur une autre police. Le repli de
+   CoreText est **Helvetica**, pas la police système : ma première version du
+   test comparait à la mauvaise référence et ne protégeait de rien. La sonde est
+   maintenant auto-calibrée (elle mesure le repli au lieu de le supposer).
+   Vérifié en cassant volontairement un nom PostScript : le test échoue bien.
+2. **SwiftPM ne lance pas `actool`.** `Colors.xcassets` est recopié tel quel,
+   aucun `Assets.car` n'est produit, et sous `swift test` **aucune** couleur ne
+   se résout. D'où la cible `DesignSystemAssetTests`, qui rejoue les mêmes
+   sources sous xcodebuild avec les assets compilés, et un test sous
+   `XCODE_ASSET_TESTS` qui échoue si le catalogue cesse d'être compilé — sans
+   lui, une régression se traduirait par des tests « skipped », donc verts.
+3. **`ImageRenderer` ignore `dynamicTypeSize` sur macOS.** Mesuré : un simple
+   `Text().font(.body)` rend la même hauteur à `.large`, AX3 et AX5. Ce n'est pas
+   un défaut des composants — macOS n'a pas Dynamic Type. Les assertions de
+   croissance ne tournent donc que sur iOS, où elles passent, et une sentinelle
+   macOS échoue le jour où Apple change ça.
+
+Tests de rendu sur `PosterCard` et `ShelfRail` via `ImageRenderer` (aucune
+bibliothèque ajoutée) : clair/sombre × compact/medium/large × normale/AX3. Pas
+d'images de référence — elles se périment et personne ne les relit — mais des
+propriétés : le rendu aboutit, clair et sombre donnent des pixels **différents**
+(une couleur codée en dur les rendrait identiques), AX3 rend plus haut, et les
+trois tailles se distinguent. Chaque famille d'assertions a son contrôle négatif.
+
+`no_literal_color` re-vérifiée sur fichier sonde : muette dans
+`Packages/DesignSystem/`, erreur dans `Catalog/`. Au passage, `Catalog` manquait
+dans `included:` de `.swiftlint.yml` — le dossier n'était pas linté du tout.
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| Build `DesignSystemCatalog` macOS / iOS | `** BUILD SUCCEEDED **` |
+| `xcodebuild test -scheme CineShelf` (macOS) | 8 tests |
+| `xcodebuild test -scheme DesignSystemCatalog` (macOS) | 20 tests |
+| `xcodebuild test -scheme DesignSystemCatalog` (iOS) | 19 tests |
+| `swift test` CineShelfCore | 75 tests |
+| `swift test` DesignSystem | 19 tests (2 skipped, cf. `actool`) |
+| `swiftlint --strict` | 0 violation / 106 fichiers |
+| `swift-format lint --strict` | 0 avertissement |
+
+**Rouge, non lié à cette session**
+
+`MediaKit` — « Performance : 200 vignettes » échoue sur cette machine :
+**21,5 ms** par vignette de décodage contre un budget de 20 ms. Reproductible
+(20,9 / 21,1 / 21,9 sur trois passes), donc pas un aléa. `Packages/MediaKit`
+n'a pas été touché de la session et ne dépend pas de `DesignSystem`. Le seuil
+est un budget de performance : le relever est une décision produit, pas une
+correction de lint. **À trancher.**
+
+**Toujours ouvert**
+
+- Le seuil de perf `MediaKit` ci-dessus.
+- Les 36 primitives sont générées dans le `.xcassets` alors qu'aucune vue ne
+  doit les lire ; seul le catalogue y accède, par nom. À élaguer si le poids du
+  catalogue d'assets devient un sujet.
+- `MediaThumbnail` n'est toujours pas branché sur `ThumbnailLoader` : c'était la
+  seconde moitié du prompt 9, elle dépend du prompt 13 bis.
+- Reste du prompt 13 bis inchangé (`PhotosPicker`, `CropEditor`,
+  `MediaRepository.attach`).
+
+**Suite**
+
+Prompt 10, ou prompt 13 bis pour refermer le pipeline médias.

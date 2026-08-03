@@ -31,7 +31,54 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     CLANG_ENABLE_MODULE_VERIFIER: NO
+    # XcodeGen n'ecrit pas PRODUCT_NAME et Xcode 26 ne lui donne plus de valeur
+    # par defaut : le nom de module devient vide et la cible ne compile pas
+    # (« module name "" is not a valid identifier »). Les cibles app le
+    # definissent deja ; cette ligne couvre les cibles de test.
+    PRODUCT_NAME: "$(TARGET_NAME)"
+  configs:
+    # Debug uniquement : en Release on veut les deux architectures (arm64 et
+    # x86_64) pour produire un binaire universel distribuable.
+    Debug:
+      ONLY_ACTIVE_ARCH: YES
 
+# ---------------------------------------------------------------------------
+# SUPPORTED_PLATFORMS / TARGETED_DEVICE_FAMILY explicites :
+# contournement d'un bug de XcodeGen.
+#
+# Versions concernees : XcodeGen 2.46.0 (derniere stable au 03/08/2026), et
+# 2.45.4. Pour toute cible declaree avec `supportedDestinations`, les deux
+# reglages sont ecrits a la chaine vide dans le .pbxproj :
+#   SUPPORTED_PLATFORMS = "";
+#   TARGETED_DEVICE_FAMILY = "";
+#
+# Deux symptomes distincts, tous deux bloquants :
+#
+# 1. SUPPORTED_PLATFORMS vide -> sans plateforme resolue, Xcode 26 compile la
+#    cible app avec un triplet indetermine et rejette les modules SwiftPM
+#    pourtant bien compiles :
+#      warning: Module file '.../CineShelfCore.swiftmodule/arm64-apple-macos.swiftmodule'
+#               is incompatible with this Swift compiler: built for incompatible target
+#      error: Unable to resolve module dependency: 'CineShelfCore'
+#    Le build echoue des le premier `import CineShelfCore`.
+#
+# 2. TARGETED_DEVICE_FAMILY vide -> aucun simulateur iOS ne correspond plus a
+#    la cible, meme designe par UDID :
+#      error: Unable to find a destination matching the provided destination specifier
+#      (... doesn't match any of CineShelf.app's targeted device families)
+#    Le build macOS passe, le build iOS non.
+#
+# Reproduction (spec minimal, hors de ce depot) :
+#   mkdir -p /tmp/xg/Src && cd /tmp/xg && echo 'import Foundation' > Src/A.swift
+#   printf 'name: T\ntargets:\n  T:\n    type: application\n    supportedDestinations: [iOS, macOS]\n    sources: [Src]\n' > project.yml
+#   xcodegen generate
+#   grep -E 'SUPPORTED_PLATFORMS|TARGETED_DEVICE_FAMILY' T.xcodeproj/project.pbxproj
+#   # attendu si le bug est corrige : plus aucune valeur = "";
+#
+# A supprimer le jour ou XcodeGen emet les bonnes valeurs : relancer la
+# reproduction ci-dessus, et si elle est verte, retirer ces deux reglages de
+# chaque cible puis verifier le build iOS *et* macOS.
+# ---------------------------------------------------------------------------
 targets:
   CineShelf:
     type: application
@@ -50,6 +97,9 @@ targets:
         product: MediaKit
     settings:
       base:
+        # cf. bloc SUPPORTED_PLATFORMS ci-dessus (bug XcodeGen 2.46.0)
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator macosx"
+        TARGETED_DEVICE_FAMILY: "1,2"
         PRODUCT_BUNDLE_IDENTIFIER: fr.feltrin.CineShelf
         PRODUCT_NAME: CineShelf
         GENERATE_INFOPLIST_FILE: YES
@@ -87,8 +137,66 @@ targets:
         product: MediaKit
     settings:
       base:
+        # cf. bloc SUPPORTED_PLATFORMS ci-dessus (bug XcodeGen 2.46.0)
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator macosx"
+        TARGETED_DEVICE_FAMILY: "1,2"
         PRODUCT_BUNDLE_IDENTIFIER: fr.feltrin.CineShelf.Tests
         GENERATE_INFOPLIST_FILE: YES
+
+  # Catalogue du design system : une app à part, qui ne connaît que le package
+  # DesignSystem. C'est aussi la preuve d'indépendance : si le catalogue compile
+  # sans CineShelfCore ni MediaKit, le package ne dépend de rien d'autre.
+  DesignSystemCatalog:
+    type: application
+    supportedDestinations: [iOS, macOS]
+    sources:
+      - Catalog
+    dependencies:
+      - package: DesignSystem
+        product: DesignSystem
+    settings:
+      base:
+        # cf. bloc SUPPORTED_PLATFORMS ci-dessus (bug XcodeGen 2.46.0)
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator macosx"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        PRODUCT_BUNDLE_IDENTIFIER: fr.feltrin.CineShelf.DesignSystemCatalog
+        PRODUCT_NAME: DesignSystemCatalog
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Catalogue
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        ENABLE_HARDENED_RUNTIME: YES
+      configs:
+        Debug:
+          CODE_SIGN_IDENTITY[sdk=macosx*]: "-"
+        Release:
+          CODE_SIGN_IDENTITY[sdk=macosx*]: "-"
+
+  # Tests du package DesignSystem rejoués sous xcodebuild.
+  #
+  # Pourquoi cette cible existe alors que `swift test` couvre déjà le package :
+  # SwiftPM ne lance pas `actool`, il se contente de recopier Colors.xcassets.
+  # Sous `swift test`, aucun Color Set ne se résout et les tests d'assets se
+  # mettent en « skipped ». Seul un build Xcode compile le catalogue — d'où
+  # cette cible, qui rejoue les mêmes sources avec les assets réellement
+  # compilés. XCODE_ASSET_TESTS y active en plus un test qui échoue si le
+  # catalogue venait à ne plus être compilé (sans lui, une régression se
+  # traduirait par des tests « skipped », donc verts).
+  DesignSystemAssetTests:
+    type: bundle.unit-test
+    supportedDestinations: [iOS, macOS]
+    sources:
+      - Packages/DesignSystem/Tests/DesignSystemTests
+    dependencies:
+      - package: DesignSystem
+        product: DesignSystem
+    settings:
+      base:
+        # cf. bloc SUPPORTED_PLATFORMS ci-dessus (bug XcodeGen 2.46.0)
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator macosx"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        PRODUCT_BUNDLE_IDENTIFIER: fr.feltrin.CineShelf.DesignSystemAssetTests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) XCODE_ASSET_TESTS"
 
   # iOS uniquement : sur macOS, les tests UI réclament l'autorisation
   # d'accessibilité, qui ne se donne qu'à la main dans Réglages Système.
@@ -102,6 +210,10 @@ targets:
       - target: CineShelf
     settings:
       base:
+        # cf. bloc SUPPORTED_PLATFORMS ci-dessus (bug XcodeGen 2.46.0).
+        # iOS seul ici : cette cible ne tourne pas sur macOS.
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+        TARGETED_DEVICE_FAMILY: "1,2"
         PRODUCT_BUNDLE_IDENTIFIER: fr.feltrin.CineShelf.UITests
         GENERATE_INFOPLIST_FILE: YES
         TEST_TARGET_NAME: CineShelf
@@ -125,6 +237,22 @@ schemes:
       config: Debug
     archive:
       config: Release
+
+  # Catalogue du design system, iOS et macOS.
+  #   xcodebuild -scheme DesignSystemCatalog -destination 'platform=macOS' build
+  # Le schéma embarque les tests d'assets et de rendu, qui ont besoin d'un build
+  # Xcode pour disposer d'un Colors.xcassets compilé.
+  DesignSystemCatalog:
+    build:
+      targets:
+        DesignSystemCatalog: all
+        DesignSystemAssetTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - name: DesignSystemAssetTests
 
   # Tests d'interface : simulateur iOS uniquement.
   #   xcodebuild test -scheme CineShelfUITests \

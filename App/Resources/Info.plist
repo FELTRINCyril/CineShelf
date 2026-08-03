@@ -22,16 +22,17 @@
 	<string>CineShelf a besoin d'accéder à tes photos pour ajouter des images à ton catalogue.</string>
 
 	<!--
-	Police Archivo : à décommenter quand les fichiers seront déposés dans
-	Packages/DesignSystem/Sources/DesignSystem/Resources/.
+	Pas de UIAppFonts, et ce n'est pas un oubli.
 
-	<key>UIAppFonts</key>
-	<array>
-		<string>Archivo-Regular.ttf</string>
-		<string>Archivo-Medium.ttf</string>
-		<string>Archivo-SemiBold.ttf</string>
-		<string>Archivo-Bold.ttf</string>
-	</array>
+	Archivo est embarquée dans le bundle de ressources du package DesignSystem
+	(DesignSystem_DesignSystem.bundle), pas dans celui de l'app. UIAppFonts ne
+	cherche que dans le bundle de l'app : y déclarer les quatre fichiers ne
+	servirait à rien, et laisserait croire que la police est prise en charge.
+
+	L'enregistrement se fait donc par CTFontManagerRegisterFontURLs, dans
+	DesignSystemFonts.register(), appelée depuis CineShelfApp.init().
+	FontResolutionTests échoue si une police cesse de se résoudre — Font.custom,
+	lui, retomberait silencieusement sur la police système.
 	-->
 </dict>
 </plist>

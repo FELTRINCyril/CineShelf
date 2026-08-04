@@ -227,6 +227,36 @@ Mesuré le 2026-08-04 : six bissections à l'aveugle pour arriver là où la pil
 commande. La bissection reste bonne quand un test **échoue** ; elle est le mauvais outil
 quand le processus **meurt**.
 
+## Les rendus gagnent quand ils s'accordent ; le jeton gagne quand ils se contredisent
+
+**C'est la règle qui tranche entre « le prototype dit 44 » et « le système dit 32 ».** Elle
+s'applique chaque fois qu'une valeur relevée dans un `.dc.html` diffère d'un jeton de
+`DesignSystem`, et elle évite les deux erreurs symétriques : recopier aveuglément un pixel
+de maquette, ou se réfugier derrière un jeton pour ne pas regarder.
+
+- **Les rendus concordent → ils font foi**, et le code se corrige. Plusieurs écrans dessinés
+  qui donnent la même valeur, c'est une intention contrôlée.
+- **Les rendus divergent entre eux → le jeton fait foi**, et l'écart s'inscrit. Une mesure
+  qui change d'un bloc à l'autre n'a jamais été contrôlée : elle est un accident de mise en
+  page, et le jeton est la seule source stable.
+
+Trois applications, mesurées :
+
+- **Barre latérale.** Douze écrans rendus n'en montrent aucune, et le bloc `3b` l'écrit ;
+  seule la table de synthèse du §4.6 en annonce une. Les rendus concordent → `Sidebar.swift`
+  supprimée, la table est l'intruse.
+- **Gouttière de rail.** iPhone 10, iPad 14, Mac 14 — trois formats d'accord, et *aucun* ne
+  suit la densité. Les rendus concordent → c'est une mesure par point de rupture, et le code
+  se corrige.
+- **Marge de rail.** 44, 40, 36 selon le bloc Mac. Jamais contrôlée → le jeton
+  `Breakpoint.screenMargin` gagne, et l'écart s'inscrit. Confirmation utile : les deux seuls
+  formats rendus pour de vrai, iPhone et iPad, tombent **exactement** sur le jeton (20, 28).
+
+Le corollaire pratique : avant de trancher, **compter les blocs**. Une valeur vue une seule
+fois n'est ni l'un ni l'autre — c'est une observation, et il faut aller en chercher une
+deuxième avant de décider. L'arbitrage complet des dix écarts relevés au 2026-08-04 est dans
+`docs/PROMPTS.md`, section « Arbitrage de la revue visuelle du catalogue ».
+
 ## Une règle de doctrine énonce sa raison, pas seulement sa conséquence
 
 **Une règle qui a raison par accident est pire qu'aucune règle** : elle gagne une confiance

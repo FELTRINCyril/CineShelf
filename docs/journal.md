@@ -4297,3 +4297,47 @@ hero est une rotation quotidienne honnête, pas un choix. La tâche reste donc e
 exactement ce qui se teste — et je ne l'ai pas écrit. C'est une dette, pas une décision.
 
 **Suite : la revue visuelle du catalogue**, puis `I7`.
+
+---
+
+## 2026-08-04 (11) — Fin de session : palier 1 atteint, et la porte qui manquait
+
+Session de documentation pour clore. Aucun code.
+
+**Le palier « belle et navigable sur Mac » est atteint.** `I2` `I3` `I4` `I6` livrés, `V0`
+(chrome), `V0 bis` (grille et fiche) et `V5a` (accueil) faits — les deux derniers en 🔶
+assumé : l'éditeur de `V0 bis` est bloqué sur `I7`–`I9`, et le choix **éditorial** du hero de
+`V5a` appartient à `L18`. L'app s'ouvre sur Mac avec la nouvelle direction.
+
+**Ce que la session a appris, et qui vaut plus que les écrans.**
+
+*Une porte d'acceptation manquait, et son absence a coûté trois lots.* `PersonTile` a été
+livrée fausse à `I2` — un rectangle 2:3 là où la direction montre des cercles — et elle a
+passé **tous les tests** *et* la planche du catalogue. Le catalogue montre chaque composant
+**seul**, jamais à côté de sa planche : on y vérifie qu'il existe et qu'il tient dans les
+quatre apparences, pas qu'il **ressemble** au bloc. D'où la tâche `catalogue-porte`, placée
+**avant** les corrections parce qu'elle est ce qui les rendra vérifiables.
+
+*Une revue visuelle a trouvé dix écarts, et le client les a arbitrés.* Quatre à corriger,
+six à garder au jeton. L'arbitrage est inscrit dans `docs/PROMPTS.md` — il ne se re-débat
+pas. Le principe qui les sépare est passé dans `CLAUDE.md` : **les rendus gagnent quand ils
+s'accordent entre eux, le jeton gagne quand ils se contredisent.**
+
+*La vérification demandée sur la gouttière de rail était la bonne question.* Le prototype Mac
+ne montre pas la densité ample, mais l'addendum 2 a rendu l'accueil et la fiche en iPhone et
+en iPad : gouttière **10** sur iPhone, **14** sur iPad, **14** sur Mac — trois formats
+d'accord, et aucun ne suit la densité. Et leurs marges tombent **exactement** sur
+`Breakpoint.screenMargin` (20, 28), ce qui confirme *dans le même relevé* que la marge de
+rail, elle, reste au jeton. Une seule recherche, deux verdicts opposés, tous deux fondés.
+
+*Deux règles de doctrine ajoutées à `CLAUDE.md`*, toutes deux nées d'une erreur de cette
+session : une règle énonce sa **raison** et pas seulement sa conséquence — « aucun rayon
+nulle part » avait raison par accident, comme « chaîne `L` = rigueur maximale » avant elle ;
+et une affirmation sur du code non confronté à sa source vaut un ✅ sur une commande non
+lancée.
+
+**Une dette nommée** : `HomeSelection` n'a aucun test, alors que « stable dans la journée »
+est exactement ce qui se teste. Inscrite aux écarts connus, à reprendre avec `L18`.
+
+**Suite : `catalogue-porte`**, puis les corrections 1, 2, 3 et 5. Dans cet ordre — la porte
+d'abord, les corrections ensuite, pour qu'elles se constatent au lieu de se déduire.

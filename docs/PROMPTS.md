@@ -314,6 +314,7 @@ de découpage sur sa fiche.
 | **`Genre.colorToken` est une chaîne libre que rien ne valide** — exactement le défaut que `ProfileAccent` a corrigé (« un jeton invalide doit être impossible à écrire, pas avalé à la lecture »). Il n'a **pas** été typé à la fermeture du schéma, pour deux raisons : la palette de la nouvelle direction n'est pas intégrée, donc la liste fermée n'est pas connue ; et la question est d'abord de savoir si des pastilles de genre colorées ont encore un sens sous une direction à **un seul accent ambre** — c'est une addition postérieure à la v1, pas une fonctionnalité reprise. **La question part chez Claude Design.** En attendant, la précaution qui compte est déjà tenue : aucun repository ne l'expose à l'écriture, donc le défaut de `ProfileAccent` ne peut pas se reproduire par une vue. Le typer plus tard exigera un plan de migration | `V5` · question ouverte au design |
 | **`TitleCollection` et `SavedLink` n'ont volontairement pas de `filterKeys`**, contrairement à `Title` et `Person`. Ce n'est pas une harmonisation en retard, c'est un arbitrage : la dénormalisation coûte un **invariant permanent** — un champ dérivé de plus à recalculer à chaque écriture, et une porte de plus à garder fermée — alors que ces deux tables comptent des dizaines de lignes, pas des milliers. La jointure `library?.id` ne se paie qu'en SQL, où elle est négligeable à cette échelle. Ce que la traversée coûtait vraiment, c'était le budget de vérification de types (7 253 ms et 7 446 ms avec `#Predicate`), et l'arbre manuel de `CollectionQuery` / `SavedLinkQuery` le règle sans rien dénormaliser. **Ne pas « harmoniser » sans mesurer d'abord** : la bonne raison d'ajouter `filterKeys` serait un critère de filtre que la jointure ne sait pas exprimer, ou un volume qui a changé d'ordre | permanent |
 | **La barre de notation seule perd une décimale, en silence — lacune de design, question ouverte.** 8,4 sur 10 donne quatre étoiles, et 8,0 aussi ; le design ne montre **jamais** la valeur numérique à côté de la barre. Relevé au 2026-08-04 : huit occurrences dans la direction retenue affichent la barre nue — hero de l'accueil (planche 1 `2a`), fiche titre (planche 3 `4b`), champ « Note » (planche 6 `8a`), « Ma note » (planche 6 `8c` `8e`), et les quatre écrans iPhone/iPad de l'addendum 2. Les deux seuls endroits qui portent le nombre (`★ 4,5` sur la carte, `★ 4` dans le filtre) sont ceux où la barre n'est pas utilisée. **La conséquence est dans l'éditeur** : un titre noté 8,4 s'y présente en quatre étoiles pleines, et toucher une étoile écrit un entier — la décimale disparaît sans que l'utilisateur l'ait vue. `RatingBar` **n'invente ni demi-étoile** (exclue par la direction) **ni nombre d'autorité** (aucune planche ne le montre). En attendant l'arbitrage : tout appelant qui rend une note **modifiable** pose la valeur à côté, via `TitleFormat.ratingText` | question ouverte au design · `V0 bis` pour l'éditeur |
+| **`HomeSelection` n'a aucun test, et c'est une dette, pas une décision.** La règle du hero — « stable dans la journée » — est exactement ce qui se teste : même jour, même titre ; jour suivant, titre différent ; jamais un archivé ; jamais un privé quand le profil les masque. Les quatre s'écrivent en quelques lignes, et la structure est déjà pure et hors de la vue pour cette raison. `V5a` l'a livrée sans. À reprendre avec `L18`, qui reprendra de toute façon le choix du hero | `L18` |
 | **`PosterTileDetail` a été supprimé, et sa suppression est réversible par l'historique.** Recherche faite le 2026-08-04 dans les onze planches : le seul rendu d'une carte « affiche + métadonnées » hors du premier bloc ambigu de `4a` est dans le bloc **`2b`**, direction abandonnée. Recherche, Ma liste et le Fil montrent des affiches **nues** ; le Fil et la console utilisent des **lignes**, qui sont `I5`. Le composant n'avait donc aucun foyer, et un composant orphelin finit branché par quelqu'un qui croit corriger un oubli. **Si le design confirme un jour le survol enrichi du bloc `4a`, il se reprend du commit `8262878`** plutôt que d'être réécrit | supprimé `8ad3342` |
 | **`CropContext.hero` n'est exercé par aucune donnée de démonstration.** Mesuré au 2026-08-04 : `DemoCatalog` ne crée que des pièces jointes `.primary` (aucun `backdrop`) et **aucune** ligne `MediaCrop`. Le hero de la fiche emprunte donc le repli — jaquette 600 × 900 (2:3 exact), contexte `.card`, recadrage `.neutral` — et `MediaFill` la fait remplir une bande 16:9, ce qui lui coûte le haut et le bas. Invisible sous un flou de 22 pt et un agrandissement de 1,28, mais **le chemin `hero` du recadrage reste non exercé en pratique** : il le sera à `V2`, quand on pourra attacher une vraie image large | `V2` |
 | **Le bloc `4a` montre deux survols différents pour la même grille, et je n'ai pas tranché.** Ses cartes en `sc-for` portent `style-hover="transform:scale(1.06)"` — la règle arrêtée du §7 — mais la **première** carte y est dessinée agrandie à 1,1 **avec** titre, méta et trois actions, c'est-à-dire un `PosterTileDetail`. Soit c'est la façon du prototype de montrer un état de survol enrichi (façon service de streaming), soit c'est une carte « mise en avant » propre à cette capture. `V0 bis` a implémenté **le survol arrêté** (1,06, rien sous l'affiche), parce que c'est la règle écrite du §7 et du §10 ; l'échange vers la carte détaillée serait un comportement qu'aucune phrase ne décrit. `PosterTileDetail`, livré par `I2`, s'est retrouvé **sans appelant** — et a été **supprimé** plutôt que laissé orphelin (ligne ci-dessus) | question ouverte au design |
@@ -425,6 +426,87 @@ ce qui reste debout.
 
 Aucun travail d'interface nouveau sans accord explicite : ni écran, ni composant, ni
 retouche esthétique de l'existant. Règle reportée dans `CLAUDE.md`.
+
+### Arbitrage de la revue visuelle du catalogue — 2026-08-04
+
+> **Tranché par le client, à conserver.** Dix écarts relevés en confrontant les composants
+> livrés par `I2` `I3` `I4` `I6` aux blocs qui les spécifient. Le classement ci-dessous
+> **fait foi** ; il ne se re-débat pas, il s'exécute.
+>
+> **Le principe qui sépare les deux colonnes** — reporté dans `CLAUDE.md` : *les rendus
+> gagnent quand ils s'accordent entre eux, le jeton gagne quand ils se contredisent.*
+
+#### À corriger — les blocs sont précis et cohérents entre eux
+
+| # | Composant | Le bloc dit | Le code fait | Décision |
+|---|---|---|---|---|
+| 1 | `ProfileAvatar` · barre | `3a` : `font:600 11px 'Archivo Narrow'` sur le carré de 26 ; `7f` : `font:400 20px 'Bebas Neue'` sur celui de 46 | `Typo.title2` (**Bebas 22 pt**) aux deux tailles | **Corriger.** Le prototype change de police avec la taille, et les deux blocs sont d'accord chacun sur le sien. Même motif que `PersonTile` : une valeur relevée sur un bloc, généralisée à tort |
+| 2 | `ProfileAvatar` · barre | `3a` : **26 pt** | **28 pt** | **Corriger.** Le 28 venait de moi, pas d'un bloc |
+| 5 | `RatingBar` · étoile vide | `8a` : `oklch(0.34 0 0)` | `bgFill` `#2B2B2B` ≈ oklch **0,26** | **Corriger.** Un tiers plus sombre que le rendu : les étoiles vides se lisent moins. Demande un jeton ou une valeur dérivée — à trancher en écrivant le correctif |
+| 3 | `TileRail` · gouttière | **iPhone 10 · iPad 14 · Mac 14** | `breakpoint.gridGutter(density)` = 16 dense / **24 ample** | **Corriger** — vérifié le 2026-08-04, voir ci-dessous |
+
+**L'écart 3 était « à vérifier avant de trancher », et la vérification est concluante.** Le
+prototype Mac ne montre pas la densité ample, mais l'addendum 2 a rendu l'accueil et la
+fiche en **iPhone** *et* en **iPad**. Relevé dans son HTML :
+
+| Format | Gouttière de rail | Marge de gauche | Jeton `Breakpoint.screenMargin` |
+|---|---|---|---|
+| iPhone 393 | **10** | 20 | 20 — **exact** |
+| iPad 834 | **14** | 28 | 28 — **exact** |
+| Mac 1280–1440 | **14** | 36 · 40 · 44 | 32 |
+
+Deux conclusions, et elles vont dans des sens opposés :
+
+- **La gouttière de rail ne suit pas la densité.** Elle vaut **10 sous 430 pt et 14
+  au-delà** — trois formats d'accord entre eux. `Density.baseGridGutter` (16/24) n'a rien à
+  voir avec elle. Les rendus gagnent : c'est une mesure **par point de rupture**, comme
+  `screenMargin`, et pas une mesure de densité.
+- **La marge de rail, au contraire, se confirme comme jeton.** Les deux formats rendus pour
+  de vrai tombent **exactement** sur `Breakpoint.screenMargin` (20 et 28) ; seuls les blocs
+  Mac errent entre 36, 40 et 44. C'est la définition d'une valeur jamais contrôlée, donc
+  l'écart 4 reste au jeton — et cette mesure le renforce au lieu de l'affaiblir.
+
+#### À garder au jeton — l'écart est inscrit, le code ne bouge pas
+
+| # | Composant | Le bloc dit | Le code fait | Motif |
+|---|---|---|---|---|
+| 4 | `TileRail` · marge de gauche | `2a` 44 · `3a` 40 · `4b` 36 | `Breakpoint.screenMargin` = 32 | **Trois blocs Mac, trois valeurs** : jamais contrôlée. Et iPhone/iPad tombent pile sur le jeton |
+| 6 | `AdaptiveTileGrid` · gouttière | `4a` : 18 | 16 (dense) | 18 n'est aucun cran de l'échelle de base 4 |
+| 7 | `TileRail` · libellé → rangée | `2a`/`3a` : 10 | `Space.s3` = 12 | 10 n'est aucun cran |
+| 8 | `StateBadge` · vignette | `9d` : 9 px, `+0.18em` | `Typo.label` : 11 pt, `+0.12em` | Une taille de police par usage rouvrirait la porte que `Typo` a fermée |
+| 9 | `ProgressTrack` · piste | `11e` : `oklch(0.28 0 0)` | `bgFill` ≈ oklch 0,26 | Deux centièmes de luminance ; le §10 dit lui-même qu'aucun jeton de piste n'existe |
+| 10 | `PersonTile` · casting | `4b` : cercle 96 pt | cran `.m` = 92 | Aucun cran de `PosterScale` ne vaut 96, et l'échelle est une fonctionnalité |
+
+#### `catalogue-porte` — la tâche qui rend ces écarts vérifiables
+
+**À faire AVANT les corrections 1, 2, 3 et 5**, parce qu'elle est ce qui permettra de les
+constater au lieu de les déduire.
+
+**Le constat qui la motive.** `PersonTile` a été livrée fausse à `I2` — un rectangle 2:3 là
+où la direction montre des cercles — et elle a passé **tous les tests** *et* la planche du
+catalogue. Il a fallu trois lots et un écran qui s'en servait pour s'en apercevoir. Le
+catalogue montre chaque composant **seul**, jamais à côté de sa planche : on y vérifie qu'un
+composant existe et qu'il tient dans les quatre apparences, pas qu'il **ressemble** au bloc.
+C'était pourtant sa seule raison d'être.
+
+**Objectif.** Que chaque composant du catalogue affiche, à côté de lui, **la valeur attendue
+du bloc qui le spécifie** — pour qu'un écart se voie.
+
+- Une petite structure de référence par composant : le bloc source (`4b`, `9d`…), et les
+  mesures qu'il donne (taille, gouttière, police, couleur), en texte.
+- Rendue à côté du composant, dans le même style que les notes existantes des planches.
+- **Aucune assertion** : c'est une porte d'acceptation **visuelle**, pas un test. Un test qui
+  comparerait des nombres se contenterait de recopier les mêmes valeurs et n'attraperait
+  rien de ce que l'œil attrape (la forme, la police, le poids).
+- Les dix écarts de la revue y entrent comme **premier contenu** : ils sont la démonstration
+  que la porte fonctionne, puisqu'on sait déjà ce qu'elle doit montrer.
+
+**Terminé quand** : les composants de `I2` `I3` `I4` `I6` portent leur bloc et leurs mesures
+dans le catalogue, et que les écarts 4, 6, 7, 8, 9, 10 s'y **lisent** sans avoir à ouvrir
+une planche.
+
+**Rigueur légère.** Le classement de la section « La rigueur se règle sur
+l'irréversibilité » ne change pas : c'est du catalogue, rien ne s'écrit en base.
 
 ### Arbitrages tranchés
 
@@ -538,6 +620,10 @@ uniquement du travail d'interface et de logique.
 Ce qui rend l'app présentable : l'accueil, la grille des titres, la fiche. C'est le palier
 qui remplace le banc d'essai des prompts 10 et 11.
 
+> **Palier atteint le 2026-08-04** : les sept premières lignes sont faites ou en 🔶 assumé.
+> Les lignes 8 et 9 sont nées de la **revue visuelle** qui l'a clos — elles ne rallongent pas
+> le palier, elles réparent la porte d'acceptation qui lui manquait.
+
 | # | Tâche | Ce qu'elle débloque | Rigueur |
 |---|---|---|---|
 | 1 | `I2` — carte affiche (6 variantes) · carte paysage · carte personne | Tout ce qui affiche une image de catalogue. Le lot qui change le plus l'allure | légère — ✅ `8262878` |
@@ -547,6 +633,8 @@ qui remplace le banc d'essai des prompts 10 et 11.
 | 5 | `V0` — **chrome** : navigation régulière, barres d'outils, en-têtes, sélecteur de profil | Remplace la coquille du prompt 10. Toutes les `V` s'y posent | légère — ✅ `e84324c` |
 | 6 | `V0 bis` — **titres** : grille, fiche, éditeur | Remplace le prompt 11. C'est l'écran où l'app se juge | légère — 🔶 **grille et fiche faites** `ef4ed7e` `8ad3342` · **éditeur bloqué sur `I7`–`I9`** |
 | 7 | `V5a` — **accueil** : hero + rails par genre | Le premier écran qu'on voit. Demande `L18` pour la règle de choix du hero | légère — 🔶 **écran fait** `25d25b0` · **le choix éditorial du hero reste à `L18`** |
+| 8 | `catalogue-porte` — chaque composant du catalogue affiche **la valeur attendue de son bloc** | La porte d'acceptation visuelle qui manquait : `PersonTile` a été livrée fausse et a passé tests **et** catalogue. **Avant** les corrections, qu'elle rend vérifiables | légère |
+| 9 | **Corrections 1, 2, 3, 5** de la revue visuelle — police et taille de `ProfileAvatar`, gouttière de `TileRail`, étoile vide de `RatingBar` | Les quatre écarts où les rendus concordent. Arbitrage tranché, voir sa section | légère |
 
 **`V0` et `V0 bis` sont des tâches nouvelles, et leur absence était un trou du plan.** Les
 prompts 10 (navigation) et 11 (titres) sont marqués ✅ — mais en **banc d'essai**, et

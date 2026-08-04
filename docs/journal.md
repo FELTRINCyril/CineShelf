@@ -2562,3 +2562,101 @@ pour la console : la ligne de tableau est un composant, la console est un écran
 | `swift test` CineShelfCore | 200 tests |
 | `swiftlint --strict` | 0 violation / 179 fichiers |
 | `xcrun swift-format lint` | 0 avertissement |
+
+---
+
+## 2026-08-04 (6) — Reconnaissance de `L11`, un bug de `L10` corrigé, et la coupe
+
+Session de reconnaissance et d'arbitrage. `L11a` n'est pas encore écrite.
+
+**Le dépôt web n'est pas accessible** — ni en local, ni sur GitHub (un seul dépôt
+`CineShelf`, le natif ; `Bobine` est une autre app). Les 3 100 lignes de `dataTransfer.js`
+ne seront donc pas lues. La reconnaissance s'est faite sur les documents et le code.
+
+**Ce que la mesure a tranché, contre ce que la fiche supposait**
+
+La fiche `L11` dit « Lecture : `TabularData` ». Mesuré sur un vrai fichier de 5 000 lignes
+avec BOM, point-virgule, accents et champs multilignes :
+
+| Point | Résultat |
+|---|---|
+| Vitesse | 5 ms pour 5 000 × 5 |
+| BOM en lecture | **retiré proprement** du nom de colonne, contre mon attente |
+| Accents, champs quotés, `;` interne, multiligne | préservés |
+| **Une ligne mal formée** | **rejet du fichier entier** — 4 999 lignes valides perdues |
+
+Ce dernier point exclut `TabularData` pour l'import : l'aperçu « 771 prêtes, 417 en
+erreur » de l'addendum est impossible si le fichier entier est refusé au premier guillemet
+mal placé — et un export Excel réel en contient. Parseur maison, prototypé à **2 ms**,
+plus rapide que `DataFrame` puisqu'il ne fait ni inférence ni colonnes typées.
+
+Deux pièges de plus, mesurés : `csvRepresentation` **n'écrit pas** de BOM (il faut le
+préfixer, sinon Excel massacre les accents), et l'inférence de type **dépend des
+données** — `year` devient `String` dès qu'une seule valeur est vide.
+
+**Et le piège que seule la mesure révèle** : un guillemet non fermé avale les 2 500 lignes
+suivantes. Conforme à RFC 4180, catastrophique pour un aperçu. Resynchronisation retenue,
+au-delà de 8 lignes englobées.
+
+**Ce que la reconnaissance a trouvé et que je n'aurais pas vu**
+
+- `CSVReadingOptions.nilEncodings` contient `"NA"`, `"NULL"`, `"n/a"` par défaut : **un
+  titre nommé « NA » devient `nil`**. À neutraliser pour les colonnes textuelles.
+- `headerSignature` doit se calculer sous une **locale invariante**. Tous les `folding` du
+  dépôt utilisent `.current`, or `ImportMapping` est synchronisé par CloudKit : une
+  signature calculée sous une autre locale ne reconnaîtrait plus le même en-tête. Le cas
+  turc (`I` → `ı`) est le cas d'école.
+- **Trois colonnes du mock d'import n'ont aucun champ au modèle** : Support, Étagère,
+  nombre de visionnages. Deux des six causes d'erreur du design en dépendent.
+- `ImportMapping` et `LegacyRecord` ne sont lus **par personne** — seules mentions hors
+  de leur fichier : le côté inverse dans `Library` et la déclaration du schéma.
+- La fiche `L11` **s'inversait** : « reprise par élément et non par lot », alors que le
+  tableau des écarts et `ImportActorTests` disent le contraire. Corrigé.
+- `BulkEditor` ne peut **pas** servir à la correction en masse de l'aperçu : il travaille
+  sur des entités en base désignées par `UUID`, et il écrit. Les corrections portent sur
+  des lignes de CSV qui n'existent nulle part. La dépendance à `L10` est **de forme**, pas
+  d'appel — distinction inscrite sur la fiche pour qu'elle ne se perde pas.
+
+**Un bug de `L10`, trouvé par l'arbitrage sur l'échelle de la note**
+
+Trois sources se contredisaient : `Title.swift` disait « 0–10 », `BulkEditor.Bounds`
+imposait `0...5` en refusant les demi-étoiles, le mock parlait de « Note · sur 10 ».
+
+Vérification : `docs/02` §3.3 dit 0–10, et `TitleFormat.fiveStarRating` divise déjà par
+deux **depuis le prompt 11**. La planche 6 du design décrit donc le **rendu**, pas le
+modèle. `Bounds.ratings = 0...5` était un bug que j'avais introduit la veille en
+appliquant une règle d'affichage au modèle — il aurait refusé à l'import **la moitié de
+l'échelle**, et le refus des demi-étoiles rejetait une note de 8,4 que `ratingText` sait
+pourtant écrire.
+
+Corrigé : bornes `0...10`, contrainte d'arrondi supprimée, et le test « une demi-étoile
+est refusée » — qui encodait le bug — remplacé par un test paramétré qui vérifie que 0 ;
+3,5 ; 5 ; 8,4 et 10 sont acceptées et relues à l'identique.
+
+**La coupe, et pourquoi cette ligne**
+
+`L11` est coupée en `L11a` (le format et l'analyse, **aucune écriture de modèle**) et
+`L11b` (l'application au magasin). La frontière est la garantie que le design énonce
+lui-même : « rien n'est écrit dans la bibliothèque avant l'appui final ».
+
+Ce n'est pas un compte de lignes. `L11a` est testable sans un seul `save()`, donc elle
+échappe **par construction** au piège qui a coûté 42 tests verts ; `L11b` est exclusivement
+faite de ce piège — plafond de `#Predicate`, pending contre SQL, frontière d'acteur,
+`filterKeys`. Les mélanger, c'est risquer que la partie facile consomme l'attention.
+
+**Trois arbitrages, pris avant d'écrire**
+
+| Sujet | Décision |
+|---|---|
+| Les trois colonnes sans champ | Colonnes ignorées **nommées**, aucune migration. Deux causes de l'addendum perdent leur objet — écart assumé |
+| L'échelle de la note | 0–10 en base, 0–5 à l'affichage. `L10` corrigée |
+| Le profil Movix | **Aucun profil intégré** pour l'instant : le script source est inaccessible et `isBuiltIn` interdit de retirer un profil livré. Un profil faux serait pire qu'aucun |
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| `swift test` CineShelfCore | **201 tests** |
+| `swiftlint --strict` | 0 violation |
+| `xcrun swift-format lint` | 0 avertissement |
+| Sondes TabularData | 4 fichiers de mesure, reproductibles |

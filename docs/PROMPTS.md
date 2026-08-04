@@ -86,7 +86,7 @@ La colonne **LOGIQUE** renvoie aux tâches `L…`, la colonne **VUES** aux tâch
 | 16 | Collections, genres, liens, accueil, fil | `L6` `L7` `L18` | `V5` | ⬜ |
 | 17 | Console de gestion | `L10` ✅ | `V6` | ⬜ |
 | 18 | Profils, bibliothèques, Face ID | `L14` `L15` | `V7` | ⬜ |
-| 19 | Import/export CSV | `L11` `L12` | `V8` | ⬜ |
+| 19 | Import/export CSV | `L11a` `L11b` `L12` | `V8` | ⬜ |
 | 2 | **Dump de l'app web** | — (dépôt web) | — | ⬜ **dépendance dure de `L13`** |
 | 20 | Migration des vraies données | `L13` | `V9` | ⬜ — **point de contrôle : geler `versionIdentifier`** (`02 §7` étape 0) |
 | 21 | Config CloudKit | — (toi) | — | ⬜ abonnement requis |
@@ -384,10 +384,11 @@ L1 → L2 → L3 → L4 → L10 → L11 → L12 → prompt 2 → L13
 | 3 | `L3` | Indexation Spotlight : indexer, désindexer, réindexer, jamais le privé | `02 §5`, `04 §6`, `03 §9` | `L2` | ✅ `4e696ee` |
 | 4 | `L4` | Mathématiques du recadrage : geste ↔ `MediaCrop`, bornes, rect final | `02 §2.4 §3.7`, `04 §4` | — | ✅ `07890db` |
 | 5 | `L10` | Édition en masse : décrire une mutation, l'appliquer à une sélection | `03 §12` | — | ✅ `68688b2` |
-| 6 | `L11` | CSV : lire, écrire, valider, résoudre les références, appliquer par lots | `03 §10`, `04 §7` | `L10` | ⬜ **suivant** |
-| 7 | `L12` | Archive `.cineshelfarchive` : écriture et relecture | `04 §7`, `03 §10` | `L11` | ⬜ |
+| 6 | `L11a` | CSV : le format et l'analyse — sérialiseur, lecteur tolérant, correspondance, validation. **Aucune écriture de modèle** | `03 §10`, `04 §7`, `design/README.md` §6 | `L10` (de forme) | ⬜ **suivant** |
+| 6 bis | `L11b` | CSV : l'application au magasin — références, dédoublonnage, `ImportActor`, brouillon | idem | `L11a` | ⬜ |
+| 7 | `L12` | Archive `.cineshelfarchive` : écriture et relecture | `04 §7`, `03 §10` | `L11a` (le sérialiseur suffit) | ⬜ |
 | 8 | **prompt 2** | **Dump du bundle depuis l'app web** — dans le dépôt web, pas ici | `02 §7` étape 1 | — | ⬜ **dépendance dure de `L13`** |
-| 9 | `L13` | Migration des vraies données depuis le bundle web | `02 §7` | `L1` `L3` `L4` `L11` `L12` **+ prompt 2** | ⬜ |
+| 9 | `L13` | Migration des vraies données depuis le bundle web | `02 §7` | `L1` `L3` `L4` `L11a` `L11b` `L12` **+ prompt 2** | ⬜ |
 
 > **Le prompt 2 n'est plus une précaution, c'est une dépendance dure.** Sans le
 > bundle exporté depuis l'app web, `L13` n'a rien à importer, l'app reste peuplée de
@@ -704,33 +705,85 @@ sélection.
 
 ---
 
-### `L11` — CSV
+### `L11` — CSV, coupée en `L11a` et `L11b`
 
-**Objectif.** Tout l'import/export, moins les écrans.
+**Coupée le 2026-08-04**, après reconnaissance et mesures. La frontière n'est pas un
+compte de lignes : c'est **« rien n'est écrit dans la bibliothèque »**, la garantie que le
+design énonce lui-même. `L11a` est entièrement testable sans un seul `save()`, donc elle
+échappe par construction au piège qui a coûté 42 tests verts ; `L11b` est exclusivement
+faite de ce piège. Les mélanger, c'est risquer que la partie facile consomme l'attention
+et que la dangereuse soit écrite en fin de course.
 
-- Lecture : `TabularData`, séparateurs et encodages, colonnes typées.
-- Écriture : sérialiseur maison, UTF-8 **avec BOM**, séparateur `;`, échappement
-  RFC 4180. Un gabarit vierge par entité.
-- Schéma de colonnes par entité, et sélection de champs — la liste des champs
-  exportables est une donnée, pas une vue.
-- Validation ligne à ligne avec statut (nouveau / mise à jour / conflit / erreur) et un
-  message explicite. Revalidation après correction, sans reparser le fichier.
-- Résolution des références : un genre ou une personne cité par son nom est retrouvé
-  (`GenreRepository.findOrCreate`) ou créé.
-- Application dans `ImportActor`, par lots de 200, avec progression et annulation.
-  Reprise **par élément** et non par lot (écart connu).
-- Profil de mappage « Movix » préconfiguré, et enregistrement de mappages personnels.
-- Fixtures : fichiers malformés, accents, colonnes manquantes, doublons intra-lot.
-- **Le rapport d'import liste nommément les colonnes ignorées.** C'est la contrepartie
-  d'avoir écarté les « champs libres » de l'addendum 1 (voir ci-dessous) : une colonne
-  non reconnue n'est pas une erreur et n'interrompt pas l'import, mais elle ne doit pas
-  disparaître en silence. L'utilisateur doit lire « la colonne *Support* a été ignorée »,
-  pas deviner qu'il manque quelque chose trois semaines plus tard.
-- `ImportMapping` existe depuis la fermeture du schéma : nom, signature d'en-tête,
-  correspondance en JSON, drapeau « livré avec l'app ». Aucune logique ne l'écrit
-  encore — c'est cette tâche qui le fait, y compris le profil Movix préconfiguré.
+En prime, `L11a` livre l'export complet — utilisable seul, et suffisant pour que `L12`
+démarre.
 
-**Dépend de `L10`** pour la correction en masse dans l'aperçu.
+> **Correction d'une inversion.** La fiche disait « Reprise **par élément** et non par lot
+> (écart connu) ». C'est l'inverse : le tableau des écarts dit « par lot de 200, pas par
+> élément », et `ImportActorTests.insertionErrorPropagates` le vérifie — « seuls les lots
+> déjà sauvegardés sont durables ». La reprise est **par lot**, et c'est `L11b` qui la
+> traite.
+
+#### `L11a` — le format et l'analyse. Aucune écriture de modèle.
+
+- **Sérialiseur maison** : UTF-8 **avec BOM**, séparateur `;`, échappement RFC 4180 par
+  doublement du guillemet, fins de ligne `CRLF`. Un gabarit vierge par entité.
+- **Lecteur tolérant, écrit à la main.** `TabularData` est **exclu pour l'import** :
+  mesuré, une seule ligne mal formée fait rejeter le fichier **entier** — 5 000 lignes
+  valides, une cassée à la 2 501e, zéro ligne exploitable. L'aperçu « 771 prêtes, 417 en
+  erreur » de l'addendum est donc impossible avec lui. Il reste bon pour l'export.
+- **Resynchronisation après un guillemet non fermé**, au-delà de 8 lignes englobées :
+  sans elle, une faute de frappe dans une cellule fait disparaître la moitié du catalogue
+  de l'aperçu, ce qui est conforme à RFC 4180 et inacceptable ici.
+- Schéma de colonnes par entité, et sélection de champs — la liste des champs exportables
+  est une **donnée**, pas une vue.
+- Correspondance des colonnes et ses trois qualités : sûre, déduite du contenu, non
+  reconnue. Une colonne non reconnue **n'est pas une erreur**.
+- `ImportMapping` et son repository — il n'en a aucun aujourd'hui, et **personne ne le
+  lit** : nom, `headerSignature`, correspondance JSON. La signature se calcule sous une
+  **locale invariante** : l'entité est synchronisée par CloudKit, et tous les `folding` du
+  dépôt utilisent `.current`, ce qui la rendrait non reproductible d'un appareil à l'autre.
+- Validation ligne à ligne avec statut et message, causes **groupables** sur le modèle de
+  `BulkRefusalReason`. Revalidation après correction, sans reparser le fichier.
+- **Le rapport nomme les colonnes ignorées.** Contrepartie de l'abandon des champs libres :
+  une colonne non reconnue ne doit pas disparaître en silence.
+- Le rapport CSV des écartées : format d'origine + colonne `cineshelf_erreur` en fin de
+  ligne, redéposable.
+- Fixtures écrites **à la volée** plutôt qu'en ressources : les octets exacts — BOM, CRLF,
+  encodage — restent visibles dans le test au lieu d'être cachés dans un binaire.
+
+#### `L11b` — l'application au magasin. Tout le risque est là.
+
+- Résolution des références : `GenreRepository.findOrCreate` existe ; **il n'y a aucun
+  équivalent pour les personnes ni les collections**, c'est à écrire.
+- Dédoublonnage contre l'existant **et intra-lot**. `CLAUDE.md` prévoit nommément ce cas :
+  le comportement avant sauvegarde est le sujet, donc le dire dans le nom du test et
+  couvrir le chemin SQL ailleurs.
+- Entrée dans `ImportActor`, lots de 200, progression, **annulation** — qu'il n'a pas
+  aujourd'hui, pas un `Task.checkCancellation()`.
+- **Le piège central** : les repositories sont `@MainActor` à cause du `SpotlightIndexer`,
+  `ImportActor` est un acteur. `L10` a résolu le dilemme en restant `@MainActor`, ce que
+  `L11b` ne peut pas faire pour 1 284 lignes. Il faudra appeler `refreshDerived()`
+  explicitement dans le contexte de l'acteur **et le prouver par un test**, ou ouvrir une
+  troisième porte d'écriture — que le dépôt a déjà refusée deux fois.
+- Brouillon d'import local, un seul à la fois, survivant à la fermeture. **Aucun modèle
+  ne le porte et le schéma est fermé** : ce sera un fichier, pas une entité.
+- Journal de lot : une entrée pour l'import, pas une par titre — `JournalPolicy.batched`.
+- Bilan chiffré, et les quatre suites de l'addendum.
+
+**Trois décisions arbitrées le 2026-08-04, avant d'écrire :**
+
+| Sujet | Décision |
+|---|---|
+| **Support, Étagère, nombre de visionnages** — trois colonnes du mock sans champ au modèle | **Colonnes ignorées nommées.** Aucune migration. Conséquence assumée : deux des six causes d'erreur de l'addendum perdent leur objet, l'addendum est à corriger ou l'écart à accepter |
+| **L'échelle de la note** | **0–10 en base, 0–5 à l'affichage.** `docs/02` §3.3 et `TitleFormat.fiveStarRating` avaient raison ; `BulkEditor.Bounds.ratings = 0...5` était un bug de `L10`, corrigé — il aurait refusé à l'import la moitié de l'échelle |
+| **Le profil Movix** | **Pas de profil intégré pour l'instant.** Le script source est inaccessible, et `isBuiltIn` interdit de retirer un profil livré : un profil faux serait pire qu'aucun. `L11a` livre l'enregistrement de mappages personnels et la reconnaissance par `headerSignature` |
+
+**Dépend de `L10`** — mais **de forme, pas d'appel** : `BulkEditor` travaille sur des
+entités déjà en base désignées par `UUID`, et il écrit. Les corrections de l'aperçu portent
+sur des **lignes de CSV** qui n'existent nulle part, et le design garantit que rien n'est
+écrit avant l'appui final. Ce qui se réutilise est le patron — descripteur, validation
+préalable, refus groupés par cause — et `Bounds`, dont les bornes d'année viennent déjà de
+l'addendum d'import.
 
 ---
 

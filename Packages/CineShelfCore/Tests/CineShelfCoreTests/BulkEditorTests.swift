@@ -51,7 +51,7 @@ struct BulkEditorTests {
         let titles = try makeTitles(["A", "B"], in: fixture)
 
         let outcome = try fixture.editor.apply(
-            .setRating(9), toTitles: titles.map(\.id), summary: "note à 9")
+            .setRating(99), toTitles: titles.map(\.id), summary: "note à 99")
 
         #expect(outcome.appliedCount == 0)
         #expect(outcome.refusals.count == 1)
@@ -320,8 +320,8 @@ struct BulkEditorRelationTests {
         "Les valeurs refusées",
         arguments: [
             TitleBulkMutation.setRating(-1),
-            .setRating(6),
-            .setRating(4.5),
+            .setRating(11),
+            .setRating(10.5),
             .setRuntime(0),
             .setRuntime(-10),
             .setSummary("   "),
@@ -337,15 +337,37 @@ struct BulkEditorRelationTests {
         #expect(outcome.appliedCount == 0, "\(mutation) devrait être refusée")
     }
 
-    @Test("Une demi-étoile est refusée : le design a écarté la demi-étoile")
-    func halfStarIsRefused() throws {
+    @Test(
+        "La note est sur 10, décimales comprises",
+        arguments: [0.0, 3.5, 5.0, 8.4, 10.0]
+    )
+    func ratingIsOutOfTen(value: Double) throws {
+        // Ce test remplace un « une demi-étoile est refusée » qui encodait un bug :
+        // la planche 6 du design parle de cinq étoiles pleines **à l'affichage**, et
+        // `docs/02` §3.3 dit 0–10 pour le modèle. `TitleFormat.fiveStarRating` fait la
+        // conversion depuis le prompt 11. Refuser 8,4 en base aurait rejeté à l'import
+        // la moitié de l'échelle.
+        let fixture = try makeFixture()
+        let titles = try makeTitles(["A"], in: fixture)
+
+        let outcome = try fixture.editor.apply(
+            .setRating(value), toTitles: titles.map(\.id), summary: "…")
+        #expect(outcome.appliedCount == 1, "\(value) devrait être acceptée")
+
+        let reread = try fixture.freshContext().fetch(FetchDescriptor<Title>())
+        #expect(reread[0].rating == value)
+    }
+
+    @Test("Au-delà de 10, la note est refusée")
+    func ratingAboveTenIsRefused() throws {
         let fixture = try makeFixture()
         let titles = try makeTitles(["A"], in: fixture)
         let outcome = try fixture.editor.apply(
-            .setRating(3.5), toTitles: titles.map(\.id), summary: "…")
+            .setRating(11), toTitles: titles.map(\.id), summary: "…")
+
         #expect(outcome.refusals.count == 1)
         if case .valueOutOfRange(_, let expected) = outcome.refusals[0].reason {
-            #expect(expected.contains("entier"))
+            #expect(expected.contains("10"))
         } else {
             Issue.record("Attendu un refus de bornes")
         }

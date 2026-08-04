@@ -8,8 +8,14 @@ import Foundation
 // sont établis par `BulkEditor` au moment du chargement.
 //
 // Les bornes viennent des documents, pas de l'intuition : l'année attendue entre 1888 et
-// 2030 est celle de l'addendum d'import, et la note sur cinq étoiles pleines celle de la
-// planche 6. Une note à 4,5 est donc **refusée** : le design a écarté la demi-étoile.
+// 2030 est celle de l'addendum d'import.
+//
+// **La note est sur 10, et c'était un bug le 2026-08-04.** La première version imposait
+// 0…5 en refusant les demi-étoiles, sur la foi de la planche 6 du design — qui parle de
+// cinq étoiles **pleines à l'affichage**. Or `docs/02` §3.3 dit « Note du catalogue,
+// 0–10 », et `TitleFormat.fiveStarRating` divise déjà par deux depuis le prompt 11. La
+// planche 6 décrit donc le rendu, pas le modèle, et l'appliquer ici aurait refusé à
+// l'import toutes les notes au-dessus de 5 — soit la moitié de l'échelle.
 
 @MainActor
 extension BulkEditor {
@@ -19,8 +25,10 @@ extension BulkEditor {
         /// 1888 : *Roundhay Garden Scene*, le plus ancien film connu. La borne haute
         /// laisse la place aux sorties annoncées.
         static let years = 1888...2030
-        /// Cinq étoiles pleines, pas de demi-étoile (planche 6).
-        static let ratings = 0.0...5.0
+        /// Note du catalogue, `docs/02` §3.3. L'affichage en cinq étoiles est une
+        /// conversion de présentation (`TitleFormat.fiveStarRating`), pas une contrainte
+        /// de modèle : une note de 8,4 est légitime, et `ratingText` l'écrit « 8,4 / 10 ».
+        static let ratings = 0.0...10.0
         /// Une minute au moins. Pas de borne haute : *Logistics* dure 51 420 minutes.
         static let minimumRuntime = 1
     }
@@ -28,13 +36,10 @@ extension BulkEditor {
     func validate(_ mutation: TitleBulkMutation) -> [BulkRefusal] {
         switch mutation {
         case .setRating(let value):
+            // Pas de contrainte d'arrondi : `ratingText` écrit « 8,4 / 10 », donc une
+            // décimale est une valeur normale du modèle.
             guard Bounds.ratings.contains(value) else {
-                return [outOfRange(field: "La note", expected: "entre 0 et 5")]
-            }
-            // Une note qui n'est pas un multiple de 1 passerait le test de bornes mais
-            // rendrait une demi-étoile que le design a explicitement écartée.
-            guard value == value.rounded() else {
-                return [outOfRange(field: "La note", expected: "un nombre entier d'étoiles")]
+                return [outOfRange(field: "La note", expected: "entre 0 et 10")]
             }
             return []
 

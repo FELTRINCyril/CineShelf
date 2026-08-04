@@ -207,12 +207,12 @@ custom_rules:
       # Les planches de composants du catalogue montrent ces sept composants : meme
       # statut qu'eux, elles partent avec eux.
       - ".*/Catalog/ComponentSheets.swift"
+      # `V0` a reecrit `CompactRootView` et `ProfileMenu` contre la direction courante :
+      # ils sortent de cette liste, et le lint le verifie. `Sidebar.swift` est supprimee.
       - ".*/App/Features/Settings/SettingsView.swift"
       - ".*/App/Features/Titles/TitleDetailView.swift"
       - ".*/App/Features/Titles/TitlesGrid.swift"
       - ".*/App/Features/Titles/TitlesView.swift"
-      - ".*/App/Navigation/CompactRootView.swift"
-      - ".*/App/Navigation/ProfileMenu.swift"
       - ".*/App/Navigation/ProfilePicker.swift"
       - ".*/App/Navigation/ProfileSession.swift"
     excluded_match_kinds:

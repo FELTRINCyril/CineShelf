@@ -1,9 +1,13 @@
 import Foundation
 import Testing
 
-// La navigation est le seul endroit où les features se coordonnent : une
-// incohérence entre l'onglet, le segment et la section ne se voit pas à la
-// compilation, seulement à l'usage, et seulement sur une plateforme.
+// La navigation est le seul endroit où les features se coordonnent : une incohérence
+// entre l'onglet et la section ne se voit pas à la compilation, seulement à l'usage, et
+// seulement sur une plateforme.
+//
+// **Réécrit par `V0`.** L'ancienne coquille avait cinq onglets dont un « Catalogue »
+// segmenté ; le design (planche 2 bloc `3c`) en donne cinq autres — Accueil · Titres ·
+// Recherche · Ma liste · Gérer — et aucun segment. `CatalogueSegment` a disparu avec lui.
 
 @MainActor
 struct NavigationModelTests {
@@ -21,15 +25,18 @@ struct NavigationModelTests {
     func selectingASectionAlignsTheCompactTab() {
         let navigation = NavigationModel()
 
-        navigation.section = .people
-        #expect(navigation.compactTab == .catalogue)
-        #expect(navigation.catalogueSegment == .people)
+        navigation.section = .titles
+        #expect(navigation.compactTab == .titles)
 
+        navigation.section = .myList
+        #expect(navigation.compactTab == .myList)
+
+        // Les sections sans onglet propre retombent sur « Gérer ».
         navigation.section = .gallery
-        #expect(navigation.compactTab == .gallery)
+        #expect(navigation.compactTab == .manage)
 
         navigation.section = .settings
-        #expect(navigation.compactTab == .more)
+        #expect(navigation.compactTab == .manage)
     }
 
     @Test("Changer d'onglet aligne la section")
@@ -39,29 +46,34 @@ struct NavigationModelTests {
         navigation.compactTab = .search
         #expect(navigation.section == .search)
 
-        navigation.catalogueSegment = .collections
-        navigation.compactTab = .catalogue
-        #expect(navigation.section == .collections)
+        navigation.compactTab = .titles
+        #expect(navigation.section == .titles)
     }
 
-    @Test("L'onglet « Plus » ne change pas la section : c'est une liste")
-    func moreTabDoesNotChangeTheSection() {
+    @Test("L'onglet « Gérer » ne change pas la section : c'est une liste")
+    func manageTabDoesNotChangeTheSection() {
         let navigation = NavigationModel()
-        navigation.section = .gallery
+        navigation.section = .titles
 
-        navigation.compactTab = .more
+        navigation.compactTab = .manage
 
-        #expect(navigation.section == .gallery)
+        #expect(navigation.section == .titles)
     }
 
-    @Test("Changer de segment ne déplace la section que depuis l'onglet Catalogue")
-    func segmentOnlyMovesTheSectionFromItsOwnTab() {
-        let navigation = NavigationModel()
-        navigation.compactTab = .gallery
-
-        navigation.catalogueSegment = .people
-
-        #expect(navigation.section == .gallery)
+    @Test("Chaque section a un onglet d'accueil, et « Gérer » recueille le reste")
+    func everySectionIsReachableFromATab() {
+        // Le contrôle qui manquait : sans lui, ajouter une section la rendrait
+        // inatteignable sur iPhone sans que rien ne le signale. Les quatre sections que le
+        // design ne met dans aucun onglet — Personnes, Collections, Galerie, Signets —
+        // doivent être listées par « Gérer ». Voir la note de `CompactTab`.
+        for section in AppSection.allCases {
+            let tab = CompactTab.containing(section)
+            if tab == .manage {
+                #expect(CompactTab.managed.contains(section), "\(section.rawValue) introuvable")
+            } else {
+                #expect(tab.section == section, "\(section.rawValue)")
+            }
+        }
     }
 
     // MARK: Piles
@@ -156,8 +168,7 @@ struct NavigationModelTests {
         restored.restore(profileID: profileID, from: defaults)
 
         #expect(restored.section == .people)
-        #expect(restored.catalogueSegment == .people)
-        #expect(restored.compactTab == .catalogue, "L'onglet doit suivre la section restaurée")
+        #expect(restored.compactTab == .manage, "L'onglet doit suivre la section restaurée")
         #expect(restored.path(for: .people) == [route])
         #expect(restored.isInspectorPresented)
     }
@@ -195,7 +206,6 @@ struct NavigationModelTests {
         #expect(navigation.section == .home)
         #expect(navigation.paths.isEmpty)
         #expect(navigation.isInspectorPresented == false)
-        #expect(navigation.catalogueSegment == .titles)
         #expect(navigation.canGoToNext == false)
     }
 }

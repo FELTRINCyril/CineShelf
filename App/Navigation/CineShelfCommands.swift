@@ -29,7 +29,16 @@ struct CineShelfCommands: Commands {
         }
 
         CommandGroup(after: .toolbar) {
+            // ⌘K et non ⌘F : c'est le raccourci que la barre de navigation **affiche**
+            // (planche 2 bloc `3a`, « Rechercher ⌘K »), et une mention de raccourci qui ne
+            // fonctionne pas est pire que pas de mention. ⌘F reste en second, parce que
+            // c'est le réflexe Mac et qu'il ne coûte rien.
             Button("Rechercher") {
+                navigation.section = .search
+            }
+            .keyboardShortcut("k", modifiers: .command)
+
+            Button("Rechercher (⌘F)") {
                 navigation.section = .search
             }
             .keyboardShortcut("f", modifiers: .command)
@@ -40,16 +49,19 @@ struct CineShelfCommands: Commands {
             .keyboardShortcut("i", modifiers: [.option, .command])
         }
 
-        // « Aller à » et non « Bibliothèque » : ce menu ne contient aucune
-        // `Library`. Le mot est réservé à l'entité.
+        // « Aller à » et non « Bibliothèque » : ce menu ne contient aucune `Library`, et
+        // le mot est réservé à l'entité. Le prototype montre bien un menu `Bibliothèque`
+        // (planche 2 bloc `3a`), mais ce qu'il y range — changer de bibliothèque, gérer
+        // les profils — appartient à `V7` et n'a encore aucune cible. Le créer vide
+        // n'annoncerait rien.
         CommandMenu("Aller à") {
-            ForEach(AppSection.sidebar) { section in
+            ForEach(AppSection.navigationBar) { section in
                 Button(section.title) { navigation.section = section }
             }
 
             Divider()
 
-            Button(AppSection.myList.title) { navigation.section = .myList }
+            Button(AppSection.savedLinks.title) { navigation.section = .savedLinks }
             Button(AppSection.transfer.title) { navigation.section = .transfer }
         }
 

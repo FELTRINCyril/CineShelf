@@ -27,13 +27,6 @@ final class NavigationModel {
         didSet { alignSection(with: compactTab, from: oldValue) }
     }
 
-    var catalogueSegment: CatalogueSegment = .titles {
-        didSet {
-            guard compactTab == .catalogue else { return }
-            section = catalogueSegment.section
-        }
-    }
-
     /// Une pile par destination empilable. Absente du dictionnaire = pile vide.
     ///
     /// Clé dédiée plutôt que `AppSection` : l'onglet « Plus » est une liste, pas
@@ -68,7 +61,7 @@ final class NavigationModel {
     /// Ce qui identifie une pile de navigation.
     enum StackID: Hashable, Codable, Sendable {
         case section(AppSection)
-        /// L'onglet « Plus » : une liste de sections, pas une section.
+        /// L'onglet « Gérer » : une liste de sections, pas une section.
         case more
 
         var storageKey: String {
@@ -146,27 +139,19 @@ final class NavigationModel {
 
     // MARK: Cohérence compact / large
 
-    /// Aligne onglet et segment quand la section change (sélection dans la
-    /// barre latérale, raccourci clavier, restauration).
+    /// Aligne l'onglet quand la section change (sélection dans la barre de navigation,
+    /// raccourci clavier, restauration).
     private func alignCompactSelection(with section: AppSection, from previous: AppSection) {
         guard section != previous else { return }
         compactTab = CompactTab.containing(section)
-        if let segment = CatalogueSegment.matching(section) {
-            catalogueSegment = segment
-        }
     }
 
-    /// Aligne la section quand l'onglet change. « Plus » n'a pas de section
-    /// propre : c'est une liste, la section ne bouge qu'à la sélection d'une
-    /// de ses entrées.
+    /// Aligne la section quand l'onglet change. « Gérer » n'a pas de section propre :
+    /// c'est une liste, la section ne bouge qu'à la sélection d'une de ses entrées.
     private func alignSection(with tab: CompactTab, from previous: CompactTab) {
         guard tab != previous else { return }
-        switch tab {
-        case .catalogue: section = catalogueSegment.section
-        case .more: break
-        default:
-            if let target = tab.section { section = target }
-        }
+        guard let target = tab.section else { return }
+        section = target
     }
 }
 
@@ -182,7 +167,6 @@ extension NavigationModel {
     /// avant le prompt 11 restent lisibles au lieu d'être jetés en bloc.
     private struct Snapshot: Codable {
         var section: AppSection
-        var catalogueSegment: CatalogueSegment
         var paths: [String: [AppRoute]]
         var isInspectorPresented: Bool
         var titleFilter: TitleFilter?
@@ -197,7 +181,6 @@ extension NavigationModel {
     func save(profileID: UUID, to defaults: UserDefaults = .standard) {
         let snapshot = Snapshot(
             section: section,
-            catalogueSegment: catalogueSegment,
             paths: Dictionary(uniqueKeysWithValues: paths.map { ($0.key.storageKey, $0.value) }),
             isInspectorPresented: isInspectorPresented,
             titleFilter: titleFilter
@@ -222,7 +205,6 @@ extension NavigationModel {
             return
         }
 
-        catalogueSegment = snapshot.catalogueSegment
         section = snapshot.section
         paths = Dictionary(
             uniqueKeysWithValues: snapshot.paths.compactMap { key, value in
@@ -234,7 +216,6 @@ extension NavigationModel {
     }
 
     private func reset() {
-        catalogueSegment = .titles
         section = .home
         paths = [:]
         isInspectorPresented = false

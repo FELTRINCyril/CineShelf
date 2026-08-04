@@ -3,9 +3,9 @@ import SwiftUI
 
 /// Les sections de premier niveau de l'app.
 ///
-/// Leur *répartition* dépend de la disposition, pas leur définition : en
-/// compact elles se distribuent entre les cinq onglets de `CompactTab`, en
-/// large entre la barre latérale et le menu de profil. Voir `docs/01` partie C.
+/// Leur *répartition* dépend de la disposition, pas leur définition : en compact elles se
+/// distribuent entre les cinq onglets de `CompactTab`, en régulier entre la barre de
+/// navigation haute et le menu de profil. Voir la planche 2, blocs `3a` à `3c`.
 enum AppSection: String, CaseIterable, Identifiable, Hashable, Codable, Sendable {
     case home
     case titles
@@ -41,112 +41,102 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable, Codable, Sendable
     /// les recopier à la main ferait diverger l'app du catalogue.
     var symbol: String {
         switch self {
-        case .home: "house"
+        case .home: Icon.home
         case .titles: Icon.titles
         case .people: Icon.people
         case .collections: Icon.collections
         case .gallery: Icon.gallery
         case .savedLinks: Icon.bookmarks
         case .search: Icon.search
-        case .myList: "list.star"
+        case .myList: Icon.myList
         case .libraryAdmin: "slider.horizontal.3"
         case .transfer: Icon.importItem
         case .settings: Icon.settings
         }
     }
 
-    /// Les entrées de la barre latérale en disposition large — `docs/01` partie C.
+    /// Les six entrées de la **barre de navigation haute** — planche 2 bloc `3a`, relevées
+    /// dans cet ordre : `CINESHELF · Accueil · Titres · Personnes · Collections · Galerie ·
+    /// Ma liste`.
     ///
-    /// `search` n'y figure pas volontairement : sur Mac on l'atteint par ⌘F, et
-    /// sur iPhone c'est un onglet. Les sections de service (`myList`,
-    /// `libraryAdmin`, `transfer`, `settings`) vivent dans le menu de profil,
-    /// pendant large de l'onglet « Plus ».
-    static let sidebar: [AppSection] = [
-        .home, .titles, .people, .collections, .gallery, .savedLinks
+    /// **`search` n'y est pas** : le prototype la met à droite, avec son raccourci ⌘K, donc
+    /// elle est rendue par `TopNavigationBar` à part. **`savedLinks` non plus** : le
+    /// prototype ne la montre pas dans la barre, elle vit dans le menu de profil.
+    ///
+    /// Renommée depuis `sidebar` par `V0` : il n'y a plus de barre latérale, et garder le
+    /// nom aurait fait chercher un composant qui n'existe plus.
+    static let navigationBar: [AppSection] = [
+        .home, .titles, .people, .collections, .gallery, .myList
     ]
 
-    /// Les sections regroupées derrière le menu de profil et l'onglet « Plus ».
-    static let utility: [AppSection] = [.myList, .libraryAdmin, .transfer, .settings]
+    /// Les sections regroupées derrière le menu de profil, pendant régulier de l'onglet
+    /// « Gérer ».
+    static let utility: [AppSection] = [.savedLinks, .libraryAdmin, .transfer, .settings]
 }
 
-/// Les cinq onglets de la disposition compacte — `docs/01` partie C.
+/// Les cinq onglets de la disposition compacte — planche 2 bloc `3c`, relevés dans cet
+/// ordre : **Accueil · Titres · Recherche · Ma liste · Gérer**.
 ///
-/// Ils ne correspondent pas un pour un aux sections : « Catalogue » en regroupe
-/// trois derrière un sélecteur segmenté, et « Plus » sert de porte d'entrée aux
-/// sections de service, qui seraient sinon inatteignables sur iPhone.
+/// **Ils ne couvrent pas toutes les sections, et c'est une lacune du design, pas un choix.**
+/// Personnes, Collections, Galerie et Signets n'ont aucun onglet sur iPhone et le handoff
+/// ne dit pas où on les atteint — son §6 ne parle que de la *mise en page* des huit écrans
+/// non dessinés, pas de leur accessibilité. `V0` les met derrière « Gérer », qui est
+/// l'onglet fourre-tout du prototype, plutôt que de les rendre inatteignables. L'écart est
+/// inscrit dans `docs/PROMPTS.md`.
 enum CompactTab: String, CaseIterable, Identifiable, Hashable, Codable, Sendable {
     case home
-    case catalogue
-    case gallery
+    case titles
     case search
-    case more
+    case myList
+    case manage
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .home: "Accueil"
-        case .catalogue: "Catalogue"
-        case .gallery: "Galerie"
-        case .search: "Recherche"
-        case .more: "Plus"
+        case .home: AppSection.home.title
+        case .titles: AppSection.titles.title
+        case .search: AppSection.search.title
+        case .myList: AppSection.myList.title
+        case .manage: "Gérer"
         }
     }
 
     var symbol: String {
         switch self {
-        case .home: "house"
-        case .catalogue: Icon.titles
-        case .gallery: Icon.gallery
+        case .home: Icon.home
+        case .titles: Icon.titles
         case .search: Icon.search
-        case .more: "ellipsis.circle"
+        case .myList: Icon.myList
+        case .manage: "slider.horizontal.3"
         }
     }
 
-    /// La section affichée par cet onglet, hors « Catalogue » dont le contenu
-    /// dépend du segment choisi et « Plus » qui est une liste.
+    /// La section affichée par cet onglet. « Gérer » n'en a pas : c'est une liste.
     var section: AppSection? {
         switch self {
         case .home: .home
-        case .gallery: .gallery
+        case .titles: .titles
         case .search: .search
-        case .catalogue, .more: nil
+        case .myList: .myList
+        case .manage: nil
         }
     }
 
-    /// L'onglet qui donne accès à une section, pour aligner la sélection quand
-    /// on passe de la disposition large à la disposition compacte.
+    /// Ce que l'onglet « Gérer » liste : les quatre sections que la barre d'onglets ne
+    /// couvre pas, puis les sections de service.
+    static let managed: [AppSection] = [.people, .collections, .gallery] + AppSection.utility
+
+    /// L'onglet qui donne accès à une section, pour aligner la sélection quand on passe de
+    /// la disposition régulière à la disposition compacte.
     static func containing(_ section: AppSection) -> CompactTab {
         switch section {
         case .home: .home
-        case .titles, .people, .collections: .catalogue
-        case .gallery: .gallery
-        case .search: .search
-        case .savedLinks, .myList, .libraryAdmin, .transfer, .settings: .more
-        }
-    }
-}
-
-/// Le sélecteur segmenté de l'onglet « Catalogue ».
-enum CatalogueSegment: String, CaseIterable, Identifiable, Hashable, Codable, Sendable {
-    case titles
-    case people
-    case collections
-
-    var id: String { rawValue }
-
-    var section: AppSection {
-        switch self {
         case .titles: .titles
-        case .people: .people
-        case .collections: .collections
+        case .search: .search
+        case .myList: .myList
+        case .people, .collections, .gallery, .savedLinks, .libraryAdmin, .transfer, .settings:
+            .manage
         }
-    }
-
-    var title: String { section.title }
-
-    /// Le segment correspondant à une section, s'il y en a un.
-    static func matching(_ section: AppSection) -> CatalogueSegment? {
-        allCases.first { $0.section == section }
     }
 }

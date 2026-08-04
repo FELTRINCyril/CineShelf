@@ -42,10 +42,16 @@ public struct TitleRepository {
     /// qui fait qu'un titre rendu privé sort de l'index sans que l'appelant ait à le
     /// savoir. Un `update` qui bascule `isPrivate` et un `update` qui corrige une faute
     /// de frappe passent par le même chemin. Voir `SpotlightIndexer`.
-    public func update(_ title: Title, _ mutate: (Title) -> Void) {
+    public func update(
+        _ title: Title,
+        journal: JournalPolicy = .perEntity,
+        _ mutate: (Title) -> Void
+    ) {
         mutate(title)
         title.refreshDerived()
-        ActivityRecorder(context: context).record(.update, title)
+        if journal == .perEntity {
+            ActivityRecorder(context: context).record(.update, title)
+        }
         spotlight.sync(title)
     }
 
@@ -86,12 +92,20 @@ public struct TitleRepository {
     //
     // Chacune délègue à `update(_:_:)`, qui appelle `refreshDerived()` et journalise.
 
-    public func setCollection(_ collection: TitleCollection?, on title: Title) {
-        update(title) { $0.collection = collection }
+    public func setCollection(
+        _ collection: TitleCollection?,
+        on title: Title,
+        journal: JournalPolicy = .perEntity
+    ) {
+        update(title, journal: journal) { $0.collection = collection }
     }
 
-    public func setGenres(_ genres: [Genre], on title: Title) {
-        update(title) { $0.genres = genres }
+    public func setGenres(
+        _ genres: [Genre],
+        on title: Title,
+        journal: JournalPolicy = .perEntity
+    ) {
+        update(title, journal: journal) { $0.genres = genres }
     }
 
     /// Déplace un titre vers une autre bibliothèque.

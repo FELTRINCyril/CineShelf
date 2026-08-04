@@ -126,3 +126,53 @@ struct EntityQueryTests {
         )
     }
 }
+
+// MARK: - Les requêtes par lot d'identifiants
+
+@MainActor
+struct BatchIdentifierQueryTests {
+
+    @Test("withIDs se traduit bien en SQL, et discrimine")
+    func withIDsTranslatesToSQL() throws {
+        let (context, library) = try makeTestLibrary()
+        let repository = TitleRepository(context: context)
+        let wanted = repository.create(name: "Voulu", in: library)
+        let other = repository.create(name: "Autre", in: library)
+        // `save()` avant le `fetch` : sur des objets encore en attente, SwiftData évalue
+        // le prédicat en Swift et sa traduction SQL n'est jamais exercée. C'est la règle
+        // de `CLAUDE.md`, et c'est ce qui avait laissé la grille des titres vide derrière
+        // 42 tests verts.
+        try context.save()
+
+        let found = try context.fetch(
+            FetchDescriptor<Title>(predicate: TitleQuery.withIDs([wanted.id])))
+        #expect(found.map(\.name) == ["Voulu"])
+
+        // Contrôle négatif : sans lui, un prédicat qui rendrait tout passerait aussi.
+        #expect(other.id != wanted.id)
+        let none = try context.fetch(
+            FetchDescriptor<Title>(predicate: TitleQuery.withIDs([UUID()])))
+        #expect(none.isEmpty)
+
+        // Et un lot de plusieurs identifiants : c'est le `IN (...)` qui est en jeu.
+        let both = try context.fetch(
+            FetchDescriptor<Title>(predicate: TitleQuery.withIDs([wanted.id, other.id])))
+        #expect(both.count == 2)
+    }
+
+    @Test("Les genres et collections par lot voient aussi la corbeille")
+    func batchQueriesSeeTheTrash() throws {
+        let (context, library) = try makeTestLibrary()
+        let genres = GenreRepository(context: context)
+        let genre = try genres.findOrCreate(name: "Policier", target: .title, in: library)
+        genres.softDelete(genre)
+        try context.save()
+
+        // Délibéré : l'édition en masse doit distinguer « à la corbeille » de « n'existe
+        // pas » pour rendre le bon refus. Filtrer ici rendrait les deux indiscernables.
+        let found = try context.fetch(
+            FetchDescriptor<Genre>(predicate: GenreQuery.withIDs([genre.id])))
+        #expect(found.count == 1)
+        #expect(found[0].deletedAt != nil)
+    }
+}

@@ -29,6 +29,33 @@ public enum TitleQuery {
     public static func withID(_ id: UUID) -> Predicate<Title> {
         #Predicate<Title> { $0.id == id }
     }
+
+    /// Les titres d'un lot d'identifiants.
+    ///
+    /// Sert a l'edition en masse, qui recoit une selection d'identifiants et doit la
+    /// charger **dans son propre contexte** : un `@Model` appartient au contexte qui
+    /// l'a lu, et le traverser vers un acteur ne compile pas en concurrence stricte.
+    ///
+    /// Un seul aller-retour plutot qu'un `fetch` par identifiant : sur cinquante
+    /// titres, la difference n'est pas le temps mais le nombre de transactions
+    /// ouvertes, et donc la fenetre pendant laquelle un lot peut echouer a moitie.
+    /// `Set.contains` se traduit en `IN (...)`, ce qu'un test verifie sur le magasin.
+    public static func withIDs(_ ids: Set<UUID>) -> Predicate<Title> {
+        #Predicate<Title> { ids.contains($0.id) }
+    }
+}
+
+public enum PersonQuery {
+
+    /// Une personne par identifiant.
+    public static func withID(_ id: UUID) -> Predicate<Person> {
+        #Predicate<Person> { $0.id == id }
+    }
+
+    /// Les personnes d'un lot d'identifiants. Meme motif que `TitleQuery.withIDs`.
+    public static func withIDs(_ ids: Set<UUID>) -> Predicate<Person> {
+        #Predicate<Person> { ids.contains($0.id) }
+    }
 }
 
 public enum GenreQuery {
@@ -63,6 +90,16 @@ public enum GenreQuery {
     public static func living(key: String) -> Predicate<Genre> {
         #Predicate<Genre> { $0.nameKey == key && $0.deletedAt == nil }
     }
+
+    /// Les genres d'un lot d'identifiants, **corbeille comprise**.
+    ///
+    /// Contrairement aux autres requetes de genre, celle-ci ne filtre pas
+    /// `deletedAt == nil`, et c'est delibere : l'edition en masse doit distinguer
+    /// « ce genre n'existe pas » de « ce genre est a la corbeille » pour rendre le bon
+    /// refus. Filtrer ici rendrait les deux cas indiscernables.
+    public static func withIDs(_ ids: Set<UUID>) -> Predicate<Genre> {
+        #Predicate<Genre> { ids.contains($0.id) }
+    }
 }
 
 public enum MediaQuery {
@@ -95,6 +132,14 @@ public enum MediaQuery {
 // premier.
 
 public enum CollectionQuery {
+
+    /// Les collections d'un lot d'identifiants, **corbeille comprise**.
+    ///
+    /// Meme motif que `GenreQuery.withIDs` : l'edition en masse doit pouvoir dire
+    /// « cette collection est a la corbeille » plutot que « elle n'existe pas ».
+    public static func withIDs(_ ids: Set<UUID>) -> Predicate<TitleCollection> {
+        #Predicate<TitleCollection> { ids.contains($0.id) }
+    }
 
     /// Les collections visibles qui correspondent à un terme.
     ///

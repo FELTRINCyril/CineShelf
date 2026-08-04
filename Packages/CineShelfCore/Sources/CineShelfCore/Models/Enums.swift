@@ -115,4 +115,12 @@ public enum ActivityEntityType: String, Codable, CaseIterable, Sendable {
 public enum ActivityAction: String, Codable, CaseIterable, Sendable {
     case create, update, delete, restore, merge
     case `import`
+    /// Une edition en masse : une seule entree pour tout un lot.
+    ///
+    /// Distinct d'`update` parce que le fil doit pouvoir la presenter autrement — « 47
+    /// titres modifies » et non quarante-sept lignes — et parce que `L20` retrouve les
+    /// lots annulables par cette action. Ajouter un cas ne touche pas au schema :
+    /// `ActivityEntry.actionRaw` est une `String`, et `action` rend `nil` sur un
+    /// `rawValue` inconnu.
+    case bulkEdit
 }

@@ -33,10 +33,16 @@ public struct PersonRepository {
         return person
     }
 
-    public func update(_ person: Person, _ mutate: (Person) -> Void) {
+    public func update(
+        _ person: Person,
+        journal: JournalPolicy = .perEntity,
+        _ mutate: (Person) -> Void
+    ) {
         mutate(person)
         person.refreshDerived()
-        ActivityRecorder(context: context).record(.update, person)
+        if journal == .perEntity {
+            ActivityRecorder(context: context).record(.update, person)
+        }
         spotlight.sync(person)
     }
 
@@ -61,12 +67,20 @@ public struct PersonRepository {
     // relation écrite sans `refreshDerived()` rend le filtre correspondant faux en
     // silence. La règle `no_relation_write_outside_core` interdit les autres portes.
 
-    public func setGenres(_ genres: [Genre], on person: Person) {
-        update(person) { $0.genres = genres }
+    public func setGenres(
+        _ genres: [Genre],
+        on person: Person,
+        journal: JournalPolicy = .perEntity
+    ) {
+        update(person, journal: journal) { $0.genres = genres }
     }
 
-    public func setRoles(_ roles: Set<PersonRole>, on person: Person) {
-        update(person) { $0.roles = roles }
+    public func setRoles(
+        _ roles: Set<PersonRole>,
+        on person: Person,
+        journal: JournalPolicy = .perEntity
+    ) {
+        update(person, journal: journal) { $0.roles = roles }
     }
 
     public func move(_ person: Person, to library: Library) {

@@ -2366,3 +2366,140 @@ tests verts, aucun résidu dans le catalogue d'assets.
 | Preuve d'échec — token nommé `fill` | 4 tests au rouge, message d'aide correct |
 | Sonde des statiques natives | 20 relevées, contrôle négatif concluant |
 | CI du commit `I1` | verte |
+
+---
+
+## 2026-08-04 (4) — `L10` : l'édition en masse
+
+Deux arbitrages avant d'écrire : **tout ou rien strict** (validation d'abord, un refus
+n'écrit rien) et **périmètre `Title` + `Person`**, les deux seules entités qui portent
+`filterKeys`, des relations dénormalisées et un volume réel.
+
+**Ce qui est livré**
+
+`Services/BulkEdit/` : le descripteur (`TitleBulkMutation`, 17 cas ; `PersonBulkMutation`,
+9 cas), la validation, l'exécuteur, le diff inversable. Les quatre opérations de la fiche
+— remplacer, vider, ajouter à une relation, retirer d'une relation — sont portées par les
+cas de l'enum plutôt que par un enum séparé : « vider » n'a pas de sens sur un `Bool` et
+« ajouter » n'en a pas sur un scalaire, donc autant rendre ces combinaisons impossibles à
+écrire plutôt qu'à valider.
+
+Les relations sont désignées par `UUID`, jamais par objet : un `@Model` n'est pas
+`Sendable`, et il appartient au contexte qui l'a lu.
+
+**Le bug que j'étais en train d'écrire**
+
+Ma première version faisait passer chaque mutation par `repository.update`. Or `update`
+**journalise une entrée par entité** : cinquante titres modifiés auraient produit
+cinquante `ActivityEntry` en plus de celle du lot — exactement ce que la fiche interdit,
+et le fil en devenait illisible.
+
+La tentation était alors de muter en direct, sans les repositories. Écartée : ce sont eux
+qui appellent `refreshDerived()`, donc qui maintiennent `filterKeys`, et une relation
+écrite sans rafraîchissement rend le filtre correspondant faux **en silence**. D'où
+`JournalPolicy` — `.perEntity` par défaut, `.batched` pour un lot. Mieux un paramètre de
+plus qu'une seconde porte d'écriture.
+
+Au passage, un second piège du même genre : `PersonRepository.setGenres` et `setRoles`
+acceptaient le nouveau paramètre **sans le transmettre** à `update`. Le lot aurait
+journalisé quand même, et rien ne l'aurait signalé.
+
+**Trois précautions pour le tout ou rien, chacune vérifiée**
+
+| Précaution | Ce qu'elle évite |
+|---|---|
+| Contexte dédié, créé depuis le conteneur | `rollback()` annule les changements du contexte *entier* : partager celui des vues ferait perdre la saisie en cours dans un éditeur ouvert |
+| `autosaveEnabled = false` | `rollback()` ne défait que ce qui est **en attente**. Un enregistrement automatique intercalé laisse la première moitié du lot sur disque |
+| Validation avant la première écriture | Muter puis annuler, c'est mettre le contexte dans un état dont il faut sortir. Mesuré : un refus coûte 27 ms contre 108 ms pour une application — la sortie est bien précoce |
+
+L'API a été sondée avant d'être utilisée, pas supposée : `rollback()` remet bien
+`hasChanges` à `false` et vide `insertedModelsArray`, `autosaveEnabled` est réglable, et
+`transaction(_:)` existe.
+
+**`@MainActor` plutôt qu'un acteur, et pourquoi c'est acceptable**
+
+Les repositories sont `@MainActor`, parce qu'ils tiennent un `SpotlightIndexer` dont
+l'implémentation l'est. Les contourner pour gagner un acteur reviendrait à muter les
+relations en direct — le prix est trop élevé. Le lot reste borné par construction : une
+sélection que l'utilisateur a sous les yeux, pas un import. L'insertion massive, c'est
+`ImportActor` et ses lots de 200, sujet de `L11`.
+
+`BulkEditPerformanceTests` mesure pour que le jour où ce raisonnement cesse d'être vrai se
+voie. Sur 500 titres — bien plus qu'une sélection réelle :
+
+| Chemin | Total | Par titre |
+|---|---:|---:|
+| Champ scalaire | 108 ms | 0,22 ms |
+| Relation (recompose `filterKeys`) | 275 ms | 0,55 ms |
+| Refus (validation seule) | 27 ms | — |
+
+Les plafonds assènés sont un ordre de grandeur au-dessus : ils attrapent une régression
+algorithmique, pas le bruit d'un runner partagé.
+
+**Le diff, contrat avec `L20`**
+
+`ActivityEntry.payload` reçoit un JSON versionné : par entité, les changements
+avant/après champ par champ, et les identifiants rattachés et détachés pour les
+relations. Trois décisions qui comptent pour l'annulation :
+
+- **Les valeurs sont des `String?`** avec un encodage explicite par type. Un `AnyCodable`
+  maison finirait par accepter un dictionnaire imbriqué que l'annulation ne saurait plus
+  relire. `Double` en `%.17g`, dates en ISO 8601 UTC — un diff écrit à Paris en juillet
+  doit se relire en janvier.
+- **`nil` veut dire « le champ était vide »**, pas « inconnu » : restaurer `nil` est une
+  action.
+- **La version est refusée si elle est inconnue**, pas devinée : une annulation qui
+  interprète mal un diff est pire que pas d'annulation.
+
+Le diff est capturé **avant** chaque écriture. `releaseDate` et `releasePrecision` y
+bougent toujours ensemble — une date sans sa précision se relit comme une date au jour
+près, et c'est le bug qui avait dégradé les dates exactes en 1er janvier au prompt 11.
+
+**Les refus, groupables par cause**
+
+Un enum de causes et non un message libre : l'aperçu d'import groupe 417 lignes fautives
+en six causes, et un message libre ne se groupe pas. La cause la plus sournoise est
+`relationInAnotherLibrary` — rien ne l'empêche techniquement, et le résultat est un genre
+qui fuit d'un catalogue à l'autre. Elle est vérifiée **par entité**, une sélection pouvant
+mélanger deux bibliothèques.
+
+`GenreQuery.withIDs` et `CollectionQuery.withIDs` ne filtrent délibérément pas
+`deletedAt == nil`, contrairement à toutes les autres requêtes de genre : sans ça, « à la
+corbeille » et « n'existe pas » seraient indiscernables, alors que l'utilisateur n'a pas
+la même chose à faire.
+
+**Découpage imposé par le lint, et le filet qui va avec**
+
+`applyToTitle` dépassait la complexité autorisée. Découpé en quatre corps — numérique,
+date, texte et drapeaux, relations — avec un aiguillage **exhaustif et sans `default`** :
+un cas ajouté à l'enum casse la compilation là, ce qui force à décider de sa famille. Les
+corps ont un `default` avec `assertionFailure`, atteignable seulement si l'aiguillage est
+faux. `BulkEditorDispatchTests` exerce les 17 et les 9 mutations pour que ce soit vérifié
+et pas seulement écrit.
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| Tests `CineShelf` (macOS) | `** TEST SUCCEEDED **` |
+| `swift test` Core / DesignSystem / MediaKit | **200** / 51 / 38 (159 avant pour Core) |
+| `swiftlint --strict` | 0 violation / 178 fichiers |
+| `xcrun swift-format lint` | 0 avertissement |
+| Preuve d'échec — `guard refusals.isEmpty` retiré | 5 tests au rouge |
+| Preuve d'échec — `.batched` remis en `.perEntity` | `perEntityEntries → 5` et `→ 2` |
+
+Les assertions d'absence d'écriture relisent depuis un **contexte neuf**, jamais depuis
+celui de l'éditeur : sur des objets encore en attente, un `rollback()` mal fait passe
+inaperçu. C'est la règle de `CLAUDE.md`, et c'est ce qui avait coûté 42 tests verts sur
+une grille vide.
+
+`MediaKit` a échoué sur `cannot find type 'JournalPolicy' in scope` avant que
+`rm -rf .build` ne le règle : le cas est déjà documenté dans `CLAUDE.md`, ce n'était pas
+un défaut de code.
+
+**Reste ouvert**
+
+L'annulation elle-même est `L20` : `payload` et `undoneAt` sont écrits et lisibles, mais
+personne ne les consomme encore. `V6` ne doit pas livrer l'édition en masse sans elle —
+c'est déjà au tableau des tâches VUES.

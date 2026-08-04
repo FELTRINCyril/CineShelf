@@ -117,11 +117,42 @@ public struct ColumnMatcher: Sendable {
     ///   - rows: les premières lignes de données. Vides, seules les deux passes par le nom
     ///     jouent — c'est le cas d'un fichier qui n'a que son en-tête, et ce n'est pas une
     ///     erreur.
+    ///   - remembered: une correspondance déjà mémorisée pour cet en-tête, s'il en existe
+    ///     une. Ses décisions sont posées **avant** toute déduction, et en `.certain` : ce
+    ///     sont des choix de l'utilisateur, pas des devinettes.
     /// - Returns: un rapprochement par colonne, plus les champs requis sans colonne.
-    public func analyze(header: [String], rows: [CSVRow] = []) -> ColumnAnalysis {
+    public func analyze(
+        header: [String],
+        rows: [CSVRow] = [],
+        remembered: ColumnMapping? = nil
+    ) -> ColumnAnalysis {
         let samples = self.samples(from: rows, columnCount: header.count)
         var claimed: Set<String> = []
         var results = [ColumnMatch?](repeating: nil, count: header.count)
+
+        // **Rejouer la correspondance mémorisée, et c'était le trou.** `ColumnMapping`
+        // s'écrivait, se relisait et se versionnait, mais rien ne la rejouait : aucune
+        // fonction ne transformait un mappage en `ColumnAnalysis`. La promesse de la fiche
+        // — « Réutiliser cette correspondance pour les prochains fichiers de même en-tête »
+        // — n'était donc pas exécutable depuis Core, et un appelant aurait dû enchaîner des
+        // `assigning(fieldKey:toColumnAt:)` depuis un dictionnaire, c'est-à-dire mettre la
+        // logique de reprise dans une vue. `CLAUDE.md` l'interdit.
+        if let remembered, remembered.entity == schema.entity {
+            for (index, name) in header.enumerated() {
+                guard let key = remembered.columnToField[name],
+                    schema.field(forKey: key) != nil,
+                    !claimed.contains(key)
+                else { continue }
+                claimed.insert(key)
+                results[index] = ColumnMatch(
+                    columnIndex: index,
+                    columnName: name,
+                    fieldKey: key,
+                    quality: .certain,
+                    rationale: "Correspondance mémorisée."
+                )
+            }
+        }
 
         for pass in Pass.allCases {
             for (index, name) in header.enumerated() where results[index] == nil {
@@ -201,19 +232,40 @@ public struct ColumnMatcher: Sendable {
         }
     }
 
-    /// La déduction par le contenu, et sa règle d'abstention.
+    /// Les formes dont le contenu suffit à désigner un champ.
     ///
-    /// Une forme ne désigne un champ que si **un seul** champ disponible la porte. Trois
-    /// dates dans une colonne sans nom reconnaissable pourraient être une date de sortie
-    /// comme une date d'ajout : deviner, ce serait écrire la mauvaise. La colonne reste alors
-    /// non reconnue, ce qui n'est pas une erreur et se corrige d'un menu.
+    /// **Toutes les formes ne se valent pas, et le croire a produit un vrai bug.** La règle
+    /// « une seule forme, un seul champ disponible » ne protégeait que par accident : dès
+    /// qu'un alias avait réclamé `added_at`, `release_date` devenait le seul champ `.date`
+    /// restant, et n'importe quelle colonne de dates non reconnue le prenait. Mesuré sur le
+    /// fichier de la planche 11d : `bought_at` — la date d'**achat** — était déduite en date
+    /// de **sortie**. Le même mécanisme guettait `episode_count`, qui n'échappait au nombre
+    /// de visionnages que parce que trois champs `.integer` restaient libres.
+    ///
+    /// Ne restent donc que les formes qui portent une contrainte **discriminante** :
+    ///
+    /// - `.year` : quatre chiffres dans 1888…2030. Une durée en minutes n'y entre pas, un
+    ///   prix non plus. C'est un intervalle étroit sur un format étroit.
+    /// - `.boolean` : `oui` / `non` et leurs variantes. Un vocabulaire fermé de dix valeurs.
+    /// - `.multiValue` : la barre oblique dans **toutes** les valeurs de l'échantillon.
+    ///
+    /// Une date, un entier ou un décimal ne se déduisent **jamais** du seul contenu : trois
+    /// dates peuvent être une sortie, un achat ou un ajout ; trois entiers une durée, un
+    /// nombre de saisons ou un rangement d'étagère. La colonne reste non reconnue, ce qui
+    /// **n'est pas une erreur** — le contrat le dit trois fois — et se corrige d'un menu.
+    /// Une colonne mal devinée, elle, est une erreur, et elle est muette.
+    static let inferableShapes: Set<CSVValueShape> = [.year, .boolean, .multiValue]
+
+    /// La déduction par le contenu, et ses deux règles d'abstention.
     private func contentCandidate(
         from values: [String],
         among available: [CSVField]
     ) -> (key: String, rationale: String?)? {
         let usable = values.filter { !$0.isBlank }
         guard !usable.isEmpty else { return nil }
-        guard let shape = CSVValueSniffer.shape(of: usable) else { return nil }
+        guard let shape = CSVValueSniffer.shape(of: usable),
+            Self.inferableShapes.contains(shape)
+        else { return nil }
 
         let candidates = available.filter { $0.shape == shape }
         guard candidates.count == 1, let field = candidates.first else { return nil }

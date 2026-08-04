@@ -103,6 +103,20 @@ public struct ColumnMapping: Sendable, Hashable, Codable {
     }
 
     /// La correspondance déduite d'une liste de rapprochements.
+    ///
+    /// **Deux colonnes de même nom rendent une correspondance impossible à mémoriser**, et la
+    /// première version en perdait une en silence. `ColumnMatch` documente pourtant le cas :
+    /// « deux colonnes peuvent porter le même nom dans un export bancal, et lire par nom en
+    /// perdrait une » — puis cet initialiseur écrasait la première par la seconde. Mesuré sur
+    /// un en-tête `["Titre", "Titre"]` dont la seconde est affectée à la main : le mappage
+    /// mémorisé ne portait plus que `original_title`, et l'affectation du champ **requis**
+    /// avait disparu.
+    ///
+    /// La correspondance est mémorisée par nom parce qu'elle doit survivre à un déplacement
+    /// de colonne (voir `headerSignature`) : c'est ce qui la rend indépendante de l'ordre, et
+    /// c'est ce qui la rend incapable de distinguer deux homonymes. Le conflit est donc
+    /// **nommé** au lieu d'être arbitré — `duplicateColumnNames` le dit, et
+    /// `ImportMappingRepository.save` refuse.
     public init(entity: ActivityEntityType, matches: [ColumnMatch]) {
         var map: [String: String] = [:]
         for match in matches {
@@ -110,6 +124,24 @@ public struct ColumnMapping: Sendable, Hashable, Codable {
             map[match.columnName] = key
         }
         self.init(entity: entity, columnToField: map)
+    }
+
+    /// Les noms de colonnes qui apparaissent plus d'une fois dans un en-tête.
+    ///
+    /// Comparés **repliés**, comme la signature : `Titre` et `TITRE` sont le même nom pour
+    /// une correspondance mémorisée, donc ils s'y heurtent aussi. Les colonnes vides sont
+    /// ignorées — un export qui finit par un point-virgule solitaire n'est pas un doublon.
+    public static func duplicateColumnNames(in header: [String]) -> [String] {
+        var seen: Set<String> = []
+        var duplicates: [String] = []
+        for name in header {
+            let key = name.foldedForMatching.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty else { continue }
+            if !seen.insert(key).inserted, !duplicates.contains(name) {
+                duplicates.append(name)
+            }
+        }
+        return duplicates
     }
 
     /// Ce que l'entité porte, encodé.
@@ -124,7 +156,10 @@ public struct ColumnMapping: Sendable, Hashable, Codable {
     ///   pu écrire un format que celui-ci ne connaît pas.
     public static func decoded(from data: Data) throws -> ColumnMapping {
         let mapping = try JSONDecoder().decode(ColumnMapping.self, from: data)
-        guard mapping.version <= currentVersion else {
+        // Bornée **des deux côtés** : la première version ne refusait que le futur, donc une
+        // version 0 ou négative passait pour valide. Un JSON tronqué ou fabriqué à la main
+        // n'a pas à se lire comme un mappage de la version courante.
+        guard mapping.version >= 1, mapping.version <= currentVersion else {
             throw ColumnMappingError.unsupportedVersion(mapping.version)
         }
         return mapping
@@ -136,6 +171,27 @@ public enum ColumnMappingError: Error, Sendable, Hashable {
     case unsupportedVersion(Int)
     /// L'entité n'a pas de schéma de colonnes.
     case unknownEntity(ActivityEntityType)
+    /// L'en-tête porte deux colonnes de même nom : la correspondance ne peut pas être
+    /// mémorisée sans en perdre une.
+    case duplicateColumnNames([String])
+
+    /// Le message montré à l'utilisateur. Dit quoi faire, pas ce qui est faux.
+    public var message: String {
+        switch self {
+        case .unsupportedVersion:
+            """
+            Cette correspondance a été enregistrée par une version plus récente de CineShelf. \
+            Mettre l'app à jour, ou refaire la correspondance.
+            """
+        case .unknownEntity:
+            "Cet élément n'a pas de colonnes importables."
+        case .duplicateColumnNames(let names):
+            """
+            \(names.joined(separator: ", ")) : ce nom de colonne apparaît deux fois. \
+            Renommer l'une des deux dans le tableur avant de mémoriser la correspondance.
+            """
+        }
+    }
 }
 
 // MARK: - Reconnaître « le même en-tête »

@@ -331,3 +331,170 @@ func csv(header: [String], rows: [[String]]) -> Data {
     }
     return CSVWriter.byteOrderMark + Data(text.utf8)
 }
+
+// Les défauts de correspondance trouvés par la revue du 2026-08-04.
+struct ColumnMatcherRegressionTests {
+
+    private let matcher = ColumnMatcher(schema: .title)
+
+    /// Les quatorze colonnes de la planche 11d, avec **trois lignes de données réelles**.
+    ///
+    /// C'est ce qui manquait au test d'origine : il appelait `analyze(header:)` sans lignes,
+    /// donc la passe de déduction par le contenu ne jouait jamais. Il décrivait un classement
+    /// que le fichier réel ne produisait pas — exactement le motif que `CLAUDE.md` nomme, un
+    /// test crédible qui verrouille une intention fausse.
+    private func addendumDocument() -> CSVReader.Document {
+        CSVReader().read(
+            csv(
+                header: [
+                    "title", "year", "runtime_min", "media", "shelf_ref", "my_score", "dir",
+                    "cast_1", "genre_raw", "bought_at", "price_eur", "notes_perso", "added",
+                    "watched_count"
+                ],
+                rows: [
+                    [
+                        "Dune", "2021", "155", "BD", "B14", "9", "Villeneuve", "Chalamet",
+                        "sci-fi/thriller", "2022-01-15", "24,99", "steelbook", "2019-04-02", "3"
+                    ],
+                    [
+                        "Tenet", "2020", "150", "4K", "B15", "8", "Nolan", "Washington",
+                        "sci-fi/action", "2021-03-10", "19,90", "prêté", "2021-11-18", "1"
+                    ],
+                    [
+                        "Nope", "2022", "130", "DVD", "A02", "7", "Peele", "Kaluuya",
+                        "horreur/thriller", "2023-05-20", "34,00", "neuf", "2022-06-01", "0"
+                    ]
+                ]))
+    }
+
+    @Test("La date d'achat n'est pas déduite en date de sortie")
+    func purchaseDateIsNotMistakenForReleaseDate() throws {
+        // **Mesuré sur le fichier de la planche 11d, avec ses lignes.** Dès qu'un alias avait
+        // réclamé `added_at`, `release_date` devenait le seul champ `.date` disponible, et
+        // `bought_at` le prenait : la date d'**achat** écrite en date de **sortie**. La règle
+        // « une seule forme, un seul champ » ne protégeait que par accident.
+        let document = addendumDocument()
+        let analysis = matcher.analyze(header: document.header, rows: document.rows)
+        let boughtAt = try #require(analysis.matches.first { $0.columnName == "bought_at" })
+
+        #expect(boughtAt.fieldKey == nil)
+        #expect(boughtAt.quality == .unrecognized)
+    }
+
+    @Test("Le nombre de visionnages n'est pas déduit en nombre d'épisodes")
+    func watchCountIsNotMistakenForEpisodeCount() throws {
+        // Le même mécanisme, sur les entiers : `watched_count` n'échappait à `episode_count`
+        // que parce que trois champs `.integer` restaient libres. Une colonne mal devinée est
+        // une erreur, et elle est muette ; une colonne non reconnue n'est pas une erreur.
+        let document = addendumDocument()
+        let analysis = matcher.analyze(header: document.header, rows: document.rows)
+        let watched = try #require(analysis.matches.first { $0.columnName == "watched_count" })
+
+        #expect(watched.fieldKey == nil)
+    }
+
+    @Test("Le fichier de la planche 11d se classe en trois qualités, contenu compris")
+    func addendumFileWithRowsIsFullyClassified() {
+        let document = addendumDocument()
+        let analysis = matcher.analyze(header: document.header, rows: document.rows)
+
+        #expect(analysis.canProceed)
+        #expect(analysis.matches(quality: .certain).map(\.columnName) == ["title", "year"])
+        // Les six ignorées : les trois du mock, plus les trois colonnes sans champ au modèle
+        // (arbitrage du 2026-08-04), plus `bought_at` que la déduction refuse désormais de
+        // prendre pour une date de sortie.
+        #expect(
+            analysis.ignoredColumnNames == [
+                "media", "shelf_ref", "bought_at", "price_eur", "notes_perso", "watched_count"
+            ])
+    }
+
+    @Test("Une année reste déduite du contenu : sa forme est discriminante")
+    func yearIsStillInferredFromContent() throws {
+        // La restriction ne doit pas tout éteindre. Quatre chiffres dans 1888…2030 est un
+        // intervalle étroit sur un format étroit : une durée en minutes n'y entre pas, un prix
+        // non plus.
+        let document = CSVReader().read(
+            csv(header: ["Titre", "col_1"], rows: [["Dune", "2021"], ["Tenet", "2020"]]))
+        let analysis = matcher.analyze(header: document.header, rows: document.rows)
+
+        #expect(try #require(analysis.matches.last).fieldKey == "year")
+    }
+
+    @Test("Deux colonnes de même nom sont nommées, pas arbitrées")
+    func duplicateColumnNamesAreNamed() {
+        // La correspondance est mémorisée **par nom** — c'est ce qui la rend indépendante de
+        // l'ordre des colonnes — donc deux homonymes en perdraient une. Mesuré : sur
+        // `["Titre", "Titre"]` dont la seconde est affectée à la main, le mappage mémorisé ne
+        // portait plus que `original_title`, et l'affectation du champ **requis** avait
+        // disparu.
+        #expect(ColumnMapping.duplicateColumnNames(in: ["Titre", "Titre"]) == ["Titre"])
+        // Repliés, comme la signature : `Titre` et `TITRE` sont le même nom pour une
+        // correspondance mémorisée.
+        #expect(ColumnMapping.duplicateColumnNames(in: ["Titre", "TITRE"]).isEmpty == false)
+        #expect(ColumnMapping.duplicateColumnNames(in: ["Titre", "Année"]).isEmpty)
+        // Une colonne vide n'est pas un doublon : c'est un point-virgule solitaire en fin
+        // d'export.
+        #expect(ColumnMapping.duplicateColumnNames(in: ["Titre", "", ""]).isEmpty)
+    }
+
+    @Test("Une correspondance mémorisée se rejoue, et ses colonnes sont sûres")
+    func rememberedMappingIsReplayed() throws {
+        // **Rien ne rejouait le mappage relu**, et c'était un trou de contrat : la fiche promet
+        // « Réutiliser cette correspondance pour les prochains fichiers de même en-tête ».
+        // Sans ce paramètre, un appelant aurait dû enchaîner des `assigning(...)` depuis le
+        // dictionnaire, c'est-à-dire mettre la logique de reprise dans une vue.
+        let header = ["col_a", "col_b"]
+        let remembered = ColumnMapping(
+            entity: .title, columnToField: ["col_a": "title", "col_b": "summary"])
+        let analysis = matcher.analyze(header: header, remembered: remembered)
+
+        #expect(analysis.matches.map(\.fieldKey) == ["title", "summary"])
+        // Sûres : ce sont des décisions de l'utilisateur, pas des devinettes.
+        #expect(analysis.matches.allSatisfy { $0.quality == .certain })
+        #expect(analysis.canProceed)
+    }
+
+    @Test("Un mappage mémorisé n'empêche pas les passes de traiter le reste")
+    func rememberedMappingLeavesRoomForInference() throws {
+        let remembered = ColumnMapping(entity: .title, columnToField: ["col_a": "title"])
+        let analysis = matcher.analyze(
+            header: ["col_a", "Année", "inconnue"], remembered: remembered)
+
+        #expect(analysis.matches[0].fieldKey == "title")
+        #expect(analysis.matches[1].fieldKey == "year", "la passe des noms exacts joue encore")
+        #expect(analysis.matches[2].fieldKey == nil)
+    }
+
+    @Test("Un mappage d'une autre entité est ignoré")
+    func rememberedMappingOfAnotherEntityIsIgnored() {
+        // Une correspondance de personnes ne s'applique pas à des titres, et l'appliquer
+        // écrirait un nom de famille dans un titre de film.
+        let remembered = ColumnMapping(entity: .person, columnToField: ["col_a": "last_name"])
+        let analysis = matcher.analyze(header: ["col_a"], remembered: remembered)
+
+        #expect(analysis.matches[0].fieldKey == nil)
+    }
+
+    @Test("Un mappage citant un champ inconnu ne casse rien")
+    func rememberedMappingWithUnknownFieldIsSkipped() {
+        // Le cas arrive en synchronisation : un appareil a mémorisé un champ que cette version
+        // ne connaît plus.
+        let remembered = ColumnMapping(
+            entity: .title, columnToField: ["Titre": "title", "col_x": "champ_disparu"])
+        let analysis = matcher.analyze(header: ["Titre", "col_x"], remembered: remembered)
+
+        #expect(analysis.matches[0].fieldKey == "title")
+        #expect(analysis.matches[1].fieldKey == nil)
+    }
+
+    @Test("Une version de mappage nulle ou négative est refusée")
+    func nonPositiveVersionIsRefused() throws {
+        // La borne n'existait que par le haut : une version 0 passait pour valide.
+        let data = try JSONEncoder().encode(
+            ColumnMapping(version: 0, entity: .title, columnToField: [:]))
+        #expect(throws: ColumnMappingError.unsupportedVersion(0)) {
+            try ColumnMapping.decoded(from: data)
+        }
+    }
+}

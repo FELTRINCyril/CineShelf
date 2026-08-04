@@ -3237,3 +3237,80 @@ croyant redondante retire un filet, pas un doublon.
 | Preuve — date complète tronquée à l'année | 3 assertions mordent |
 | Preuve — enrichissement redevenu muet | 3 assertions mordent |
 | Preuve — monotonie du privé, **les deux** gardes cassées | 1 test mord |
+
+---
+
+## 2026-08-04 — Fin de session : `L11a` et `L11b` faites, poussées
+
+Changement de machine. Tout est sur `origin/main` en `b7c4284`, arbre de travail propre,
+`origin/main..main` et `main..origin/main` vides, les 36 hashes du tableau d'état vérifiés
+atteignables **depuis `origin/main`** et non depuis un HEAD local — c'est le piège du `--amend`,
+qui a mordu trois fois.
+
+### Ce qui est livré
+
+`L11a` (le format et l'analyse, aucune écriture de modèle) et `L11b` (l'application au magasin)
+sont faites, revues, et corrigées après revue. Le tableau d'état les coche avec leurs hashes ;
+`L12` devient la suivante.
+
+Le piège central de `L11b` — repositories `@MainActor` à cause de `SpotlightIndexer` contre un
+`ImportActor` — est désarmé en trois pièces : `EntityResolver` non isolé auquel les repositories
+**délèguent**, `ImportWriter` qui porte `refreshDerived()` prouvé par idempotence, et
+`SpotlightBatchIndexer` qui indexe après commit.
+
+### Les cinq défauts que la revue a trouvés
+
+Tous reproduits sur ma propre sonde avant correction, tous corrigés, chacun avec son test de
+non-régression et sa preuve d'échec :
+
+| # | Défaut | Effet mesuré |
+|---|---|---|
+| 1 | La clé de doublon ignorait « Date de sortie » | **4 fiches** au lieu d'1, sans un signal |
+| 2 | Le bilan repliait par ligne et non par entité | Le même `UUID` dans `created` **et** `completions` — diff non défaisable |
+| 3 | Une personne répétée dans une cellule | 2 crédits vers la même personne |
+| 4 | Une date complète dans la colonne « Année » | Jour et mois jetés en silence |
+| 5 | Le verrou de réentrance sur `ObjectIdentifier(actor)` | **600 titres au lieu de 300**, aucun refus levé |
+
+Le premier est celui que j'aurais dû voir : ma sonde n'avait essayé que des fichiers portant
+« Année ». Le cinquième était déclenché par **mon propre montage de test**, qui fabriquait un
+acteur par accès.
+
+### Les deux arbitrages
+
+**Un réimport enrichi ajoute.** `genres`, `director` et `cast` sont additifs : un second fichier
+plus riche complète au lieu de ne rien faire. Mesuré, l'ajout était sinon abandonné sans être
+compté nulle part — sur le geste le plus naturel après avoir complété son tableur. Rien n'est
+jamais retiré, un import identique reste « inchangé », et le diff porte les relations rattachées
+pour que `L20` puisse les détacher.
+
+**Le privé est monotone.** Un fichier peut rendre privé, jamais rendre public. Exposer un contenu
+marqué privé est la seule des deux erreurs qui ne se répare pas — la fuite fermée par `L3`, index
+Spotlight unique pour l'appareil. La propriété est gardée **deux fois** (`isEmpty` et `setTyped`)
+et casser une seule laisse les tests verts : ce n'est pas une redondance à simplifier.
+
+### Ce qui reste à faire, et en premier
+
+> **La réorganisation de rythme demandée pendant cette session n'a pas été faite.** C'est la
+> **première chose** à traiter à la reprise, avant `L12`.
+>
+> Son contenu n'est pas inscrit ici et n'était plus dans mon contexte au moment de clôturer :
+> je ne l'ai donc pas paraphrasé de mémoire, pour ne pas figer une version fausse d'une consigne
+> dans le document qui fait référence. **À redire en une phrase à la reprise**, et à inscrire à ce
+> moment-là. C'est exactement le motif que ce journal documente ailleurs : une consigne mal
+> recopiée est pire qu'une consigne absente, parce qu'elle a l'air d'une décision.
+
+Le reste du chemin critique est inchangé : `L12` (archive), puis **prompt 2** (dump du bundle web,
+dépendance dure de `L13`).
+
+### État des vérifications à la clôture
+
+| Contrôle | Résultat |
+|---|---|
+| `git status` | propre |
+| `origin/main..main` / `main..origin/main` | vides |
+| Hashes du tableau atteignables depuis `origin/main` | 36 / 36 |
+| `swift test` CineShelfCore | **414 tests** |
+| `xcodebuild test` macOS | **67 tests** |
+| `swiftlint --strict` | 0 violation / 212 fichiers |
+| `xcrun swift-format lint` | 0 avertissement |
+| Builds macOS et iOS | `** BUILD SUCCEEDED **` |

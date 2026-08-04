@@ -3045,3 +3045,104 @@ intacte — `grep` sur `ModelContext` dans `Services/Transfer/` ne rend qu'un `S
 Les cinq preuves ont vérifié que l'injection était **réellement présente** avant de conclure,
 comme la règle ajoutée à `CLAUDE.md` ce matin l'exige. Sans elle, la preuve n° 3 de la passe
 précédente m'avait déjà menti une fois.
+
+---
+
+## 2026-08-04 — `cells` dérivé, la méthode de la sonde, et `L11b`
+
+**La question de structure, d'abord.** `cells` et `rawFields` étaient bien deux stockages
+indépendants : le correctif de la veille écrivait les deux, donc il traitait le symptôme.
+Rien ne les obligeait à s'accorder — l'initialiseur public acceptait n'importe quelle paire,
+et l'appelant calculait lui-même l'index de colonne, si bien qu'un index faux les aurait
+désaccordés en silence.
+
+`ImportRow` ne porte plus qu'une source : `rawFields`, la ligne du fichier. `cells` en est
+une **projection** à travers `ColumnLayout`. `settingCell` ne prend plus d'index — la ligne
+consulte sa propre disposition, donc personne ne peut lui en passer un faux. Une valeur
+décidée pour un champ sans colonne va dans `overrides` : ce n'est pas un second stockage des
+mêmes valeurs, un champ est dans l'un **ou** dans l'autre, et cette exclusion remplace
+l'accord à maintenir. L'assertion d'accord reste écrite quand même, comme pour les deux
+branches de `#Predicate` : c'est elle qui mordrait si quelqu'un remettait un stockage
+parallèle.
+
+**La méthode de la sonde, inscrite dans `CLAUDE.md`** — attendue sur `L11b`, `L13`, `L20`.
+Elle a immédiatement payé.
+
+### `L11b` : le piège central, désarmé en trois pièces
+
+Les repositories sont `@MainActor` à cause de `SpotlightIndexer`, `ImportActor` est un
+acteur, et 1 284 lignes ne peuvent pas passer par le fil principal.
+
+| Pièce | Ce qu'elle porte |
+|---|---|
+| `EntityResolver`, **non isolé** | La règle de dédoublonnage. Les repositories `@MainActor` la lui **délèguent** : une seule règle, deux appelants |
+| `ImportWriter` | `refreshDerived()` sur chaque entité, prouvé par **idempotence** |
+| `SpotlightBatchIndexer` | L'indexation après commit, en une passe |
+
+La clé de dédoublonnage des personnes est `sortName` : le schéma est fermé, donc pas de
+`nameKey` — et `sortName` est déjà « nom prénom » replié en locale invariante. `Person.sortKey`
+la compose au même endroit, et un test compare les deux. Sans lui, changer l'un des deux
+casserait le dédoublonnage **en silence**, la recherche ne trouvant jamais de doublon.
+
+`ActivityRecorder` perd son `@MainActor` : c'était une isolation par contagion.
+
+### Trois défauts que la sonde a trouvés, et qu'aucun test n'aurait vus
+
+**1. L'annulation était décorative.** La méthode était synchrone, donc elle tenait son fil du
+premier au dernier titre :
+
+| Mesure | Avant | Après |
+|---|---|---|
+| Fil tenu d'affilée, 1 500 lignes | **6,3 s** | ~35 ms entre deux réveils |
+| `cancel()` programmé à 300 ms | exécuté à **6,8 s**, après la fin | mord au lot suivant |
+| `Thread.isMainThread` dans la boucle | **vrai** — l'interface gelait | inchangé, mais la main est rendue |
+
+Un test qui annule *avant* le démarrage passait au vert et ne prouvait rien.
+
+**2. Le bilan d'une annulation était faux.** Il se calculait par
+`created.prefix(lignes sauvegardées)`, où l'un compte des titres et l'autre des lignes : dès
+qu'une ligne complétait un doublon au lieu d'en créer un, le bilan annonçait des titres qui
+n'existaient pas. Remplacé par des **instantanés** pris à chaque frontière de lot — ça ne se
+calcule pas, ça se constate.
+
+**3. Rendre la méthode asynchrone a ouvert une porte.** Un acteur est **réentrant** : deux
+imports simultanés partageaient le `ModelContext`, et le `rollback()` de l'un jetait le lot en
+cours de l'autre. Deux bilans plausibles et faux. Un verrou les refuse.
+
+### Deux mesures qui ont changé une décision
+
+**Le seuil de suspension n'est pas celui du lot.** Aligner les deux faisait tenir le fil
+160 ms d'affilée — un à-coup visible. La durabilité a pour unité le lot de 200, la réactivité
+la sienne, à 50.
+
+**La superlinéarité vient de SwiftData, pas de mon résolveur.** Mesuré, import de 1 200
+lignes, temps par lot : 164, 340, 557, 778, 1 269, 1 143 ms. J'ai d'abord soupçonné le `fetch`
+par ligne du résolveur, puis l'accumulation dans le contexte — un contexte **neuf par lot** ne
+change rien (75, 277, 538, 735, 823, 1 019 ms). C'est le `save()` sur une table qui grossit.
+4 000 lignes prennent 40 s. Écart inscrit pour `L13`, qui importera les vraies données.
+
+### Un test que j'ai rendu déterministe, et qui a perdu son mordant
+
+Les tests d'annulation annulaient après un `Task.sleep`. Sur une machine rapide, l'annulation
+arrivait **avant** le premier lot : zéro titre écrit, et `0` étant un multiple de 200,
+l'assertion « s'arrête à une frontière de lot » passait sans rien vérifier. Corrigé en
+annulant depuis la fermeture de progression, donc à un point connu.
+
+**Mais ça a coûté au test sa capacité à prouver la suspension** : annuler depuis l'acteur pose
+le drapeau sans qu'aucune suspension soit nécessaire. Preuve d'échec tentée, `Task.yield()`
+retiré : les cinq tests d'annulation **passent**. Ce qui justifie la ligne est donc la mesure
+et non un test, et c'est écrit à côté d'elle. Même statut que les budgets de `docs/04` §4.
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| `swift test` CineShelfCore | **398 tests** (349 avant) |
+| `xcodebuild test` macOS | **67 tests**, `TEST SUCCEEDED` |
+| `swiftlint --strict` | 0 violation / 209 fichiers |
+| `xcrun swift-format lint` | 0 avertissement |
+| Bissectabilité du commit 1/3 seul | build vert, **355 tests** verts |
+| Preuve — correction détournée vers `overrides` malgré une colonne | 4 tests mordent |
+| Preuve — verrou de réentrance retiré | 3 assertions mordent |
+| Preuve — `Task.yield()` retiré | **ne mord pas** : la mesure justifie la ligne, pas le test |

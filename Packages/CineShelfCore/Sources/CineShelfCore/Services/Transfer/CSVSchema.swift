@@ -13,6 +13,32 @@ import Foundation
 // appareils, sans le moindre signal. L'en-tête lisible, lui, peut changer librement — c'est
 // du texte pour un tableur.
 
+/// Ce qu'une cellule doit contenir.
+///
+/// **Portée par le champ, et lue par deux clients.** La déduction de correspondance s'en
+/// sert pour reconnaître une colonne à son **contenu** — quatre chiffres dans 1888…2030 est
+/// une année, quoi que dise l'en-tête — et la validation s'en sert pour convertir la cellule
+/// et nommer le refus. Une seule déclaration pour les deux : si elles divergeaient, une
+/// colonne serait reconnue comme une année puis refusée parce qu'elle n'en est pas une.
+public enum CSVValueShape: String, Sendable, Hashable, CaseIterable {
+    /// Texte libre. Ne se déduit jamais du contenu : tout est du texte.
+    case text
+    /// Plusieurs valeurs dans une cellule, séparées par `CSVSchema.multiValueSeparator`.
+    case multiValue
+    /// Une année sur quatre chiffres. Une date complète est acceptée à la validation.
+    case year
+    /// Une date `AAAA-MM-JJ`.
+    case date
+    /// Un entier positif.
+    case integer
+    /// Un nombre, décimales acceptées.
+    case decimal
+    /// `oui` / `non`, et les formes que les tableurs écrivent.
+    case boolean
+    /// Une valeur d'énumération fermée : type de titre, rôles.
+    case enumerated
+}
+
 /// Un champ exportable d'une entité.
 public struct CSVField: Sendable, Hashable, Identifiable {
 
@@ -27,21 +53,64 @@ public struct CSVField: Sendable, Hashable, Identifiable {
     /// `true` si la colonne est proposée par défaut à l'export.
     public let isDefaultForExport: Bool
 
+    /// Les autres noms sous lesquels cette colonne se rencontre dans un fichier étranger.
+    ///
+    /// **Une donnée, et c'est la raison d'être de ce champ.** L'arbitrage du 2026-08-04 a
+    /// refusé de livrer un profil Movix intégré — le script source est inaccessible, et un
+    /// profil `isBuiltIn` faux ne se retire plus. Restait le besoin qu'il servait :
+    /// reconnaître `runtime_min` ou `my_score` sans que l'utilisateur ait à le dire. Des
+    /// alias par champ le couvrent, sans figer un profil entier : ils produisent une
+    /// correspondance **déduite**, que l'écran montre comme telle et qui se corrige.
+    ///
+    /// Repliés à la comparaison, jamais comparés tels quels — voir `ColumnMatcher`.
+    public let aliases: [String]
+
+    /// Ce que la cellule doit contenir.
+    public let shape: CSVValueShape
+    /// Les bornes de la valeur, quand elle en a. Source : `CatalogBounds`.
+    public let range: ClosedRange<Double>?
+    /// Le vocabulaire fermé, quand le champ en a un.
+    ///
+    /// Une **donnée** et non un `switch` dans le validateur : `TitleKind` et `PersonRole`
+    /// gagneront des cas, et un `switch` oublié refuserait à l'import une valeur que le
+    /// modèle accepte. Vide = pas de vocabulaire, la valeur est libre.
+    public let allowedValues: [String]
+
     public var id: String { key }
+
+    /// `true` si la cellule peut porter plusieurs valeurs.
+    public var isMultiValue: Bool { shape == .multiValue }
 
     public init(
         key: String,
         header: String,
         help: String,
         isRequiredForImport: Bool = false,
-        isDefaultForExport: Bool = true
+        isDefaultForExport: Bool = true,
+        aliases: [String] = [],
+        shape: CSVValueShape = .text,
+        range: ClosedRange<Double>? = nil,
+        allowedValues: [String] = []
     ) {
         self.key = key
         self.header = header
         self.help = help
         self.isRequiredForImport = isRequiredForImport
         self.isDefaultForExport = isDefaultForExport
+        self.aliases = aliases
+        self.shape = shape
+        self.range = range
+        self.allowedValues = allowedValues
     }
+}
+
+extension ClosedRange where Bound == Int {
+    /// La même borne, en `Double`, pour un `CSVField.range`.
+    ///
+    /// Les bornes du catalogue sont entières là où la valeur l'est (année, minutes) et
+    /// décimale pour la note. Un seul type dans `CSVField` évite deux chemins de validation
+    /// dont l'un finirait moins couvert que l'autre.
+    var asDouble: ClosedRange<Double> { Double(lowerBound)...Double(upperBound) }
 }
 
 /// Le schéma de colonnes d'une entité.
@@ -88,51 +157,97 @@ extension CSVSchema {
             CSVField(
                 key: "title", header: "Titre",
                 help: "Le nom du film ou de la série.",
-                isRequiredForImport: true),
+                isRequiredForImport: true,
+                aliases: ["title", "name", "nom", "film", "movie", "titre du film"]),
             CSVField(
                 key: "original_title", header: "Titre original",
-                help: "Le titre dans sa langue d'origine, s'il diffère."),
+                help: "Le titre dans sa langue d'origine, s'il diffère.",
+                aliases: ["original_title", "original title", "titre vo", "vo"]),
             CSVField(
                 key: "kind", header: "Type",
-                help: "Film ou série."),
+                help: "Film ou série.",
+                aliases: ["kind", "type", "categorie", "category", "format"],
+                shape: .enumerated,
+                allowedValues: TitleKind.allCases.map(\.rawValue)),
             CSVField(
                 key: "year", header: "Année",
-                help: "L'année de sortie. Une date complète est acceptée."),
+                help: "L'année de sortie. Une date complète est acceptée.",
+                aliases: ["year", "annee", "sortie", "release_year"],
+                shape: .year,
+                range: CatalogBounds.years.asDouble),
             CSVField(
                 key: "release_date", header: "Date de sortie",
                 help: "La date exacte, si elle est connue au jour près.",
-                isDefaultForExport: false),
+                isDefaultForExport: false,
+                aliases: ["release_date", "release date", "date sortie"],
+                shape: .date),
             CSVField(
                 key: "runtime", header: "Durée · minutes",
-                help: "En minutes, nombre entier."),
+                help: "En minutes, nombre entier.",
+                aliases: ["runtime", "runtime_min", "duree", "duration", "minutes", "length"],
+                shape: .integer,
+                range: CatalogBounds.runtimeMinutes.asDouble),
             CSVField(
                 key: "rating", header: "Note · sur 10",
-                help: "De 0 à 10, décimales acceptées."),
+                help: "De 0 à 10, décimales acceptées.",
+                aliases: ["rating", "note", "score", "my_score", "ma note"],
+                shape: .decimal,
+                range: CatalogBounds.ratings),
             CSVField(
                 key: "summary", header: "Résumé",
-                help: "Texte libre."),
+                help: "Texte libre.",
+                aliases: ["summary", "resume", "synopsis", "overview", "description"]),
             CSVField(
                 key: "collection", header: "Collection",
-                help: "Le nom de la collection. Elle est créée si elle n'existe pas."),
+                help: "Le nom de la collection. Elle est créée si elle n'existe pas.",
+                aliases: ["collection", "saga", "serie de films", "franchise"]),
             CSVField(
                 key: "genres", header: "Genres",
-                help: "Plusieurs genres séparés par une barre oblique : action/thriller."),
+                help: "Plusieurs genres séparés par une barre oblique : action/thriller.",
+                aliases: ["genres", "genre", "genre_raw", "categories", "tags"],
+                shape: .multiValue),
+            CSVField(
+                key: "director", header: "Réalisation",
+                help: "Une ou plusieurs personnes séparées par une barre oblique.",
+                aliases: ["director", "directors", "dir", "realisation", "realisateur", "mise en scene"],
+                shape: .multiValue),
+            CSVField(
+                key: "cast", header: "Distribution",
+                help: "Les interprètes, séparés par une barre oblique, dans l'ordre du générique.",
+                aliases: ["cast", "cast_1", "actors", "acteurs", "distribution", "interpretes"],
+                shape: .multiValue),
+            CSVField(
+                key: "added_at", header: "Ajouté le",
+                help: "La date d'ajout au catalogue, au format AAAA-MM-JJ.",
+                isDefaultForExport: false,
+                aliases: ["added", "added_at", "date_added", "ajoute le", "ajout"],
+                shape: .date),
             CSVField(
                 key: "season_count", header: "Saisons",
                 help: "Pour une série.",
-                isDefaultForExport: false),
+                isDefaultForExport: false,
+                aliases: ["seasons", "season_count", "saisons", "nb saisons"],
+                shape: .integer,
+                range: CatalogBounds.seasonCount.asDouble),
             CSVField(
                 key: "episode_count", header: "Épisodes",
                 help: "Pour une série.",
-                isDefaultForExport: false),
+                isDefaultForExport: false,
+                aliases: ["episodes", "episode_count", "nb episodes"],
+                shape: .integer,
+                range: CatalogBounds.episodeCount.asDouble),
             CSVField(
                 key: "is_private", header: "Privé",
                 help: "oui ou non.",
-                isDefaultForExport: false),
+                isDefaultForExport: false,
+                aliases: ["private", "is_private", "prive", "masque"],
+                shape: .boolean),
             CSVField(
                 key: "is_archived", header: "Archivé",
                 help: "oui ou non.",
-                isDefaultForExport: false)
+                isDefaultForExport: false,
+                aliases: ["archived", "is_archived", "archive"],
+                shape: .boolean)
         ]
     )
 
@@ -142,35 +257,51 @@ extension CSVSchema {
             CSVField(
                 key: "first_name", header: "Prénom",
                 help: "Le prénom. Vide pour un nom unique.",
-                isDefaultForExport: true),
+                isDefaultForExport: true,
+                aliases: ["first_name", "firstname", "prenom", "given name"]),
             CSVField(
                 key: "last_name", header: "Nom",
                 help: "Le nom de famille, ou le nom unique.",
-                isRequiredForImport: true),
+                isRequiredForImport: true,
+                aliases: ["last_name", "lastname", "nom", "name", "surname", "family name"]),
             CSVField(
                 key: "roles", header: "Rôles",
-                help: "Plusieurs rôles séparés par une barre oblique : interprétation/réalisation."),
+                help: "Plusieurs rôles séparés par une barre oblique : interprétation/réalisation.",
+                aliases: ["roles", "role", "fonction", "metier"],
+                shape: .multiValue,
+                allowedValues: PersonRole.allCases.map(\.rawValue)),
             CSVField(
                 key: "birth_date", header: "Naissance",
-                help: "Date, au format AAAA-MM-JJ."),
+                help: "Date, au format AAAA-MM-JJ.",
+                aliases: ["birth_date", "birthdate", "naissance", "date de naissance", "born"],
+                shape: .date),
             CSVField(
                 key: "death_date", header: "Décès",
-                help: "Date, au format AAAA-MM-JJ."),
+                help: "Date, au format AAAA-MM-JJ.",
+                aliases: ["death_date", "deathdate", "deces", "date de deces", "died"],
+                shape: .date),
             CSVField(
                 key: "bio", header: "Biographie",
-                help: "Texte libre."),
+                help: "Texte libre.",
+                aliases: ["bio", "biographie", "biography", "description"]),
             CSVField(
                 key: "genres", header: "Genres",
                 help: "Plusieurs genres séparés par une barre oblique.",
-                isDefaultForExport: false),
+                isDefaultForExport: false,
+                aliases: ["genres", "genre", "genre_raw", "tags"],
+                shape: .multiValue),
             CSVField(
                 key: "is_private", header: "Privé",
                 help: "oui ou non.",
-                isDefaultForExport: false),
+                isDefaultForExport: false,
+                aliases: ["private", "is_private", "prive"],
+                shape: .boolean),
             CSVField(
                 key: "is_archived", header: "Archivé",
                 help: "oui ou non.",
-                isDefaultForExport: false)
+                isDefaultForExport: false,
+                aliases: ["archived", "is_archived", "archive"],
+                shape: .boolean)
         ]
     )
 

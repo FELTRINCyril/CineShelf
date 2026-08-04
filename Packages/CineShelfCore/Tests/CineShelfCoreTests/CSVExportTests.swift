@@ -211,3 +211,98 @@ struct CSVExportTests {
         #expect(data.starts(with: CSVWriter.byteOrderMark))
     }
 }
+
+// Les trois colonnes ajoutées le 2026-08-04, en fin de `L11a`.
+//
+// Elles viennent de la planche 11d de l'addendum, qui fait correspondre `dir`, `cast_1` et
+// `added` à des champs que le schéma d'export n'avait pas : sans elles, un fichier réel
+// aurait vu sa réalisation et sa distribution tomber en « colonne ignorée ». Décision prise
+// avec Cyril, contre l'option « les laisser non reconnues ».
+//
+// **L'écriture des crédits à l'import reste `L11b`** : créer une personne depuis une cellule
+// demande une résolution de références qui n'existe pas encore (`GenreRepository.findOrCreate`
+// n'a pas d'équivalent pour les personnes). Ici, l'export sait les écrire et la validation
+// sait les lire comme des cellules multivaleur.
+@MainActor
+struct CSVCreditColumnsTests {
+
+    private let exporter = CSVExporter()
+
+    @Test("La réalisation et la distribution s'exportent, séparées par une barre oblique")
+    func creditsAreExported() throws {
+        let (context, library) = try makeTestLibrary()
+        let titles = TitleRepository(context: context)
+        let people = PersonRepository(context: context)
+        let title = titles.create(name: "Dune", in: library)
+
+        let villeneuve = people.create(firstName: "Denis", lastName: "Villeneuve", in: library)
+        let chalamet = people.create(firstName: "Timothée", lastName: "Chalamet", in: library)
+        let ferguson = people.create(firstName: "Rebecca", lastName: "Ferguson", in: library)
+
+        titles.addCredit(person: villeneuve, role: .director, orderIndex: 0, to: title)
+        titles.addCredit(person: chalamet, role: .cast, orderIndex: 0, to: title)
+        titles.addCredit(person: ferguson, role: .cast, orderIndex: 1, to: title)
+        try context.save()
+
+        #expect(exporter.value(of: title, forKey: "director") == "Denis Villeneuve")
+        // Trié par `orderIndex` et non par nom : une distribution alphabétique mettrait la
+        // doublure avant la tête d'affiche, alors que `Credit` porte l'ordre du générique.
+        #expect(exporter.value(of: title, forKey: "cast") == "Timothée Chalamet/Rebecca Ferguson")
+    }
+
+    @Test("L'ordre du générique est celui du fichier, même si les crédits sont ajoutés à l'envers")
+    func castKeepsCreditOrderNotInsertionOrder() throws {
+        let (context, library) = try makeTestLibrary()
+        let titles = TitleRepository(context: context)
+        let people = PersonRepository(context: context)
+        let title = titles.create(name: "Tenet", in: library)
+
+        let second = people.create(firstName: "Robert", lastName: "Pattinson", in: library)
+        let first = people.create(firstName: "John David", lastName: "Washington", in: library)
+        titles.addCredit(person: second, role: .cast, orderIndex: 1, to: title)
+        titles.addCredit(person: first, role: .cast, orderIndex: 0, to: title)
+        try context.save()
+
+        #expect(exporter.value(of: title, forKey: "cast") == "John David Washington/Robert Pattinson")
+    }
+
+    @Test("Un titre sans crédit exporte une cellule vide, pas un séparateur solitaire")
+    func creditlessTitleExportsEmptyCell() throws {
+        let (context, library) = try makeTestLibrary()
+        let title = TitleRepository(context: context).create(name: "Nope", in: library)
+        try context.save()
+
+        #expect(exporter.value(of: title, forKey: "director").isEmpty)
+        #expect(exporter.value(of: title, forKey: "cast").isEmpty)
+    }
+
+    @Test("La date d'ajout s'exporte et se relit à l'identique")
+    func addedAtRoundTrips() throws {
+        let (context, library) = try makeTestLibrary()
+        let title = TitleRepository(context: context).create(name: "Soul", in: library)
+        try context.save()
+
+        let written = exporter.value(of: title, forKey: "added_at")
+        // Le fuseau courant des deux côtés : `CSVValueParser.date` doit relire ce que
+        // `CSVExporter.dateStyle` écrit, sinon l'aller-retour décale les dates d'un jour.
+        let reread = try #require(CSVValueParser.date(written))
+        #expect(CSVExporter.dateStyle.format(reread) == written)
+    }
+
+    @Test("Les trois nouvelles colonnes sont reconnues avec certitude à la relecture")
+    func newColumnsAreRecognized() {
+        let header = CSVSchema.title.header(for: ["title", "director", "cast", "added_at"])
+        let analysis = ColumnMatcher(schema: .title).analyze(header: header)
+
+        #expect(analysis.matches.map(\.fieldKey) == ["title", "director", "cast", "added_at"])
+        #expect(analysis.matches.allSatisfy { $0.quality == .certain })
+    }
+
+    @Test("Les noms de colonnes du fichier de la planche 11d se déduisent")
+    func addendumColumnNamesAreInferred() {
+        let analysis = ColumnMatcher(schema: .title).analyze(header: ["title", "dir", "cast_1", "added"])
+
+        #expect(analysis.matches.map(\.fieldKey) == ["title", "director", "cast", "added_at"])
+        #expect(analysis.ignoredColumnNames.isEmpty)
+    }
+}

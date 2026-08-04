@@ -67,19 +67,41 @@ public struct CSVExporter {
         textValue(of: title, forKey: key) ?? numberValue(of: title, forKey: key) ?? ""
     }
 
-    /// Les champs de texte et les relations. `nil` si la clé n'en est pas un.
+    /// Les champs propres au titre. `nil` si la clé n'en est pas un.
     private func textValue(of title: Title, forKey key: String) -> String? {
         switch key {
         case "title": title.name
         case "original_title": title.originalName ?? ""
         case "kind": title.kind.rawValue
         case "summary": title.summary ?? ""
-        case "collection": title.collection?.name ?? ""
-        case "genres": CSVSchema.joinMultiValue((title.genres ?? []).map(\.name).sorted())
         case "is_private": Self.boolean(title.isPrivate)
         case "is_archived": Self.boolean(title.isArchived)
+        default: relationValue(of: title, forKey: key)
+        }
+    }
+
+    /// Les relations rendues en cellule. `nil` si la clé n'en est pas une.
+    private func relationValue(of title: Title, forKey key: String) -> String? {
+        switch key {
+        case "collection": title.collection?.name ?? ""
+        case "genres": CSVSchema.joinMultiValue((title.genres ?? []).map(\.name).sorted())
+        case "director": CSVSchema.joinMultiValue(credits(of: title, role: .director))
+        case "cast": CSVSchema.joinMultiValue(credits(of: title, role: .cast))
         default: nil
         }
+    }
+
+    /// Les personnes créditées d'un rôle, dans l'ordre du générique.
+    ///
+    /// **Trié par `orderIndex` et non par nom**, contrairement aux genres. `Credit`
+    /// porte cet ordre exprès : une distribution alphabétique met la doublure avant la
+    /// tête d'affiche, et c'est l'ordre du générique que l'utilisateur a saisi. Les
+    /// genres, eux, n'ont pas d'ordre — les trier rend l'export reproductible.
+    private func credits(of title: Title, role: CreditRole) -> [String] {
+        (title.credits ?? [])
+            .filter { $0.role == role }
+            .sorted { $0.orderIndex < $1.orderIndex }
+            .compactMap(\.person?.displayName)
     }
 
     /// Les nombres et les dates. `nil` si la clé n'en est pas un.
@@ -91,6 +113,7 @@ public struct CSVExporter {
         case "rating": title.rating.map(Self.decimal) ?? ""
         case "season_count": title.seasonCount.map(String.init) ?? ""
         case "episode_count": title.episodeCount.map(String.init) ?? ""
+        case "added_at": Self.dateStyle.format(title.createdAt)
         default: nil
         }
     }

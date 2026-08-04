@@ -21,16 +21,14 @@ import Foundation
 extension BulkEditor {
 
     /// Les bornes que les documents fixent.
+    ///
+    /// **Elles vivent dans `CatalogBounds` depuis que `L11a` les partage.** Ces alias
+    /// restent pour que les sites d'appel de `L10` se lisent comme avant ; la source, la
+    /// justification de chaque borne et l'histoire du bug de la note sont là-bas.
     enum Bounds {
-        /// 1888 : *Roundhay Garden Scene*, le plus ancien film connu. La borne haute
-        /// laisse la place aux sorties annoncées.
-        static let years = 1888...2030
-        /// Note du catalogue, `docs/02` §3.3. L'affichage en cinq étoiles est une
-        /// conversion de présentation (`TitleFormat.fiveStarRating`), pas une contrainte
-        /// de modèle : une note de 8,4 est légitime, et `ratingText` l'écrit « 8,4 / 10 ».
-        static let ratings = 0.0...10.0
-        /// Une minute au moins. Pas de borne haute : *Logistics* dure 51 420 minutes.
-        static let minimumRuntime = 1
+        static let years = CatalogBounds.years
+        static let ratings = CatalogBounds.ratings
+        static let minimumRuntime = CatalogBounds.runtimeMinutes.lowerBound
     }
 
     func validate(_ mutation: TitleBulkMutation) -> [BulkRefusal] {

@@ -3314,3 +3314,120 @@ dépendance dure de `L13`).
 | `swiftlint --strict` | 0 violation / 212 fichiers |
 | `xcrun swift-format lint` | 0 avertissement |
 | Builds macOS et iOS | `** BUILD SUCCEEDED **` |
+
+---
+
+## 2026-08-04 — Réorganisation du rythme : la rigueur se règle sur l'irréversibilité
+
+Planification seule, aucun code. C'est la réorganisation que la clôture précédente
+signalait comme demandée et non faite, et dont elle avait **refusé de paraphraser le
+contenu** de mémoire — à raison : la consigne redonnée en séance contenait deux points
+que je n'aurais pas devinés (le regroupement de la chaîne `I` par lots de trois, et la
+liste exacte des reports en v1.1).
+
+**Le dépôt local était en retard de 34 commits**, dont `L10`, `L11a`, `L11b`, `I1` et
+tout le handoff de design. `main..origin/main` non vide, `origin/main..main` vide :
+fast-forward pur, aucun commit local à rebaser. C'est le cas que la section « Reprise de
+session » de `CLAUDE.md` décrit, et le contrôle des deux sens l'a attrapé avant la
+première écriture. Deuxième fois en deux jours.
+
+### Cinq décisions inscrites
+
+1. **La rigueur ne dépend plus de la couche.** « Chaîne `L` = rigueur maximale » était
+   faux, et n'était écrit nulle part — c'était une règle orale, ce qui explique qu'elle
+   n'ait jamais été corrigée. Le critère est désormais l'irréversibilité, en une
+   question : *si cette tâche a un défaut et que personne ne le voit pendant trois
+   semaines, est-ce que la donnée est récupérable ?* Deux crans, et une seconde porte
+   qui compte autant sans être de l'irréversibilité — exposer du privé ne se répare pas.
+2. **La longueur des rapports suit le même cran.** Cinq lignes sur une tâche légère. Les
+   rapports détaillés restent là où ils ont servi.
+3. **La chaîne `I` est inventoriée et regroupée** : 26 composants → **9 lots de trois**,
+   `I2` à `I10`, validation groupée au catalogue. Elle n'avait jamais été inventoriée —
+   le plan disait « `I2` et suivantes, un par un » sans que personne sache combien.
+4. **Cinq reports en v1.1**, inscrits avec ce qui reste en v1 pour chacun.
+5. **Deux arbres de travail**, `main` pour la chaîne `L` et `chain-i` pour la chaîne `I`.
+
+### Trois corrections au classement proposé
+
+Le classement donné en séance était juste sur les dix tâches qu'il nommait. Il en
+laissait **quatre non classées, et toutes les quatre écrivent sans retour** — ce qui
+aurait laissé la plus dangereuse des quatre tomber en rigueur par défaut :
+
+- **`L8`** (doublons et fusion) est **maximale**. C'est la correction la plus importante :
+  la fusion transfère des relations et marque le perdant supprimé, et rien ne l'annule
+  avant `L20`. `L20` était classée maximale — or `L20` n'est que le **filet** de `L8`.
+  Classer le filet en maximale et l'opération en défaut est exactement à l'envers.
+- **`L15`** (transfert entre bibliothèques) est **maximale** : elle rejoue l'exécuteur de
+  `L8`.
+- **`L16`** (maintenance et corbeille) est **maximale** : c'est la seule tâche qui
+  **supprime définitivement**, et après le prompt 21 la suppression se propage à tous
+  les appareils.
+- **`L14`** ne tient dans aucun des deux crans sur l'axe de l'irréversibilité : sa
+  logique de verrou est légère, mais la **portée du déverrouillage et le délai de grâce**
+  décident qui voit le privé. Classée légère « sauf un point nommé », plutôt que
+  d'ouvrir un troisième cran.
+
+`L5` et `L6` ont été examinées et **restent légères** : ce que `L5` perd sous pression
+mémoire est un cache régénérable, et une mosaïque fausse (`L6`) se voit au premier coup
+d'œil. `L17` est légère pour une raison de plus que celle donnée — sa propre fiche dit
+qu'elle ne sera jamais vérifiable avant le prompt 21, donc la rigueur y achète du vide.
+`L18` est légère avec deux points nommés : le filtre du privé, et la mesure de tout
+prédicat nouveau.
+
+### Trois conséquences du report de `L8`, qui n'étaient pas dans la consigne
+
+1. **Le format du diff de `L20` doit rester capable de porter une fusion** même si `L8`
+   part en v1.1 — sinon `L8` devra faire évoluer `BulkEditDiff.currentVersion`, et un
+   `payload` déjà en base ne se relit pas autrement.
+2. **`L15` se réduit au transfert** : sa fusion des genres en double dépend de `L8` et
+   part avec elle.
+3. **`L13` importera les doublons du bundle web**, et rien en v1 ne les fusionnera. Son
+   rapport de vérification doit donc les **compter et les nommer** — `LegacyRecord` le
+   lui permet — même sans savoir les résoudre.
+
+### Le chemin jusqu'à l'iPhone avait deux étapes manquantes
+
+`L12 → prompt 2 → L13` amène les vraies données dans le magasin **d'une machine**. Pas
+sur l'iPhone, et le plan ne le disait nulle part :
+
+- **`P0` — la signature.** `DEVELOPMENT_TEAM` est vide et deux `CODE_SIGN_IDENTITY: "-"`
+  traînent dans la cible : dans cet état l'app ne s'installe **que** dans le simulateur.
+  Un Apple ID gratuit suffit ; l'abonnement ne sert qu'à CloudKit, au widget et aux App
+  Intents, tous trois hors chemin puisque `L19` est reportée.
+- **`P1` — faire entrer le bundle dans l'appareil.** Sans CloudKit, une migration jouée
+  sur le Mac ne se propage pas. **Conséquence directe sur `L13` : elle doit lire un
+  bundle choisi par l'utilisateur, pas un chemin local.** Le coût d'y penser à
+  l'écriture est nul ; celui d'y penser après est une réécriture de son point d'entrée.
+
+### Les fichiers que les deux arbres se disputent
+
+Six, par nuisance décroissante : `docs/journal.md` (append au même endroit, conflit
+garanti — **remède : `docs/journal-design.md` pour la chaîne `I`**), le tableau d'état de
+`PROMPTS.md` (remède : la chaîne `I` a désormais sa propre section, à des centaines de
+lignes du chemin critique), le tableau des écarts connus (seul point où un conflit reste
+probable — il se résout en gardant les deux lignes), `.swiftlint.yml` (blocs disjoints :
+exclusions pour `I`, règles pour `L`), `project.yml` (sources en glob, donc disputé
+seulement à l'ajout d'une cible), et la CI.
+
+Deux pièges hors de Git, vérifiés : le glob `DerivedData/CineShelf-*` devient **ambigu**
+dès le premier build du second arbre — et c'est précisément la commande qui ouvre le
+catalogue, donc le geste de validation de la chaîne `I` ; et le magasin SwiftData est
+**commun aux deux arbres**, même bundle ID, donc même `~/Library/Containers`.
+
+Un seul sens de rebase : `chain-i` sur `main`, jamais l'inverse.
+
+### Vérifications
+
+| Contrôle | Résultat |
+|---|---|
+| `git log --oneline main..origin/main` avant | **34 commits de retard** — fast-forward appliqué |
+| `git log --oneline origin/main..main` avant | vide |
+| `gh run list` | verte sur `31395e9` |
+| Build macOS | `** BUILD SUCCEEDED **` |
+| `git worktree list` | 2 arbres, `main` et `chain-i` |
+
+Aucun code touché, donc aucune suite de tests relancée : les chiffres de la clôture
+précédente (414 tests Core, 67 macOS) tiennent.
+
+**Suite : `L12`, l'archive `.cineshelfarchive`. Rigueur maximale** — c'est de l'écriture
+de données, et c'est le format qui portera les sauvegardes.

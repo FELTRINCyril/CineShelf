@@ -289,3 +289,25 @@ public enum SavedLinkQuery {
         }
     }
 }
+
+public enum ImportMappingQuery {
+
+    /// La correspondance mémorisée d'un en-tête, dans une bibliothèque.
+    ///
+    /// Deux clauses, très loin du plafond de cinq. La signature est comparée **telle
+    /// quelle** : elle a déjà été repliée sous locale invariante à l'écriture comme à la
+    /// lecture (`ColumnMapping.headerSignature`), et la replier une seconde fois ici
+    /// n'ajouterait rien qu'un endroit de plus où les deux côtés peuvent diverger.
+    ///
+    /// Pas de filtre `deletedAt` : `ImportMapping` n'a pas de corbeille, une correspondance
+    /// perdue ne coûtant que de refaire un écran.
+    public static func matching(signature: String, inLibrary libraryID: UUID) -> Predicate<ImportMapping> {
+        #Predicate<ImportMapping> {
+            $0.headerSignature == signature && $0.library?.id == libraryID
+        }
+    }
+
+    public static func inLibrary(_ libraryID: UUID) -> Predicate<ImportMapping> {
+        #Predicate<ImportMapping> { $0.library?.id == libraryID }
+    }
+}

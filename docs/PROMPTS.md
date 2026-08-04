@@ -539,7 +539,7 @@ P0 → I2…I10 → V1…V5 → (L d'appoint au fil) → prompt 2 → L13 → pr
 | 6 | `L11a` | CSV : le format et l'analyse — sérialiseur, lecteur tolérant, correspondance, validation. **Aucune écriture de modèle** | `03 §10`, `04 §7`, `design/README.md` §6 | `L10` (de forme) | ✅ `902bfb1` `4697fe2` `fe63fa0` `738f5c5` `6676c44` `f6b13b4` `4a42907` + revue `e5d37ac` `c29140a` `f10bc13` `034157c` |
 | 6 bis | `L11b` | CSV : l'application au magasin — références, dédoublonnage, `ImportActor`, brouillon | idem | `L11a` | ✅ `02f2ec7` `8447134` `b5f8d76` `8f68345` + revue `c393ed9` |
 | 7 | `L12` | Archive `.cineshelfarchive` : écriture et relecture | `04 §7`, `03 §10` | `L11a` (le sérialiseur suffit) | ✅ `e7e2915` `7a10b52` + revue `47ceb35` |
-| 8 | **`P0`** | **Signature de développement** : renseigner `DEVELOPMENT_TEAM` hors du dépôt | `README` § « Signer pour un appareil » | — (ton Apple ID) | ⬜ **suivant — c'est le seul blocage vers l'iPhone** |
+| 8 | **`P0`** | **Signature de développement** : renseigner `DEVELOPMENT_TEAM` hors du dépôt | `README` § « Signer pour un appareil » | — (ton Apple ID) | 🟡 `9984a52` — mécanisme en place et mesuré ; **il te reste à ajouter ton compte Apple dans Xcode** |
 | 9 | `I2`…`I10` | Les composants de la nouvelle direction, par lots de trois | section « Tâches INTÉGRATION DU DESIGN » | `I1` ✅ | ⬜ |
 | 10 | `V1`…`V5` | Les écrans qui remplacent le banc d'essai | section « Tâches VUES » | les lots `I` correspondants | ⬜ |
 | 11 | **prompt 2** | **Dump du bundle depuis l'app web** — dans l'autre dépôt, pas ici | `02 §7` étape 1 | — | ⬜ dépendance immédiate de `L13` |
@@ -644,7 +644,7 @@ l'interface d'Xcode serait perdue à la régénération suivante**. Un `xcconfig
 **Ce que je ne peux pas faire à ta place :** la connexion du compte. Elle est
 interactive, dans Xcode › Settings › Accounts.
 
-**Le mécanisme est en place et vérifié** (`e3d0fd4`) — trois mesures, dont un contre-test :
+**Le mécanisme est en place et vérifié** (`9984a52`) — trois mesures, dont un contre-test :
 
 | Mesure | Résultat |
 |---|---|

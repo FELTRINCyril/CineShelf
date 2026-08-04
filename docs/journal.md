@@ -3691,3 +3691,96 @@ genres d'une fiche qu'une sauvegarde réécrit. Inscrit aux écarts.
 | `xcrun swift-format lint` | 0 avertissement |
 | Preuve d'échec, défaut 1 | mord : prédicat SQL à **0 au lieu de 1** |
 | Remesure des 7 sur la sonde | tous fermés |
+
+---
+
+## 2026-08-04 (2) — Trois corrections de plan, et `P0` : la signature
+
+### `L13` et le prompt 2 sortent du chemin critique
+
+Le raisonnement qui les y avait mis était explicite dans le document : « la nouvelle
+direction artistique ne pourra être jugée que sur les vraies affiches, donc le chemin le
+plus court vers `L13` est le chemin le plus court vers la capacité à valider le design ».
+**Il ne tient plus** : le catalogue de tokens est validé, et les 120 titres de
+`DemoCatalog` suffisent pour le reste.
+
+`L13` reste sur le chemin, mais **en dernière position avant CloudKit**, pour la raison
+qui n'a pas bougé : elle déclenche le gel de `versionIdentifier`, donc tout ce qui touche
+au schéma doit passer avant elle — `L20` en particulier. Ce qui a disparu est le *motif*,
+pas la contrainte.
+
+**Ce que j'ai trouvé en cherchant le nouvel ordre.** Le plan confondait deux jalons :
+
+- **utilisable** — l'app s'installe et se manipule. `DemoCatalog` se peuple depuis les
+  Réglages et le banc d'essai des prompts 10-11 l'affiche déjà : il ne manque **que la
+  signature**. Ni composant, ni écran ;
+- **présentable** — la nouvelle direction est à l'écran, ce qui demande `I2`…`I10` puis
+  les `V`.
+
+Ça inverse l'ordre attendu : la signature d'abord, les composants ensuite. Les `V` sont
+dégelées au passage — leur condition de départ n'était pas « attendre le design », qui
+est livré, mais « attendre les composants », ce que la colonne « S'appuie sur » disait
+déjà. `CLAUDE.md` est repris en conséquence : ce qui reste interdit est de **retoucher
+l'esthétique du banc d'essai**, qui sera remplacé et non amendé.
+
+### L'organisation à deux arbres est retirée
+
+`CineShelf-design` et `chain-i` supprimés après contrôle : 0 commit propre, 0 modification
+en attente. Deux dossiers et deux branches à synchroniser ne se justifiaient que par deux
+chaînes parallèles, et il n'en reste qu'une sur le chemin. `docs/journal-design.md` part
+avec — sa seule raison d'être était le conflit d'append entre les deux arbres, et il ne
+contenait qu'une note d'ouverture. Le laisser aurait été pire qu'inutile : il disait
+« écris ici pour la chaîne `I` ».
+
+### Le remote du clone web, et la leçon qui va avec
+
+Corrigé vers `CineShelf_old`, vérifié par `git ls-remote` (`refs/heads/main → 56ed7a7`).
+
+**La leçon vaut d'être retenue, parce qu'elle est muette :** renommer un dépôt GitHub et
+réutiliser son nom laisse tous les clones existants pointer vers **le nouvel occupant**.
+GitHub ne redirige que tant que l'ancien nom reste libre. Ici, l'app web s'appelait
+`CineShelf`, elle est devenue `CineShelf_old`, et l'app native a repris le nom : le clone
+web pointait donc sur le dépôt natif, avec lequel il n'a **aucun commit commun**. Un
+`git pull` y ramenait l'app native ; un `git push --force` écrasait l'app native.
+
+Inscrit sur la fiche du prompt 2, avec l'emplacement du clone — il n'est suivi par aucun
+dépôt (imbriqué dans `ControlHub`, zéro fichier suivi), donc sa seule sauvegarde est
+`CineShelf_old`.
+
+### `P0` — la signature passe par un `xcconfig` local
+
+`DEVELOPMENT_TEAM` était vide dans `project.yml`. Le poser en dur était exclu : **le
+dépôt est public**, et un identifiant d'équipe est personnel. Second motif, moins évident
+et plus décisif à l'usage : `xcodegen generate` réécrit le `.xcodeproj` à chaque ajout de
+fichier, donc **une équipe choisie dans l'interface d'Xcode serait perdue à la
+régénération suivante**.
+
+Trois fichiers : `Signing.xcconfig` versionné pose le défaut vide puis
+`#include? "Local.xcconfig"` ; `Local.xcconfig` gitignoré porte la valeur ; un `.example`
+documente. Le **point d'interrogation** de `#include?` rend l'inclusion optionnelle —
+sans lui, un clone neuf et la CI échoueraient sur un fichier absent.
+
+**Le piège du mécanisme, et pourquoi je l'ai mesuré au lieu de le supposer.** Un build
+setting du projet **écrase** un `xcconfig`. Laisser `DEVELOPMENT_TEAM: ""` dans
+`settings.base` aurait donc rendu `Local.xcconfig` inopérant *alors qu'il est là et
+correctement rempli* — tout aurait eu l'air juste. J'ai donc fait le contre-test :
+
+| Mesure | Résultat |
+|---|---|
+| Sans `Local.xcconfig` | aucune valeur — le défaut vide |
+| Avec `Local.xcconfig = SONDE12345` | **`SONDE12345`** |
+| **Faute réintroduite** dans `project.yml`, fichier toujours rempli | valeur **vide** — l'écrasement est réel |
+| Build appareil sans équipe | `error: Signing for "CineShelf" requires a development team.` |
+| Builds macOS et simulateur iOS | `** BUILD SUCCEEDED **` |
+
+Rigueur légère, mais le contre-test n'est pas du zèle : il vérifie l'affirmation que
+portent les commentaires du fichier, et cette affirmation est la seule chose qui empêchera
+quelqu'un de remettre la valeur dans `project.yml` dans six mois.
+
+**Ce qui reste à faire à la main**, parce que c'est interactif : ajouter le compte Apple
+dans Xcode. Mesuré, `security find-identity -v -p codesigning` rend **0 identité** et
+aucune équipe n'est enregistrée. Un Apple ID gratuit suffit.
+
+### Suite
+
+`I2` — carte affiche (les 6 variantes), carte paysage, carte personne. Rigueur légère.

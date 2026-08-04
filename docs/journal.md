@@ -4045,3 +4045,68 @@ trois sessions plus tôt : 450 · 38 · 67.
 
 **Suite : `V0`** — le chrome. C'est la première tâche `V` du palier 1, et elle s'appuie sur
 `I2` `I3` `I4`, tous les trois faits.
+
+---
+
+## 2026-08-04 (7) — `V0`, et la barre latérale qui n'existait pas
+
+Le chrome. Rigueur légère. C'est la première tâche qui touche `App/`.
+
+**La direction retenue n'a pas de barre latérale, et je ne l'ai su qu'en lisant la légende
+d'un bloc.** Le §4.6 en annonce une à quatre crans sur six — « en superposition »,
+« permanente », « + inspecteur simultanés ». Aucun écran rendu n'en montre. Le bloc `3b` le
+dit en toutes lettres : « même navigation régulière, **sans barre latérale** ». Mac et iPad
+partagent une **barre horizontale en haut**. C'est le même résidu que la colonne
+« Colonnes » du même tableau : une table de synthèse qui décrit une intention antérieure,
+contredite par tout ce qui a été dessiné ensuite. Douze écrans contre quatre mots.
+
+`Sidebar.swift` est supprimée. Ses deux contenus ne se sont pas évaporés pour autant, et
+c'est le point de méthode de la session : **supprimer un point d'accès crée une lacune de
+design, pas un retard.** Les genres épinglés n'ont plus aucune porte d'entrée — inscrit en
+question ouverte, avec la piste que l'accueil affichant déjà des rails par genre, les genres
+épinglés pourraient cesser d'être de la navigation pour devenir la *configuration de
+l'accueil*. Les bibliothèques, elles, ont une destination vérifiée : **pas le menu de
+profil**, contrairement à l'hypothèse naturelle — le design met le sujet dans un menu
+`Bibliothèque` de la barre de menus et dans l'écran `7f`, donc `V7`.
+
+**Ma prédiction sur `NavigationModelTests` était fausse, et je le savais avant de la
+tester.** J'avais annoncé « douze tests verts sans y toucher ». Ils n'ont pas compilé : le
+bloc `3c` donne cinq onglets — Accueil · Titres · Recherche · Ma liste · Gérer — là où la
+coquille en avait cinq autres avec un « Catalogue » segmenté. `CatalogueSegment` disparaît,
+et six tests avec lui. La prédiction était faite **avant** d'avoir lu la planche du chrome
+compact : ce n'était pas une erreur de raisonnement, c'était une affirmation sur du code que
+je n'avais pas encore confronté au design. Les quatre tests réécrits ont gagné un invariant
+qui n'existait pas : **toute section a un onglet propre ou figure dans `CompactTab.managed`**
+— sans lui, ajouter une section la rendrait inatteignable sur iPhone en silence.
+
+**Une seconde lacune, trouvée en écrivant ce test.** Les cinq onglets du design ne couvrent
+que cinq sections sur onze : Personnes, Collections, Galerie et Signets n'ont pas d'onglet,
+et le handoff ne dit nulle part où on les atteint sur iPhone — son §6 ne parle que de la
+*mise en page* des écrans non dessinés. Elles sont derrière « Gérer », qui est un défaut de
+mieux et pas une lecture du design. Inscrit.
+
+**Un jeton legacy attrapé au passage.** L'avatar de la barre tirait sa teinte de
+`ProfileSession.accentColor`, qui rend `accentSolid` — un jeton de l'ancienne direction. La
+couleur *par profil* est une vraie fonctionnalité, mais sa palette arrive avec `I9` et `V7` ;
+d'ici là c'est l'accent unique. **`CompactRootView` et `ProfileMenu` sortent de la liste
+d'exclusion de `no_legacy_design_system`**, et le lint vert le prouve — c'est la vérification
+qui compte, pas l'intention.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **67 tests**, 9 suites |
+| `xcodebuild test -scheme CineShelfUITests -destination iOS Simulator` | ✅ **1 test** (`testAppLaunches`, 72,9 s) |
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **450 · 63 · 38** |
+| `xcodebuild test -scheme DesignSystemCatalog -destination macOS` | ✅ **64 tests** |
+| `xcodebuild build -scheme CineShelf -destination macOS` | ✅ `BUILD SUCCEEDED` |
+| `xcodebuild build -scheme CineShelf -destination iOS Simulator` | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 245 fichiers, **liste d'exclusion réduite de deux** |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| Lancement réel sur Mac | ✅ processus `CineShelf` vivant après `open` |
+
+Aucune ligne « non lancée » cette fois : `V0` touche `App/`, donc tout est concerné.
+
+**Suite : `V0 bis`** — les titres : grille, fiche, éditeur. L'éditeur attend `I7`–`I9` ; la
+grille et la fiche non.

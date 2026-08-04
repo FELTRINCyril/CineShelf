@@ -539,7 +539,7 @@ qui remplace le banc d'essai des prompts 10 et 11.
 | 2 | `I3` — carte collection · vignette galerie · **avatar de profil** | L'avatar est réclamé par le chrome (sélecteur de profil), la vignette par la fiche | légère — ✅ `ad55476` |
 | 3 | `I4` — rail horizontal · grille adaptative · squelette de chargement | **Sans lui aucun écran ne peut être posé** : c'est lui qui porte les 6 points de rupture | légère — ✅ `3f24344` `a2757f6` |
 | 4 | `I6` — badge d'état · barre de notation · indicateur de progression | Les états d'une carte et d'une fiche : vu, favori, note | légère — ✅ `a745c7f` |
-| 5 | `V0` — **chrome** : navigation régulière, barres d'outils, en-têtes, sélecteur de profil | Remplace la coquille du prompt 10. Toutes les `V` s'y posent | légère |
+| 5 | `V0` — **chrome** : navigation régulière, barres d'outils, en-têtes, sélecteur de profil | Remplace la coquille du prompt 10. Toutes les `V` s'y posent | légère — ✅ `e84324c` |
 | 6 | `V0 bis` — **titres** : grille, fiche, éditeur | Remplace le prompt 11. C'est l'écran où l'app se juge | légère |
 | 7 | `V5a` — **accueil** : hero + rails par genre | Le premier écran qu'on voit. Demande `L18` pour la règle de choix du hero | légère |
 
@@ -1323,7 +1323,7 @@ Chacune s'écrit **une seule fois**, contre le design final.
 
 | Tâche | Écrans | Prompt d'origine | S'appuie sur |
 |---|---|---|---|
-| `V0` | **Chrome** — navigation régulière (Mac, iPad) et compacte (iPhone), en-têtes et comportement au défilement, barres d'outils (tri, filtres, affichage, actions), sélecteur de profil, indicateur de synchronisation, barre de menus et raccourcis Mac. **Remplace la coquille du prompt 10**, qui est un banc d'essai | 10 | `I2` `I3` `I4` |
+| `V0` | **Chrome** — navigation régulière (Mac, iPad) et compacte (iPhone), en-têtes et comportement au défilement, barres d'outils (tri, filtres, affichage, actions), sélecteur de profil, indicateur de synchronisation, barre de menus et raccourcis Mac. **Remplace la coquille du prompt 10**, qui est un banc d'essai. **Les menus d'écran (tri, filtres, affichage) ne sont pas posés par le chrome** : ils trieraient quoi ? Ils appartiennent à l'écran qui les porte, donc à `V0 bis` | 10 | `I2` `I3` `I4` — ✅ `e84324c` |
 | `V0 bis` | **Titres** — grille, filtres, tri, bascule d'affichage · fiche (hero, affiche, métadonnées, casting, galerie, liens) · éditeur. **Remplace le prompt 11.** L'éditeur attend les champs `I7`–`I9` ; la grille et la fiche non | 11 | `V0`, `I2` `I4` `I6` |
 | `V5a` | **Accueil** — hero + rails par genre. Détaché de `V5`, qui portait cinq écrans d'un bloc. Le hero exige la règle de choix de `L18` : stable dans la journée, jamais un titre archivé ni privé si le profil les masque | 16 | `V0`, `I4`, `L18` |
 | `V1` | Recherche : champ, portées, suggestions, résultats groupés. **L'anti-rebond de la saisie est affaire de vue, pas du service** : `SearchService` est une fonction pure, appelable à chaque frappe, et c'est la vue qui décide quand l'appeler. Le mettre dans le service le rendrait intestable et imposerait un rythme à des appelants qui n'ont pas de frappe à amortir — l'App Intent de `L19`, par exemple. Deux branches obligatoires, et le compilateur les impose : `SearchOutcome.idle` (champ vide → recherches récentes) et `.results` dont les groupes peuvent être vides (→ « aucun résultat ») | 12 | `L2` `L3` |

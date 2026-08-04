@@ -135,11 +135,35 @@ public struct ImportRow: Sendable, Hashable, Identifiable {
         self.issues = issues
     }
 
-    /// La même ligne, une cellule remplacée. Sert à la correction en masse.
-    func settingCell(_ value: String, forKey key: String) -> ImportRow {
-        var updated = cells
-        updated[key] = value
-        return ImportRow(number: number, cells: updated, rawFields: rawFields, issues: issues)
+    /// La même ligne, une cellule remplacée — **dans les deux copies**.
+    ///
+    /// **`rawFields` doit suivre, et l'oublier annulait le travail de l'utilisateur.** La
+    /// première version ne mettait à jour que `cells`, alors que le fichier de reprise est
+    /// construit depuis `rawFields`. Une ligne corrigée sur l'année mais encore refusée pour
+    /// sa durée repartait donc avec **l'ancienne** année. Scénario complet : corriger 214
+    /// années, exporter les écartées pour finir les durées au tableur, redéposer — les 214
+    /// corrections avaient disparu, sans un mot. Le fichier était redéposable au sens du
+    /// format, pas au sens du travail.
+    ///
+    /// - Parameters:
+    ///   - value: la valeur à écrire.
+    ///   - key: la clé du champ corrigé.
+    ///   - columnIndex: la position de la colonne dans le fichier, `nil` si aucune colonne
+    ///     n'alimente ce champ. Dans ce cas la valeur ne vit que dans `cells` : c'est
+    ///     « Saisir une année pour toutes » de la planche 11f, une valeur que le fichier n'a
+    ///     jamais portée et qu'il n'a donc pas à porter au retour.
+    /// - Returns: la ligne corrigée. Ses refus sont inchangés — c'est à l'appelant de la
+    ///   revalider, parce qu'une correction peut en découvrir une autre.
+    func settingCell(_ value: String, forKey key: String, columnIndex: Int?) -> ImportRow {
+        var updatedCells = cells
+        updatedCells[key] = value
+
+        var updatedFields = rawFields
+        if let columnIndex, columnIndex < updatedFields.count {
+            updatedFields[columnIndex] = value
+        }
+        return ImportRow(
+            number: number, cells: updatedCells, rawFields: updatedFields, issues: issues)
     }
 
     func settingIssues(_ issues: [ImportIssue]) -> ImportRow {
@@ -176,11 +200,23 @@ public struct ImportAnalysis: Sendable, Hashable {
     /// L'en-tête du fichier, tel quel. Nécessaire au rapport redéposable.
     public let header: [String]
     public let rows: [ImportRow]
+    /// L'incident qui a frappé la ligne d'en-tête, s'il y en a un.
+    ///
+    /// Porté jusqu'ici parce qu'un en-tête fautif ne se rattrape pas ligne à ligne : c'est le
+    /// **fichier** qui n'est pas lisible, et le rapport doit le dire au lieu de réclamer une
+    /// colonne que le fichier contient.
+    public let headerMalformation: CSVMalformation?
 
-    public init(columns: ColumnAnalysis, header: [String], rows: [ImportRow]) {
+    public init(
+        columns: ColumnAnalysis,
+        header: [String],
+        rows: [ImportRow],
+        headerMalformation: CSVMalformation? = nil
+    ) {
         self.columns = columns
         self.header = header
         self.rows = rows
+        self.headerMalformation = headerMalformation
     }
 
     public var readyRows: [ImportRow] { rows.filter(\.isReady) }
@@ -232,7 +268,11 @@ public struct ImportValidator: Sendable {
             let base = ImportRow(number: row.number, cells: cells, rawFields: row.fields, issues: [])
             return base.settingIssues(issues(for: base, malformation: row.malformation))
         }
-        return ImportAnalysis(columns: columns, header: document.header, rows: rows)
+        return ImportAnalysis(
+            columns: columns,
+            header: document.header,
+            rows: rows,
+            headerMalformation: document.headerMalformation)
     }
 
     /// Les cellules d'une ligne, rangées par clé de champ.
@@ -296,10 +336,24 @@ public struct ImportValidator: Sendable {
     private func vocabularyIssue(for field: CSVField, text: String) -> ImportIssue? {
         switch field.shape {
         case .multiValue:
+            let values = CSVSchema.splitMultiValue(text)
+            // **Une cellule qui ne contient que des séparateurs est vide, et elle passait.**
+            // `splitMultiValue` retire les valeurs vides, donc `Rôles = "/"` rendait une
+            // liste vide, et la recherche d'une valeur inconnue ne trouvait rien : la ligne
+            // était déclarée prête avec zéro rôle. `BulkEditor` refuse justement une liste de
+            // rôles vide, au motif que le modèle suppose au moins un rôle — deux écrivains,
+            // deux règles. La cellule n'est pas vide pour l'utilisateur, elle est fautive.
+            guard !values.isEmpty else {
+                return refusal(
+                    field,
+                    .valueNotAllowed(
+                        field: field.header,
+                        found: text,
+                        expected: "au moins une valeur, séparée par « \(CSVSchema.multiValueSeparator) »"))
+            }
             // Le vocabulaire s'applique à chaque valeur de la cellule : « acteur/plombier »
             // doit dire laquelle des deux est inconnue, pas refuser la cellule en bloc.
             guard !field.allowedValues.isEmpty else { return nil }
-            let values = CSVSchema.splitMultiValue(text)
             guard
                 let unknown = values.first(where: {
                     CSVValueParser.enumerated($0, allowedValues: field.allowedValues) == nil
@@ -390,94 +444,5 @@ enum CSVExportFormat {
     /// Une borne, sans décimale inutile : « entre 0 et 10 », pas « entre 0.0 et 10.0 ».
     static func bound(_ value: Double) -> String {
         value == value.rounded() ? String(Int(value)) : String(format: "%g", value)
-    }
-}
-
-// MARK: - Corriger en masse, sans reparser
-
-/// Une correction appliquée à un lot de lignes.
-///
-/// La planche 11f : « une cause, une décision, un aperçu de l'effet avant de l'appliquer ».
-public struct ImportCorrection: Sendable, Hashable {
-    /// Le champ corrigé.
-    public let fieldKey: String
-    /// La valeur à écrire dans la cellule.
-    public let value: String
-    /// Les lignes visées. `nil` = toutes les lignes en erreur sur ce champ.
-    public let rowNumbers: Set<Int>?
-
-    public init(fieldKey: String, value: String, rowNumbers: Set<Int>? = nil) {
-        self.fieldKey = fieldKey
-        self.value = value
-        self.rowNumbers = rowNumbers
-    }
-}
-
-extension ImportValidator {
-
-    /// La même analyse, une correction appliquée et les lignes touchées revalidées.
-    ///
-    /// **Sans reparser le fichier**, comme la fiche l'exige : les octets ont été découpés une
-    /// fois, et une correction de masse sur 214 lignes ne doit pas relire 1 284 lignes. Seule
-    /// une `ImportRow` déjà en mémoire est retravaillée, et seules les lignes visées.
-    ///
-    /// Rien n'est muté : une nouvelle analyse est rendue. C'est ce qui permet à l'écran de
-    /// montrer l'effet **avant** de l'appliquer — il compare deux valeurs, il n'annule pas
-    /// une écriture.
-    public func applying(_ correction: ImportCorrection, to analysis: ImportAnalysis) -> ImportAnalysis {
-        let targets =
-            correction.rowNumbers
-            ?? Set(
-                analysis.refusedRows
-                    .filter { $0.issues.contains { $0.fieldKey == correction.fieldKey } }
-                    .map(\.number)
-            )
-        let rows = analysis.rows.map { row -> ImportRow in
-            guard targets.contains(row.number) else { return row }
-            let corrected = row.settingCell(correction.value, forKey: correction.fieldKey)
-            // La malformation n'est pas rejouée : elle appartient au découpage, et corriger
-            // une cellule ne recolle pas une ligne dont les colonnes sont décalées.
-            let malformation = row.issues.compactMap { issue -> CSVMalformation? in
-                guard case .rowMalformed(let malformation) = issue.reason else { return nil }
-                return malformation
-            }.first
-            return corrected.settingIssues(issues(for: corrected, malformation: malformation))
-        }
-        return ImportAnalysis(columns: analysis.columns, header: analysis.header, rows: rows)
-    }
-
-    /// L'effet d'une correction avant de l'appliquer : les lignes touchées, avant et après.
-    ///
-    /// Trois lignes par défaut, comme « Aperçu de l'effet · trois premières lignes
-    /// concernées » de la planche 11f.
-    public func preview(
-        _ correction: ImportCorrection,
-        on analysis: ImportAnalysis,
-        limit: Int = 3
-    ) -> [ImportCorrectionPreview] {
-        let after = applying(correction, to: analysis)
-        let changed = zip(analysis.rows, after.rows)
-            .filter { $0.cells[correction.fieldKey] != $1.cells[correction.fieldKey] }
-        return changed.prefix(limit).map {
-            ImportCorrectionPreview(
-                number: $0.number,
-                before: $0.cells[correction.fieldKey] ?? "",
-                after: $1.cells[correction.fieldKey] ?? "")
-        }
-    }
-}
-
-/// Une ligne que la correction changerait, avant et après.
-public struct ImportCorrectionPreview: Sendable, Hashable, Identifiable {
-    public let number: Int
-    public let before: String
-    public let after: String
-
-    public var id: Int { number }
-
-    public init(number: Int, before: String, after: String) {
-        self.number = number
-        self.before = before
-        self.after = after
     }
 }

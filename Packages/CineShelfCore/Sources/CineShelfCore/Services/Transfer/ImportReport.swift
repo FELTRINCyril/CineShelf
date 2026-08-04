@@ -35,6 +35,14 @@ public struct ImportReport: Sendable, Hashable {
     public let ignoredColumnNames: [String]
     /// Les champs requis qu'aucune colonne n'alimente. Non vide = l'import ne peut pas partir.
     public let missingRequiredFieldKeys: [String]
+    /// L'incident de la ligne d'en-tête, s'il y en a un. Non nul = rien n'est importable.
+    ///
+    /// **Il était jeté à la lecture, et le rapport mentait alors sur la cause.** Sur un
+    /// en-tête à guillemet non fermé, le fichier entier devenait un nom de colonne, et le
+    /// rapport annonçait « champ requis `title` sans colonne » devant un fichier qui *porte*
+    /// une colonne titre. L'utilisateur cherchait une colonne manquante au lieu d'un
+    /// guillemet.
+    public let headerMalformation: CSVMalformation?
 
     public init(analysis: ImportAnalysis) {
         self.analyzedCount = analysis.rows.count
@@ -43,10 +51,13 @@ public struct ImportReport: Sendable, Hashable {
         self.causes = analysis.causeGroups
         self.ignoredColumnNames = analysis.ignoredColumnNames
         self.missingRequiredFieldKeys = analysis.columns.missingRequiredFieldKeys
+        self.headerMalformation = analysis.headerMalformation
     }
 
     /// `true` si l'analyse permet d'importer quelque chose.
-    public var hasImportableRows: Bool { readyCount > 0 && missingRequiredFieldKeys.isEmpty }
+    public var hasImportableRows: Bool {
+        readyCount > 0 && missingRequiredFieldKeys.isEmpty && headerMalformation == nil
+    }
 }
 
 // MARK: - Le fichier de reprise

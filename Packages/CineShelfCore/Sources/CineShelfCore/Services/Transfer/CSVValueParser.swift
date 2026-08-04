@@ -97,9 +97,11 @@ public enum CSVValueParser {
     /// même fichier se lirait différemment selon l'appareil — la classe de bug que le
     /// repliage invariant a fermée ailleurs.
     public static func decimal(_ value: String) -> Double? {
+        // Les espaces **de bord** seulement. La première version les retirait toutes, et
+        // « 1 2 3 » rendait 123 : une tolérance plus large que ce que cette docstring
+        // annonce, donc une valeur inventée là où il fallait un refus nommé.
         let text = value.trimmingCharacters(in: .whitespaces)
             .replacingOccurrences(of: ",", with: ".")
-            .replacingOccurrences(of: " ", with: "")
         guard !text.isEmpty, text.allSatisfy({ $0.isNumber || $0 == "." || $0 == "-" }) else {
             return nil
         }

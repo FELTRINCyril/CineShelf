@@ -35,7 +35,7 @@ ordre :
 | — | Corbeille des genres, invariant `DemoCatalog` | Code | — | ✅ `c5bdb58` |
 | — | Entitlements par SDK, couleurs sémantiques | Code | — | ✅ `ce3e63c` |
 | — | Grille des titres vide derrière 42 tests verts | Code | — | ✅ `e0f0f0b` |
-| `I1` | **Tokens de la nouvelle direction** — couleur, typographie, 5 polices, espacement, densité, rayons, traits, mouvement, plans, ruptures, 6 tailles d'affiche et matrice, 37 SF Symbols. Ancienne direction isolée dans `Legacy/` | Code | `design/README.md` §4, planche 8 | ✅ |
+| `I1` | **Tokens de la nouvelle direction** — couleur, typographie, 5 polices, espacement, densité, rayons, traits, mouvement, plans, ruptures, 6 tailles d'affiche et matrice, 37 SF Symbols. Ancienne direction isolée dans `Legacy/` | Code | `design/README.md` §4, planche 8 | ✅ `9b4b64e` |
 | `L1` | Requêtes interrogeables — titres et personnes | Code | `02 §3 §5`, `04 §3` | ✅ `eb05149` `e347b11` |
 | — | CI réparée, invariant des relations verrouillé | Code | — | ✅ `8ae4dfb` |
 | `L2` | Service de recherche | Code | `02 §5`, `04 §6` | ✅ `6ea6a8e` |

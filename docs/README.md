@@ -17,7 +17,8 @@ complète** (voir `06-BRIEF-DESIGN.md`).
 | [`04-ARCHITECTURE-SWIFTUI.md`](./04-ARCHITECTURE-SWIFTUI.md) | Structure du projet, couche d'accès, pipeline médias, budgets de perf, tests | **fait foi**, amendé au fil des sessions |
 | [`06-BRIEF-DESIGN.md`](./06-BRIEF-DESIGN.md) | Le brief de design : registre média, écrans à concevoir, méthode « rendus d'abord, Swift après ». C'est un **brief**, pas une spécification : les tokens seront déduits des écrans | actif, remplace l'ancien `01` |
 | [`PROMPTS.md`](./PROMPTS.md) | Le plan et **le seul suivi d'avancement** : tâches LOGIQUE (L1, L2...), tâches VUES, tableau d'état avec hash de commit, écarts connus | actif |
-| [`journal.md`](./journal.md) | Une entrée par session : ce qui a été fait, ce qui a été mesuré, ce qui a été décidé | actif |
+| [`journal.md`](./journal.md) | Une entrée par session **de la chaîne `L`** : ce qui a été fait, ce qui a été mesuré, ce qui a été décidé | actif |
+| [`journal-design.md`](./journal-design.md) | Le même, pour la **chaîne `I`** — deux fichiers parce que les deux arbres de travail y ajoutaient en fin de fichier et se conflictaient à chaque session | actif |
 
 ## Documents archivés — `_archive/`
 

@@ -173,6 +173,7 @@ de découpage sur sa fiche.
 | `MediaRepository.asset(withID:)` : code mort, aucun appelant dans le dépôt | — |
 | `ColorTokens.typedAccessor(for:)` n'a plus d'appelant de production depuis que `ProfileSession.accentColor` est un `switch` sur `ProfileAccent` : API `public` exercée par les seuls tests. La garder tant que le catalogue peut en avoir besoin, sinon la passer `internal` | — |
 | **Teinte de profil : deux choix seulement** (`accent/solid`, `accent/text`). Ce sont les deux seuls jetons d'accent à alpha 1 ; `accent/soft` est un lavis de fond (alpha 0,10 à 0,22) qui rendrait l'accent invisible en `.tint`. Si le prompt 18 veut de vraies couleurs par profil, il faudra étendre la palette dans `colors.tokens.json`, pas réutiliser les rôles existants. **La palette entière étant à refaire, ce point se tranchera avec la nouvelle** | `V7` |
+| **Passe sur les réglages, reportée** (décision actée, voir « Arbitrages tranchés » point 3) : le périmètre réel des options n'est pas connu tant que la synchronisation, la corbeille et l'espace occupé n'ont pas ajouté les leurs. Dessiner l'écran avant reviendrait à le redessiner | après les prompts 21 et 22 |
 | Grille non navigable au clavier sur Mac (`PosterCard` ouvre par `onTapGesture`, sans `focusable()`) | `V12` |
 | `MediaEnvironment.displayScale` jamais alimenté : vignettes générées en @2x quelle que soit la dalle | `L5` |
 | `DemoCatalog` hors des repositories : **décision actée** — une fixture n'est pas une action utilisateur, et on ne veut pas 300 `ActivityEntry` fictives dans le fil. L'invariant `refreshDerived()` tient et `DemoCatalogTests` le vérifie. Reste factice : `MediaAsset.checksum` et `blurHash` non calculés | — |
@@ -231,6 +232,50 @@ ce qui reste debout.
 
 Aucun travail d'interface nouveau sans accord explicite : ni écran, ni composant, ni
 retouche esthétique de l'existant. Règle reportée dans `CLAUDE.md`.
+
+### Arbitrages tranchés
+
+Trois questions posées pendant la refonte de la direction artistique. Elles sont
+fermées : ce ne sont plus des questions ouvertes, et il n'y a pas à y revenir sans
+élément nouveau.
+
+**1. Portée de l'apparence claire - la recommandation du design est retenue.**
+
+Les surfaces de gestion suivent l'apparence système, claire ou sombre. L'accueil, les
+fiches et la galerie sont **forcés en sombre**, quelle que soit l'apparence choisie
+par l'utilisateur.
+
+C'est la convention d'Apple sur ses propres surfaces de visionnage : Photos, Aperçu et
+Final Cut forcent le sombre. Second motif, pratique celui-là : cela évite de dessiner
+et de tester une variante claire pour des écrans dont le design dit lui-même qu'elle
+n'y fonctionne pas.
+
+Ce que ça implique :
+
+- les quatre apparences de l'Asset Catalog restent (Any, Dark, Any HC, Dark HC) : les
+  surfaces de gestion en ont besoin, et le contraste élevé reste une contrainte du
+  brief sur **tous** les écrans ;
+- le forçage se pose par écran, avec `.preferredColorScheme(.dark)` sur la racine de
+  chaque surface de visionnage, pas globalement sur l'app ;
+- une valeur claire reste néanmoins renseignée pour tout jeton : un jeton partagé
+  entre gestion et visionnage doit se résoudre correctement des deux côtés.
+
+**2. Doublons du multi-sélecteur - déjà résolu côté logique.**
+
+`GenreRepository.findOrCreate(name:target:in:)` dédoublonne déjà sur `nameKey`, replié
+sans casse ni accents, par bibliothèque et par cible. Saisir un genre existant ne crée
+donc aucun doublon, quelle que soit la façon dont il est tapé.
+
+Il ne reste que la part visible : pendant la saisie, afficher « genre existant »
+plutôt que « créer » quand la frappe correspond à un `nameKey` connu. C'est une
+**tâche V**, portée par `V5`, pas une question ouverte.
+
+**3. Passe sur les réglages - reportée, le design a raison.**
+
+À reprendre quand le périmètre réel des options sera connu, c'est-à-dire **après les
+prompts CloudKit** (21 et 22) : la synchronisation, la corbeille et l'espace occupé
+ajoutent des réglages qu'on ne sait pas encore énumérer. Dessiner l'écran maintenant
+reviendrait à le redessiner ensuite.
 
 ---
 
@@ -793,7 +838,7 @@ sert de banc d'essai en attendant.
 | `V2` | Médias : `PhotosPicker`, import de fichier, glisser-déposer, collage, `CropEditor`, branchement de `MediaThumbnail` | 13b | `L4` `L5` |
 | `V3` | Galerie : masonry, matrice `layout × size` rendue, visionneuse, immersif | 14 | `L1 bis` `L4` `L5` |
 | `V4` | Personnes : grille, fiche, éditeur, écran de fusion champ par champ | 15 | `L8` `L9` |
-| `V5` | Collections, genres, liens et signets, accueil, fil | 16 | `L6` `L7` `L18` |
+| `V5` | Collections, genres, liens et signets, accueil, fil. **Dont** : le multi-sélecteur de genres affiche « genre existant » plutôt que « créer » quand la frappe correspond à un `nameKey` connu (voir « Arbitrages tranchés », point 2) | 16 | `L6` `L7` `L18` |
 | `V6` | Console de gestion : tableau par entité, édition inline, édition en masse. **Ne pas livrer sans `L20`** : une édition en masse sans annulation peut détruire une heure de saisie sur une sélection mal cliquée, sans autre recours que de tout ressaisir | 17 | `L10` · **`L20`** |
 | `V7` | Profils, bibliothèques, transfert, verrouillage, écran de confidentialité | 18 | `L14` `L15` |
 | `V8` | Import et export : sélecteur de champs, aperçu ligne à ligne, correction, progression | 19 | `L11` `L12` |

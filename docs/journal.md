@@ -3146,3 +3146,94 @@ et non un test, et c'est écrit à côté d'elle. Même statut que les budgets d
 | Preuve — correction détournée vers `overrides` malgré une colonne | 4 tests mordent |
 | Preuve — verrou de réentrance retiré | 3 assertions mordent |
 | Preuve — `Task.yield()` retiré | **ne mord pas** : la mesure justifie la ligne, pas le test |
+
+---
+
+## 2026-08-04 — La revue de `L11b` : cinq défauts, dont un que j'aurais dû voir
+
+Sous-agent de revue, méthode de la sonde appliquée comme `CLAUDE.md` l'exige désormais. **Cinq
+vrais bugs**, tous reproduits sur ma propre sonde avant correction — un rapport de revue n'est
+pas une vérité, et deux de ses griefs ne se sont pas confirmés.
+
+### Les deux bloquants
+
+**La clé de doublon ignorait « Date de sortie ».** L'année ne venait que de la colonne `year`,
+et `TitleQuery.living` traite une année nulle comme « cherche un titre **sans** date » — ce qui
+est juste par ailleurs. Un fichier portant « Date de sortie » seule écrivait donc une date puis
+cherchait l'absence de date :
+
+| Entrée | Avant | Après |
+|---|---|---|
+| 2 lignes identiques, importées 2 fois | **4 fiches** « Dune » | 1 |
+
+Aucun signal, et un bilan cohérent avec lui-même. C'est le défaut que j'aurais dû voir : ma
+sonde de la veille n'avait essayé que des fichiers avec « Année ».
+
+**Le bilan comptait le même titre plusieurs fois.** Les issues étaient repliées ligne par ligne
+et non par entité. Trois lignes décrivant la même fiche donnaient « 1 ajouté, 2 complétés » pour
+**un** titre, et le même `UUID` figurait dans `createdTitleIDs` **et** dans `completions` — un
+diff que `L20` aurait exécuté en supprimant le titre puis en tentant de restaurer des champs sur
+une fiche disparue. Repliage par entité, précédence `created > completed > unchanged`.
+
+### Les trois majeurs
+
+- **La même personne répétée dans une cellule créait deux crédits.** Le côté genres avait son
+  test ; l'entrée équivalente sur la colonne voisine n'avait pas été essayée.
+- **Une date complète dans la colonne « Année » perdait son jour**, en silence, sur une cellule
+  que l'aide du champ promet d'accepter et que rien ne refusait.
+- **Le verrou de réentrance ne protégeait rien.** Indexé sur `ObjectIdentifier(actor)` : deux
+  `ImportActor` sur le même conteneur avaient deux verrous. 600 titres au lieu de 300, sans
+  qu'aucun `alreadyRunning` ne soit levé — et **mon propre montage de test** avait la propriété
+  calculée qui déclenche le cas. Pire, `ObjectIdentifier` est une adresse **recyclée** : cinq
+  acteurs successifs donnaient deux identités. Le verrou protège désormais un **magasin**, par
+  `NSMapTable` à clés faibles comparées par pointeur.
+
+### Deux comportements arbitrés plutôt que subis
+
+**Un réimport enrichi ajoute.** Mesuré : un genre et un acteur ajoutés au fichier étaient
+abandonnés sans être comptés nulle part — sur le geste le plus naturel après avoir complété son
+tableur. Ce n'est pas une entorse à « ne jamais écraser » : rien n'est retiré, et un troisième
+import identique est bien « inchangé ». Le diff porte les relations rattachées, faute de quoi
+l'enrichissement serait appliqué mais **pas annulable**.
+
+**Le privé est monotone** : un fichier peut rendre privé, jamais rendre public. Entre les deux
+erreurs possibles, exposer un contenu marqué privé est la seule qui ne se répare pas — c'est la
+fuite que `L3` a fermée.
+
+### Deux griefs qui ne se sont pas confirmés, et ce qu'ils ont révélé
+
+La revue signalait qu'une reprise de brouillon détruisait les valeurs contenant le séparateur, et
+qu'une ligne mal découpée y redevenait prête. Sur un **vrai** fichier écrit par `CSVWriter`, ni
+l'un ni l'autre : le brouillon est fidèle. Ce qui était faux, c'est **mon helper de test**, qui
+joignait les champs par `;` sans échapper. Il rendait donc plus faible tout test l'employant, sans
+que rien ne le montre. Corrigé pour passer par `CSVWriter` — et un `rawCSV` séparé est apparu pour
+les cas qu'un écrivain correct ne produit pas, comme une ligne trop courte.
+
+Le grief portait à côté, mais il pointait un vrai trou : **le chemin de reprise n'existait qu'en
+test**. `malformationCauseKey` était écrit dans le brouillon et personne ne le lisait.
+`restoredDocument()` et `restoredAnalysis()` livrent ce chemin.
+
+### Un test creux, et une preuve qui a demandé de casser deux gardes
+
+« Le verrou se relâche après une annulation » utilisait deux instances d'acteur, donc il passait
+quoi qu'il arrive.
+
+Et la monotonie du privé est gardée **deux fois** — par `isEmpty` et par `setTyped`. Casser une
+seule des deux laisse les tests verts, puisque l'autre suffit. Il a fallu injecter les **deux**
+fautes pour que le test morde. C'est écrit à côté du code : quiconque simplifie l'une en la
+croyant redondante retire un filet, pas un doublon.
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| `swift test` CineShelfCore | **414 tests** (398 avant) |
+| `xcodebuild test` macOS | **67 tests**, `TEST SUCCEEDED` |
+| `swiftlint --strict` | 0 violation / 212 fichiers |
+| `xcrun swift-format lint` | 0 avertissement |
+| Preuve — clé de doublon sans `release_date` | 3 assertions mordent |
+| Preuve — dédoublonnage des crédits retiré | 1 test mord |
+| Preuve — date complète tronquée à l'année | 3 assertions mordent |
+| Preuve — enrichissement redevenu muet | 3 assertions mordent |
+| Preuve — monotonie du privé, **les deux** gardes cassées | 1 test mord |

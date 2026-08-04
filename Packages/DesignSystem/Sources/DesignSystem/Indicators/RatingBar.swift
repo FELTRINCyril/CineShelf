@@ -30,8 +30,41 @@ import SwiftUI
 // **Et une note fractionnaire, alors ?** Elle s'affiche « 4,5 ★ » — un glyphe et le
 // nombre — et c'est `PosterTileDetail` qui la porte, comme la planche 3 bloc `4a` le
 // montre. Cette barre-ci arrondit au cran le plus proche pour choisir son nombre
-// d'étoiles : elle n'est pas l'affichage de référence d'une note fractionnaire, et
-// l'en-tête le dit pour que personne ne l'y prenne.
+// d'étoiles : elle n'est pas l'affichage de référence d'une note fractionnaire.
+//
+// MARK: - LACUNE DE DESIGN — la barre seule perd de l'information, en silence
+//
+// **Arrondir n'est pas le problème ; c'est que le design ne montre jamais la valeur à
+// côté de la barre.** 8,4 sur 10 donne quatre étoiles, et 8,0 aussi. Partout où la barre
+// paraît seule, les deux notes sont indistinguables, et rien ne signale qu'un chiffre a
+// été perdu.
+//
+// Relevé au 2026-08-04 — **huit occurrences dans la direction retenue montrent la barre
+// sans valeur** :
+//
+// | Écran | Bloc |
+// |---|---|
+// | Accueil, ligne de méta du hero | planche 1 `2a` |
+// | Fiche titre, rangée d'actions | planche 3 `4b` |
+// | Champ « Note » d'un formulaire | planche 6 `8a` (barre + « effacer », aucun nombre) |
+// | Fiche et panneau, « Ma note » | planche 6 `8c`, `8e` |
+// | Accueil et fiche, iPhone et iPad | addendum 2, quatre écrans |
+//
+// Les deux seuls endroits qui portent le nombre — `★ 4,5` sur la carte (planche 3 `4a`)
+// et `★ 4` dans le filtre (planche 6) — sont ceux où la barre n'est **pas** utilisée. Le
+// design ne les associe jamais.
+//
+// **C'est dans l'éditeur que ça a des conséquences, pas sur le hero.** Un titre noté 8,4
+// s'y présente comme quatre étoiles pleines ; toucher une étoile écrit une valeur entière,
+// donc la décimale disparaît — et l'utilisateur n'a jamais vu qu'il en avait une. Sur le
+// hero, la même approximation n'est qu'un affichage.
+//
+// **Ce que ce composant ne fait pas, et pourquoi.** Il n'invente pas de demi-étoile : la
+// direction l'exclut explicitement. Il ne colle pas non plus le nombre d'autorité — ce
+// serait ajouter au design un élément qu'aucune planche ne montre, exactement le genre de
+// comblement qui a déjà mal tourné ici. La question part au design ; d'ici là, l'appelant
+// qui affiche une note **modifiable** doit poser la valeur à côté (`TitleFormat.ratingText`
+// rend « 8,4 / 10 »). Inscrit aux écarts connus de `docs/PROMPTS.md`.
 
 /// Cinq étoiles, en lecture ou en saisie.
 public struct RatingBar: View {

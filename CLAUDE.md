@@ -185,6 +185,48 @@ C'est la quatrième fois, et c'est désormais un motif établi : `no_literal_col
 « ce code passe par tel unique point d'entrée » plutôt que « ce code produit telle
 valeur », écrire la règle de lint en plus du test, et la prouver en injectant la faute.
 
+## L'arithmétique ne vit jamais dans une `View`
+
+**`View` est `@MainActor`**, donc tout membre d'une vue l'est aussi. Une clôture qui
+capture `self` — un `segments.map { width(of: $0, …) }`, par exemple — déclenche alors un
+contrôle d'isolation depuis un test non isolé, et ce contrôle **tue le processus de test**
+(`SIGTRAP`, `_swift_task_checkIsolatedSwift`) au lieu d'échouer proprement.
+
+Ce qu'on observe est bien pire qu'un test rouge : `swift test` sort en « exited with
+unexpected signal code 5 », **la suite entière ne rend aucun résultat**, et le message ne
+nomme aucun test. C'est vrai même avec un `--filter` qui ne sélectionne rien, ce qui oriente
+vers un problème de chargement de bundle alors que le défaut est dans un corps de fonction.
+
+La règle : **tout calcul pur sort de la vue**, dans un type nonisolé, et c'est lui qu'on
+teste. Trois fois que le motif se répète — `GridMetrics` hors de `AdaptiveTileGrid`,
+`ProgressMetrics` hors de `ProgressTrack`, et avant eux la géométrie de recadrage. Le
+bénéfice n'est pas seulement l'isolation : un calcul extrait est le seul qu'on puisse
+assener sur des entrées dégénérées (division par zéro, compte négatif, débordement) sans
+monter un rendu.
+
+Quand il n'y a rien à extraire — comparer deux jetons de couleur portés par un `enum`
+imbriqué dans une vue —, la sortie est `@MainActor` sur le test, pas une extraction
+artificielle.
+
+### Une suite qui meurt sans nommer de test se diagnostique par le rapport système
+
+**Avant de bissecter :** `ls -t ~/Library/Logs/DiagnosticReports/*.ips | head`, et lire la
+pile du thread déclencheur. Elle nomme la fonction fautive directement.
+
+```bash
+python3 -c "
+import sys,json; raw=open(sys.argv[1]).read(); d=json.loads(raw.split('\n',1)[1])
+print(d['exception'])
+for t in d['threads']:
+    if t.get('triggered'):
+        for f in t['frames'][:12]: print(' ', d['usedImages'][f['imageIndex']]['name'], f.get('symbol'))
+" ~/Library/Logs/DiagnosticReports/<le-fichier>.ips
+```
+
+Mesuré le 2026-08-04 : six bissections à l'aveugle pour arriver là où la pile menait en une
+commande. La bissection reste bonne quand un test **échoue** ; elle est le mauvais outil
+quand le processus **meurt**.
+
 ## Deux crans de rigueur, réglés sur l'irréversibilité — pas sur la couche
 
 Le classement fait foi dans `docs/PROMPTS.md`, section « La rigueur se règle sur

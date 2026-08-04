@@ -227,6 +227,33 @@ Mesuré le 2026-08-04 : six bissections à l'aveugle pour arriver là où la pil
 commande. La bissection reste bonne quand un test **échoue** ; elle est le mauvais outil
 quand le processus **meurt**.
 
+## Une règle de doctrine énonce sa raison, pas seulement sa conséquence
+
+**Une règle qui a raison par accident est pire qu'aucune règle** : elle gagne une confiance
+qu'elle ne mérite pas, et elle finit par être appliquée au cas où le motif ne tient plus.
+Le test : **si je ne sais pas écrire *pourquoi*, c'est probablement une observation
+généralisée à tort**, pas une règle.
+
+Deux fois que ça se produit ici, et les deux fois la conséquence était juste :
+
+- **« La chaîne `L` demande une rigueur maximale. »** Vrai pour `L8`, `L11a`, `L12`… et
+  faux dès `L5` ou `L9`. Le motif réel n'est pas la **couche** mais **l'irréversibilité** :
+  si un défaut passe inaperçu trois semaines, la donnée est-elle récupérable ? La règle
+  corrigée est la section suivante — et elle classe correctement les tâches `V`, ce que la
+  version « par couche » ne savait pas faire.
+- **« La direction `2a` n'a aucun rayon, nulle part. »** Elle a donné la bonne réponse sur
+  l'avatar de profil (carré, bloc `7f`, contre le rond de `1a`), et j'en ai conclu qu'elle
+  était la règle. Elle est fausse : les personnes sont des **cercles** en 1:1 dans les blocs
+  `4b`, `4c` et `4d`. Le motif réel est **« rien de photographique et rectangulaire n'a de
+  coin arrondi »** — affiches, jaquettes, images. Une personne n'est pas une affiche ; un
+  avatar de profil n'est pas un portrait mais une pastille de couleur qui désigne un compte.
+  Formulée trop largement, la règle a livré `PersonTile` en rectangle 2:3 pendant trois lots.
+
+Ce qu'il faut en faire : quand une règle se dégage d'un ou deux cas, **écrire le motif
+avant la conséquence**, et vérifier que le motif explique aussi les cas qu'on n'a pas
+regardés. Une règle dont la justification se résume à « c'est ce que j'ai vu jusqu'ici » se
+note comme observation, pas comme doctrine.
+
 ## Deux crans de rigueur, réglés sur l'irréversibilité — pas sur la couche
 
 Le classement fait foi dans `docs/PROMPTS.md`, section « La rigueur se règle sur

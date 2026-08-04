@@ -27,6 +27,11 @@ struct TopNavigationBar: View {
     @Environment(NavigationModel.self) private var navigation
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
+    /// La hauteur du prototype (planche 2 bloc `3a`). Publiée parce que les écrans qui ne
+    /// passent **pas** sous la barre doivent s'en décaler eux-mêmes : elle est posée en
+    /// `overlay`, pas en `safeAreaInset`.
+    static let height: CGFloat = 60
+
     /// `true` dès que le contenu a défilé sous la barre.
     let isScrolled: Bool
 
@@ -40,7 +45,7 @@ struct TopNavigationBar: View {
             ProfileMenu()
         }
         .padding(.horizontal, Breakpoint.macStandard.screenMargin)
-        .frame(height: 60)
+        .frame(height: Self.height)
         .background(isScrolled ? Color.bgCanvas : Color.clear)
         .dsAnimation(Motion.base, value: isScrolled)
     }

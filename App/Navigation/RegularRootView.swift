@@ -22,10 +22,13 @@ struct RegularRootView: View {
             sectionContent
                 .navigationDestination(for: AppRoute.self) { RouteDestination(route: $0) }
         }
-        // La barre est posée en `safeAreaInset` et non en `overlay` : le contenu doit
-        // pouvoir passer **sous** elle quand elle est transparente — c'est tout l'effet du
-        // hero plein cadre — mais garder sa hauteur réservée quand elle devient opaque.
-        .safeAreaInset(edge: .top, spacing: 0) {
+        // **En `overlay`, pas en `safeAreaInset`.** Corrigé par `V5a` : un `safeAreaInset`
+        // *réserve* la hauteur de la barre, donc l'image du hero ne pouvait pas passer
+        // dessous — il restait une bande noire au-dessus, et le « plein cadre bord à bord »
+        // de la direction disparaissait. En `overlay`, l'écran décide : l'accueil et la
+        // fiche passent dessous, les écrans à en-tête se décalent de `TopNavigationBar
+        // .height` par `ScreenHeader`.
+        .overlay(alignment: .top) {
             TopNavigationBar(isScrolled: isScrolled)
         }
         .background(Color.bgCanvas)
@@ -91,7 +94,10 @@ struct ScreenHeader<Actions: View>: View {
             actions
         }
         .padding(.horizontal, Breakpoint.macStandard.screenMargin)
-        .padding(.top, Space.s4)
+        // La barre étant en `overlay`, c'est l'en-tête qui se décale. Les écrans qui
+        // passent volontairement sous elle — l'accueil, la fiche — n'utilisent pas
+        // `ScreenHeader` et ne paient donc pas ce décalage.
+        .padding(.top, TopNavigationBar.height + Space.s4)
     }
 }
 

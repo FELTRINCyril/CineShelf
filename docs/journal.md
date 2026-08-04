@@ -3784,3 +3784,56 @@ aucune équipe n'est enregistrée. Un Apple ID gratuit suffit.
 ### Suite
 
 `I2` — carte affiche (les 6 variantes), carte paysage, carte personne. Rigueur légère.
+
+---
+
+## 2026-08-04 (3) — Cap recentré sur le Mac, et `I2`
+
+**Trois corrections de plan.** `L13` et le prompt 2 sortent du chemin critique ; `P0`
+passe « configurée, non vérifiée sur appareil » et en sort aussi — ni le Mac ni le
+simulateur ne demandent de signature. Le chemin est réécrit en **trois paliers** autour du
+Mac : belle et navigable, utilisable au quotidien, complète. Écart inscrit sur ce que le
+simulateur ne peut pas mesurer — il décode les images avec le processeur du Mac, donc les
+budgets de `04 §4` restent des **intentions** tant que `P0` n'est pas vérifiée, et il est
+plus traître qu'un runner partagé parce qu'il est *plus rapide* que l'appareil : il rassure.
+
+**Trois tâches `V` manquaient au plan.** Les prompts 10 et 11 sont ✅ mais en banc d'essai,
+et le tableau des `V` est indexé sur les prompts 12 à 24 : personne ne portait « refaire la
+grille des titres contre le nouveau design ». D'où `V0` (chrome) et `V0 bis` (titres), plus
+`V5a` qui détache l'accueil de `V5`.
+
+**`I2` — les trois tuiles.** Rigueur légère. Trois choses valent d'être notées.
+
+*J'ai d'abord lu la mauvaise direction.* Le premier bloc du prototype qui rend une carte
+est `1a` ; la direction retenue est **`2a` Plein cadre**. L'écart n'est pas cosmétique :
+`1a` entoure la carte d'un liseré d'accent au survol, `2a` l'agrandit de 6 % sans liseré.
+Sans la relecture, j'aurais livré un composant fidèle à une direction écartée.
+
+*Le brief compte deux composants là où il en faut un.* « Carte affiche · carte paysage » :
+la différence est le ratio, et le ratio est déjà `CardLayout`. Deux vues auraient dupliqué
+le remplissage, le recadrage, le masque privé et le survol — et la matrice
+`disposition × taille` est une **fonctionnalité mémorisée par contexte**, pas une variante
+de dessin. Le lot garde trois composants parce que la tuile détaillée en est un vrai.
+
+*Un défaut de `P0` trouvé au passage, et c'est le plus utile de la session.* Les tests du
+catalogue ont échoué sur `No signing certificate "Mac Development" found`, cible
+`DesignSystemAssetTests`. Cause : `REMPLACE_MOI` était une valeur **active** dans
+`Local.xcconfig.example`, donc copier le fichier sans l'éditer — le geste exact que le
+`README` recommande — cassait le build. Mesuré : 52 tests verts → build cassé.
+
+Ce que ça apprend sur mon contre-test de `P0` : il vérifiait `-showBuildSettings`, donc la
+**lecture** de la valeur, et jamais un build de test complet avec le fichier en place.
+J'avais mesuré la bonne chose au mauvais endroit. Corrigé en commentant la clé dans le
+`.example` — un exemple dont la copie casse le build est un piège, pas un exemple — et en
+inscrivant ce que je n'avais pas vu : `DEVELOPMENT_TEAM` s'applique à **toutes** les
+cibles, y compris les bundles de test, qu'aucune raison n'oblige à signer.
+
+| Contrôle | Résultat |
+|---|---|
+| `swift test` DesignSystem · Core · MediaKit | 51 · 450 · 38 |
+| `xcodebuild test` DesignSystemCatalog | **52 tests** |
+| Builds macOS · simulateur iOS · catalogue | `** BUILD SUCCEEDED **` |
+| `swiftlint --strict` · `swift-format` | 0 · 0 |
+| Copie du `.example` sans édition, rejouée | `DEVELOPMENT_TEAM` vide, 52 tests verts |
+
+**Suite : `I3`** — carte collection, vignette de galerie, avatar de profil.

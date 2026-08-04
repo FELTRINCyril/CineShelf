@@ -154,3 +154,111 @@ struct CardTilesSheet: View {
         }
     }
 }
+
+// Les trois composants de `I3`. Même statut que la planche `I2` : direction courante.
+//
+// Ce qu'on vient vérifier, et qui ne se voit pas dans un test :
+//
+// - que les quatre replis de mosaïque se lisent comme **une** image, pas comme des
+//   vignettes juxtaposées, et qu'un repli à deux ou trois ne laisse aucun trou ;
+// - que le masonry tient avec des ratios franchement variés — c'est là qu'il casse ;
+// - que l'avatar est bien **carré** : le rond appartient au bloc `1a`, abandonné.
+
+struct CardSurfacesSheet: View {
+    var body: some View {
+        Sheet(
+            "Surfaces · I3",
+            note: """
+                Collection en mosaïque 2 × 2 sans gouttière, vignette de galerie au ratio \
+                de l'image, avatar carré. Aucun rayon nulle part — c'est la direction, pas \
+                un oubli.
+                """
+        ) {
+            VStack(alignment: .leading, spacing: Space.s6) {
+                collections
+                gallery
+                avatars
+            }
+        }
+    }
+
+    private var collections: some View {
+        section(
+            "Collection · les quatre replis",
+            note: """
+                La mosaïque n'apparaît que faute de couverture propre. Les replis à trois, \
+                deux et une jaquette sont des dispositions différentes, pas une grille \
+                2 × 2 avec des trous : une grille trouée se lit comme une image cassée. \
+                Survol à 1,03 et non 1,06 — la collection est plus large.
+                """
+        ) {
+            HStack(alignment: .top, spacing: Space.s4) {
+                ForEach(CollectionTileModel.samples) { collection in
+                    CollectionTile(collection, scale: .l) {}
+                }
+            }
+        }
+    }
+
+    private var gallery: some View {
+        section(
+            "Galerie · ratios natifs",
+            note: """
+                Le ratio est celui de l'image, jamais imposé — c'est toute la différence \
+                avec une grille. Sept ratios de 0,46 à 2,4, répartis en trois colonnes. \
+                Le compte de colonnes appartient à `I4`, pas à la vignette.
+                """
+        ) {
+            HStack(alignment: .top, spacing: Space.s2) {
+                ForEach(0..<3, id: \.self) { column in
+                    VStack(spacing: Space.s2) {
+                        ForEach(
+                            MediaThumbnailModel.galleryRatios.enumerated()
+                                .filter { $0.offset % 3 == column }
+                                .map(\.element)
+                        ) { thumb in
+                            GalleryThumb(thumb) {}
+                        }
+                    }
+                }
+            }
+            .frame(width: 420)
+        }
+    }
+
+    private var avatars: some View {
+        section(
+            "Avatar de profil",
+            note: """
+                Carré, initiale en Bebas Neue, texte sombre sur la couleur du profil. \
+                Le rond de 28 px en Archivo appartient au bloc `1a`, direction abandonnée. \
+                Le cadenas est posé hors du carré de couleur : dessus, il se perdrait sur \
+                l'ambre.
+                """
+        ) {
+            VStack(alignment: .leading, spacing: Space.s4) {
+                ForEach(ProfileAvatar.Size.allCases, id: \.side) { size in
+                    HStack(spacing: Space.s4) {
+                        ProfileAvatar(name: "Cyril Feltrin", size: size)
+                        ProfileAvatar(name: "Invité", tint: .textSecondary, size: size)
+                        ProfileAvatar(name: "Archives", size: size, isLocked: true)
+                        ProfileAvatar(initials: "JF", size: size)
+                        Text("\(Int(size.side)) pt")
+                            .font(Typo.micro)
+                            .foregroundStyle(Color.textTertiary)
+                    }
+                }
+            }
+        }
+    }
+
+    private func section(
+        _ title: String, note: String, @ViewBuilder content: () -> some View
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Space.s3) {
+            Text(title).font(Typo.title2(.large)).foregroundStyle(Color.textPrimary)
+            Text(note).font(Typo.body).foregroundStyle(Color.textSecondary)
+            content()
+        }
+    }
+}

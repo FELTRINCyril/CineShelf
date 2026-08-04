@@ -41,9 +41,11 @@ oubliés ou simplement pas encore arrivés.
 Même découpage pour la console de gestion : la ligne de tableau et le jeton de filtre sont
 des composants (`I`), la console est un écran (`V6`).
 
-État au 2026-08-04 : **`I1` intégrée**, `I2` débloquée et pas commencée, aucune `V`
-démarrée. Le catalogue porte la même explication sur sa première planche. La chaîne `I`
-n'était pas inventoriée — elle l'est ci-dessous, en **neuf lots de trois composants**.
+État au 2026-08-04 (2) : **`I1` intégrée et le catalogue de tokens validé**. `I2` est
+donc la suivante de la chaîne, et les `V` ne sont **plus gelées** — chacune démarre quand
+les lots `I` qui la fournissent sont passés. Le catalogue porte la même explication sur sa
+première planche. La chaîne `I` n'était pas inventoriée — elle l'est ci-dessous, en **neuf
+lots de trois composants**.
 
 ---
 
@@ -199,8 +201,8 @@ La colonne **LOGIQUE** renvoie aux tâches `L…`, la colonne **VUES** aux tâch
 | 17 | Console de gestion | `L10` ✅ | `V6` | ⬜ |
 | 18 | Profils, bibliothèques, Face ID | `L14` `L15` | `V7` | ⬜ |
 | 19 | Import/export CSV | `L11a` ✅ `L11b` ✅ `L12` ✅ | `V8` | ⬜ — toute la logique est faite, il ne reste que les écrans |
-| 2 | **Dump de l'app web** | — (dépôt web) | — | ⬜ **dépendance dure de `L13`** |
-| 20 | Migration des vraies données | `L13` | `V9` | ⬜ — **point de contrôle : geler `versionIdentifier`** (`02 §7` étape 0) |
+| 2 | **Dump de l'app web** | — (dépôt web) | — | ⬜ dépendance immédiate de `L13`, **hors du chemin critique depuis le 2026-08-04 (2)** |
+| 20 | Migration des vraies données | `L13` | `V9` | ⬜ — **dernière étape avant CloudKit.** Point de contrôle : geler `versionIdentifier` (`02 §7` étape 0) |
 | 21 | Config CloudKit | — (toi) | — | ⬜ abonnement requis |
 | 22 | Synchronisation, maintenance, corbeille | `L16` `L17` | `V10` | ⬜ — `L17` reste ouverte jusqu'après le prompt 21 |
 | 23 | Intégrations système | `L19` | `V11` | ⬜ |
@@ -504,14 +506,27 @@ qui l'affichera.
 
 ### Le chemin critique — dans cet ordre
 
-**Pourquoi cet ordre, et pas un autre.** La nouvelle direction artistique ne pourra
-être jugée que sur les **vraies affiches**, pas sur des dégradés générés. Les vraies
-affiches arrivent avec `L13`. Le chemin le plus court vers `L13` est donc le chemin le
-plus court vers la capacité à valider le design : c'est le seul critère
-d'ordonnancement qui compte aujourd'hui.
+> **Réordonné le 2026-08-04 (2).** L'ordre précédent plaçait `prompt 2` et `L13` en tête,
+> sur ce raisonnement : « la direction artistique ne pourra être jugée que sur les vraies
+> affiches, donc le chemin le plus court vers `L13` est le chemin le plus court vers la
+> capacité à valider le design ». **Ce raisonnement ne tient plus** : le catalogue de
+> tokens est validé, et les 120 titres de `DemoCatalog` suffisent pour juger tout le
+> reste. Toucher à l'app web n'est plus un préalable à quoi que ce soit.
+>
+> `L13` passe donc **en dernière étape avant CloudKit**, et `prompt 2` devient sa
+> dépendance immédiate — les deux forment un bloc qu'on aborde quand le reste est fait.
+
+**Ce qui ordonne désormais.** Le seul jalon qui compte est *l'app tourne sur mon iPhone,
+avec les données de démonstration, dans la nouvelle direction*. Il se décompose en deux,
+et la distinction vaut d'être tenue :
+
+- **utilisable** — l'app s'installe et se manipule. L'interface des prompts 10 et 11
+  suffit, `DemoCatalog` peuple depuis les Réglages. Il ne manque que la **signature** ;
+- **présentable** — la nouvelle direction est à l'écran. Ça demande les composants
+  (chaîne `I`) puis les écrans (chaîne `V`).
 
 ```
-L1 → L2 → L3 → L4 → L10 → L11 → L12 → prompt 2 → L13
+P0 → I2…I10 → V1…V5 → (L d'appoint au fil) → prompt 2 → L13 → prompt 21
 ```
 
 | # | Tâche | Objectif en une ligne | Docs à lire | Dépend de | État |
@@ -524,37 +539,46 @@ L1 → L2 → L3 → L4 → L10 → L11 → L12 → prompt 2 → L13
 | 6 | `L11a` | CSV : le format et l'analyse — sérialiseur, lecteur tolérant, correspondance, validation. **Aucune écriture de modèle** | `03 §10`, `04 §7`, `design/README.md` §6 | `L10` (de forme) | ✅ `902bfb1` `4697fe2` `fe63fa0` `738f5c5` `6676c44` `f6b13b4` `4a42907` + revue `e5d37ac` `c29140a` `f10bc13` `034157c` |
 | 6 bis | `L11b` | CSV : l'application au magasin — références, dédoublonnage, `ImportActor`, brouillon | idem | `L11a` | ✅ `02f2ec7` `8447134` `b5f8d76` `8f68345` + revue `c393ed9` |
 | 7 | `L12` | Archive `.cineshelfarchive` : écriture et relecture | `04 §7`, `03 §10` | `L11a` (le sérialiseur suffit) | ✅ `e7e2915` `7a10b52` + revue `47ceb35` |
-| 8 | **prompt 2** | **Dump du bundle depuis l'app web** — dans le dépôt web, pas ici | `02 §7` étape 1 | — | ⬜ **dépendance dure de `L13`** |
-| 9 | `L13` | Migration des vraies données depuis le bundle web | `02 §7` | `L1` `L3` `L4` `L11a` `L11b` `L12` **+ prompt 2** | ⬜ |
+| 8 | **`P0`** | **Signature de développement** : renseigner `DEVELOPMENT_TEAM` hors du dépôt | `README` § « Signer pour un appareil » | — (ton Apple ID) | ⬜ **suivant — c'est le seul blocage vers l'iPhone** |
+| 9 | `I2`…`I10` | Les composants de la nouvelle direction, par lots de trois | section « Tâches INTÉGRATION DU DESIGN » | `I1` ✅ | ⬜ |
+| 10 | `V1`…`V5` | Les écrans qui remplacent le banc d'essai | section « Tâches VUES » | les lots `I` correspondants | ⬜ |
+| 11 | **prompt 2** | **Dump du bundle depuis l'app web** — dans l'autre dépôt, pas ici | `02 §7` étape 1 | — | ⬜ dépendance immédiate de `L13` |
+| 12 | `L13` | Migration des vraies données depuis le bundle web | `02 §7` | `L1` `L3` `L4` `L11a` `L11b` `L12` **+ prompt 2** | ⬜ **dernière étape avant CloudKit** |
+| 13 | **prompt 21** | Config CloudKit — abonnement requis | `README` § « Activer CloudKit » | `L13` (le gel de `versionIdentifier`) | ⬜ |
 
-> **Le prompt 2 n'est plus une précaution, c'est une dépendance dure.** Sans le
-> bundle exporté depuis l'app web, `L13` n'a rien à importer, l'app reste peuplée de
-> `DemoCatalog`, et la direction artistique reste injugeable. Il se fait dans l'autre
-> dépôt, il ne coûte rien à cette base de code, et il bloque tout le reste : à faire
-> dès que `L12` est passée, sinon avant.
+> **`P0` est le seul blocage réel vers l'iPhone, et il ne coûte presque rien.**
+> `DEVELOPMENT_TEAM` est vide, et dans cet état l'app **ne s'installe que dans le
+> simulateur** : `xcodebuild` refuse de signer pour un appareil. Un Apple ID **gratuit**
+> suffit (profil de 7 jours, renouvelable) ; l'abonnement n'est requis que pour CloudKit,
+> le widget et les App Intents — tous hors du chemin, `L19` étant reportée en v1.1.
+>
+> Vérifié le 2026-08-04 : `security find-identity -p codesigning` rend **0 identité**, et
+> aucun compte n'est enregistré dans Xcode. La partie qui demande une action humaine est
+> donc réelle et ne peut pas être automatisée : il faut se connecter une fois.
+>
+> **L'identifiant d'équipe ne va pas dans le dépôt, qui est public.** Il vit dans un
+> `Local.xcconfig` gitignoré — voir la fiche `P0`.
 
-#### Le chemin le plus court jusqu'aux vraies affiches, sur l'iPhone
+> **`L13` n'est plus un préalable au design, et c'est un changement de fond.** Elle reste
+> sur le chemin, en **dernière position avant CloudKit**, pour la raison qui n'a pas
+> bougé : elle déclenche le gel de `versionIdentifier`, donc **tout ce qui touche au
+> schéma doit être passé avant elle**. C'est le cas de `L20` (déjà pourvue de son champ) et
+> ce serait le cas de toute addition découverte en route.
+>
+> Ce qui a changé est le motif : `L13` servait à obtenir de vraies affiches pour juger le
+> design. Le catalogue de tokens étant validé et `DemoCatalog` fournissant 120 titres, ce
+> motif a disparu. Elle redevient ce qu'elle est — une migration de données, à faire quand
+> on veut vraiment ses données.
 
-`L12 → prompt 2 → L13` amène les vraies données **dans le magasin d'une machine**.
-Ça ne les met pas sur l'iPhone, et le plan ne le disait nulle part. Deux étapes y
-manquaient, aucune des deux inscrite jusqu'ici :
+#### Ce qui manque encore pour « mes vraies données sur mon iPhone »
 
-| # | Étape | Pourquoi elle manque au plan |
-|---|---|---|
-| 1 | `L12` — l'archive | sur le chemin critique, c'est la suivante |
-| 2 | **prompt 2** — le dump du bundle web | autre dépôt, dépendance dure |
-| 3 | `L13` — la migration | le gros du travail |
-| 4 | **`P0` — signature de développement** | `DEVELOPMENT_TEAM` est **vide** et deux `CODE_SIGN_IDENTITY: "-"` traînent dans la cible : dans cet état l'app **ne s'installe pas sur un appareil**, seulement dans le simulateur. Un Apple ID gratuit suffit (profil de 7 jours, renouvelable) ; l'abonnement n'est requis que pour CloudKit, le widget et les App Intents — tous trois hors du chemin, `L19` étant reportée. Procédure dans le `README`, section « Activer CloudKit », dont seul le **point 1** est nécessaire ici |
-| 5 | **`P1` — faire entrer le bundle dans l'appareil** | Sans CloudKit (prompt 21, abonnement), une migration jouée sur le Mac **ne se propage pas** à l'iPhone. Il faut donc que `L13` lise un bundle **choisi par l'utilisateur** — AirDrop puis un `fileImporter` — et non un chemin de développement. C'est la « commande cachée » de `V9`, réduite à son strict nécessaire : pas d'écran, un bouton dans les réglages de débogage |
+Hors chemin critique désormais, mais à ne pas oublier le jour où `L13` arrivera. **La
+contrainte porte sur l'écriture de `L13` elle-même, donc elle se lit maintenant :**
 
-**La conséquence à ne pas manquer : `L13` doit lire depuis un fichier importé, pas
-depuis un chemin local.** Si elle est écrite en supposant un bundle sur le disque du
-Mac, l'étape 5 exige de la reprendre. Le coût d'y penser à l'écriture est nul, celui
-d'y penser après est une réécriture de son point d'entrée.
-
-Et sans les étapes 4 et 5, le design se juge sur le **simulateur iOS** et dans la
-fenêtre Mac, avec les vraies affiches — ce qui est déjà beaucoup mieux que
-`DemoCatalog`, mais pas « sur mon iPhone ».
+**`L13` doit lire un bundle *choisi par l'utilisateur*, pas un chemin local.** Sans
+CloudKit, une migration jouée sur le Mac **ne se propage pas** à l'iPhone : il faut
+AirDrop puis un `fileImporter`. Écrite en supposant un fichier sur le disque du Mac, son
+point d'entrée serait à réécrire. Le coût d'y penser à l'écriture est nul.
 
 ### Tâches d'appoint — à insérer quand tu veux changer de sujet
 
@@ -590,6 +614,40 @@ L'ordre de travail, c'est celui des deux tableaux ci-dessus.
 `L1` reste première du chemin critique pour une seconde raison, indépendante du
 design : elle touche le schéma, et doit donc passer **avant** le gel de
 `versionIdentifier` que `L13` déclenche.
+
+---
+
+### `P0` — Signature de développement
+
+**Objectif.** Que `xcodebuild` accepte de signer pour un **appareil**, sans mettre
+d'identifiant personnel dans un dépôt public.
+
+**Rigueur légère.** Aucune donnée écrite, aucun comportement à l'exécution : soit le
+build pour appareil réussit, soit il échoue en le disant.
+
+**Le blocage, mesuré.** `DEVELOPMENT_TEAM: ""` dans `project.yml`, et
+`security find-identity -v -p codesigning` rend **0 identité** : ni certificat, ni compte
+enregistré dans Xcode. Un Apple ID **gratuit** suffit — profil de 7 jours, renouvelable
+par un simple rebuild. L'abonnement payant ne sert qu'à CloudKit (prompt 21), au widget
+et aux App Intents (`L19`, reportée en v1.1).
+
+**Pourquoi un `xcconfig` et pas la valeur en dur.** Le dépôt est **public**. Un
+identifiant d'équipe n'est pas un secret critique, mais c'est un identifiant personnel
+qui n'a rien à faire dans un historique public et qu'on ne peut plus retirer ensuite.
+Il vit donc dans `Local.xcconfig`, **gitignoré**, et `project.yml` s'y réfère par
+`configFiles`. `Local.xcconfig.example` est versionné et documente la clé attendue.
+
+Le mécanisme a un second avantage, celui qui compte à l'usage : `xcodegen generate`
+régénère le `.xcodeproj` à chaque ajout de fichier, donc **une équipe choisie dans
+l'interface d'Xcode serait perdue à la régénération suivante**. Un `xcconfig` survit.
+
+**Ce que je ne peux pas faire à ta place :** la connexion du compte. Elle est
+interactive, dans Xcode › Settings › Accounts.
+
+**Terminé quand :** `xcodebuild -scheme CineShelf -destination 'generic/platform=iOS'
+build` réussit, et que l'app s'installe sur l'iPhone depuis Xcode. La signature ad hoc
+macOS (`CODE_SIGN_IDENTITY[sdk=macosx*]: "-"`) reste en place tant qu'il n'y a pas
+d'abonnement : elle ne gêne pas iOS, et la retirer casserait le build macOS local.
 
 ---
 
@@ -1162,12 +1220,19 @@ polir le lot précédent.
 
 ---
 
-# Tâches VUES — gelées
+# Tâches VUES
 
-**Gelées.** Aucune ne démarre avant que la direction artistique de
-[`06-BRIEF-DESIGN.md`](./06-BRIEF-DESIGN.md) soit produite et validée, et chacune
-s'écrit **une seule fois**, contre le design final. L'interface des prompts 10 et 11
-sert de banc d'essai en attendant.
+> **Dégelées le 2026-08-04 (2).** La direction artistique est produite
+> ([`docs/design/`](./design/), direction « 2a Plein cadre ») et le catalogue de tokens est
+> validé. La condition de départ n'est donc plus « attendre le design » mais **« attendre
+> les composants »** : chaque `V` démarre quand les lots `I` qui la fournissent sont passés,
+> et la colonne « S'appuie sur » le dit déjà.
+>
+> Ce qui ne change pas : chacune s'écrit **une seule fois**, contre le design final, et
+> l'interface des prompts 10 et 11 reste un banc d'essai qu'on ne polit pas — elle est
+> remplacée par les `V`, pas amendée.
+
+Chacune s'écrit **une seule fois**, contre le design final.
 
 | Tâche | Écrans | Prompt d'origine | S'appuie sur |
 |---|---|---|---|
@@ -1292,6 +1357,32 @@ native devra reproduire. Commente-les dans ce sens.
 
 **Qui :** Claude Code, dépôt **web**
 **Joindre :** `02-MODELE-SWIFTDATA-CLOUDKIT.md`
+
+> ## Où vit le dépôt web, et le piège qui s'y cachait
+>
+> | | |
+> |---|---|
+> | **Sur le disque** | `~/Documents/02 - Perso/App/ControlHub/sites-apps/cineshelf` |
+> | **Son vrai dépôt** | `github.com/FELTRINCyril/CineShelf_old` — **privé** |
+> | Technologie | React + Vite, Express + SQLite, Cloudflare Worker optionnel |
+> | État au 2026-08-04 | un seul commit, `56ed7a7` « Initial CineShelf codebase », arbre propre, rien à pousser |
+>
+> **Le piège, corrigé le 2026-08-04 (2).** Le dépôt GitHub de l'app web s'appelait
+> `CineShelf` ; il a été renommé `CineShelf_old`, et le nom libéré a été repris par l'app
+> **native**. Or le clone local gardait `origin = github.com/FELTRINCyril/CineShelf.git`,
+> qui pointait donc désormais vers un dépôt **sans aucun commit commun** — `56ed7a7` n'est
+> pas un ancêtre de son `origin/main`.
+>
+> Conséquence si on ne l'avait pas vu : un `git pull` dans le dossier web ramenant l'app
+> native, un `git push --force` écrasant l'app native. L'URL est corrigée par
+> `git remote set-url`, et `git ls-remote` confirme `refs/heads/main → 56ed7a7`.
+>
+> **La leçon générale :** renommer un dépôt GitHub et réutiliser son nom laisse tous les
+> clones existants pointer vers le nouvel occupant, **en silence**. GitHub ne redirige que
+> tant que l'ancien nom reste libre.
+>
+> Ce dossier n'est pas suivi par le dépôt `ControlHub` qui l'héberge (dépôt imbriqué, zéro
+> fichier suivi) : sa seule sauvegarde est `CineShelf_old`.
 
 ```
 Écris `server/scripts/export-native-bundle.mjs`. Il doit produire un dossier

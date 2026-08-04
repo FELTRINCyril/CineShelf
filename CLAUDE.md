@@ -36,12 +36,17 @@ React + Express retirée. **Aucun backend.** SwiftData + CloudKit privé.
 
 ## Règles non négociables — design
 
-> **La direction artistique est en refonte complète.** Aucun travail d'interface
-> nouveau sans mon accord explicite : ni écran, ni composant, ni retouche
-> esthétique de l'existant. Si une tâche semble en exiger, arrête-toi et
-> demande-moi. L'interface des prompts 10 et 11 reste en place comme **banc
-> d'essai** pour exercer la logique : on ne la supprime pas, on ne la polit pas,
-> on n'y investit plus rien.
+> **La nouvelle direction artistique est produite et son catalogue de tokens validé**
+> (2026-08-04). Le travail d'interface est donc **ouvert**, mais seulement le long des
+> chaînes prévues : les **composants** par les lots `I2`…`I10`, les **écrans** par les
+> tâches `V`, chacune après les lots `I` qui la fournissent. L'ordre est dans
+> `docs/PROMPTS.md`.
+>
+> Reste interdit, et c'est ce qui n'a pas changé : **retoucher l'esthétique de
+> l'interface des prompts 10 et 11.** Elle reste un **banc d'essai** — on ne la
+> supprime pas, on ne la polit pas, on n'y investit rien. Elle sera *remplacée* par les
+> `V`, pas amendée. Toute retouche esthétique hors d'un lot `I` ou d'une tâche `V`
+> demande mon accord explicite.
 >
 > Ce qui suit reste valable : ce sont des règles d'architecture et de lint, pas des
 > choix esthétiques. Elles survivront au changement de direction.
@@ -298,10 +303,7 @@ document le dit lui-même.
 2. **Proposer un plan avant d'écrire du code.** Attendre ma validation.
 3. Écrire, compiler, corriger jusqu'à build vert sur iOS **et** macOS.
 4. Lancer les tests.
-5. Ajouter une ligne à `docs/journal.md` — ou à `docs/journal-design.md` pour une tâche
-   de la chaîne `I`, qui vit dans l'arbre de travail `CineShelf-design/`. Deux fichiers
-   parce que les deux chaînes y ajoutaient en fin de fichier et se conflictaient à
-   chaque session ; procédure des deux arbres dans le `README`.
+5. Ajouter une ligne à `docs/journal.md`.
 6. **Un commit par sujet cohérent, message conventionnel** — une tâche peut en
    produire plusieurs. Le critère est la bissectabilité : chaque commit doit
    pouvoir être compris, et le cas échéant révoqué, sans entraîner les autres.

@@ -35,10 +35,11 @@ extension SavedLink {
 
     /// À appeler dans chaque `didSet` métier et avant chaque `save`.
     public func refreshDerived() {
-        searchText = [name, notes, urlString]
+        searchText =
+            [name, notes, urlString]
             .compactMap { $0 }
             .joined(separator: " ")
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .foldedForMatching
         updatedAt = .now
     }
 }

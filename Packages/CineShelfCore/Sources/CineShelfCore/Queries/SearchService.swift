@@ -144,8 +144,7 @@ public struct SearchService {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.isEmpty == false else { return .idle }
 
-        let term = trimmed.folding(
-            options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        let term = trimmed.foldedForMatching
 
         // Une portée hors périmètre rend un groupe vide **sans requête** : c'est ce qui
         // fait que `.titles` coûte moins que `.all`, et non un filtrage après coup.

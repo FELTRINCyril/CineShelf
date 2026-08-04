@@ -38,7 +38,7 @@ public final class Genre {
 
     public static func key(for name: String) -> String {
         name
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .foldedForMatching
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

@@ -2725,3 +2725,88 @@ prendre entière plutôt que d'en écrire les trois quarts.
 | `swiftlint --strict` | 0 violation / 185 fichiers |
 | `xcrun swift-format lint` | 0 avertissement |
 | Preuve d'échec — resynchronisation désactivée | 25 lignes au lieu de 40, « Titre 49 » perdu |
+
+---
+
+## 2026-08-04 (8) — Le repliage de texte n'était pas reproductible entre appareils
+
+**Une règle et un corollaire dans `CLAUDE.md`**
+
+Les documents de design contraignent le **rendu**, jamais le **modèle**. Deux incidents, la
+même erreur de catégorie : « cinq étoiles pleines » appliqué à `Title.rating`, et « contenu
+privé au niveau du profil » appliqué à `isPrivate` — ce dernier aurait rendu un titre privé
+indexable dans Spotlight, dont l'index est unique pour l'appareil.
+
+Le corollaire vise les tests : **citer la source de chaque assertion non évidente**, et
+tenir pour un signal d'alarme une source de design sur un sujet de modèle. C'est
+exactement comment « une demi-étoile est refusée » a verrouillé le bug au lieu de
+l'attraper — le test citait la planche 6, ce qui le rendait crédible.
+
+**`TabularData` écarté : la raison est maintenant dans `docs/04` §7**
+
+Elle n'était que dans un journal et dans un commentaire de code. Le motif principal est
+éliminatoire — rejet du fichier entier sur une seule ligne mal formée, donc l'aperçu de
+l'addendum est impossible — et trois motifs secondaires l'accompagnent : l'inférence de
+type qui dépend des données, le séparateur non réglable après construction, et
+`nilEncodings` qui transforme un titre nommé « NA » en `nil`. La table de correspondance
+web → natif est corrigée du même coup.
+
+**L'audit de locale, et le bug qu'il a trouvé**
+
+12 sites repliaient du texte avec `locale: .current`. Cinq alimentent des champs
+**persistés et synchronisés par CloudKit** — `Title`, `Person`, `TitleCollection`
+(`sortName` et `searchText`), `Genre` (`nameKey`), `SavedLink` (`searchText`) — et quatre
+replient le terme cherché pour le comparer à ces champs.
+
+Mesuré avant de corriger :
+
+| mot | fr_FR | tr_TR |
+|---|---|---|
+| Interstellar | interstellar | **ınterstellar** |
+| ITALIA | italia | **ıtalıa** |
+| Indépendant | independant | **ındependant** |
+
+**Ce n'est pas un cas exotique** : le turc et l'azéri ont un `i` sans point, donc *tout* mot
+contenant un `I` majuscule diverge. La moitié des titres écrits en capitales.
+
+Le site qui mordait vraiment est `Genre.nameKey`, qui sert au dédoublonnage — notre
+remplacement de `@Attribute(.unique)` que CloudKit interdit. Un iPhone en turc et un Mac en
+français ne s'accordent pas sur la clé de « Indépendant », donc `findOrCreate` crée un
+second genre **sans rien signaler**.
+
+Point subtil : une locale invariante à l'écriture ne suffit pas. Le terme cherché est
+replié au moment de la requête, et si les deux côtés diffèrent la comparaison est fausse
+quelle que soit la locale — un `CONTAINS` qui ne matche pas ne lève aucune erreur. Les
+quatre sites de requête sont donc traités aussi.
+
+Les 12 sites passent par `String.foldedForMatching`, seul endroit du dépôt où une chaîne se
+replie, en `en_US_POSIX`.
+
+**Aucune migration nécessaire** : `fr_FR` et `en_US_POSIX` replient identiquement, donc les
+valeurs déjà en base sont inchangées. Seul un appareil turc aurait divergé.
+
+**Deux filets, parce qu'un seul ne suffisait pas**
+
+11 tests d'invariance, un par site persisté, chacun comparant la valeur produite à ce que la
+locale turque aurait donné.
+
+Puis la preuve d'échec a révélé un trou : **un modèle qui contourne `TextFolding` passe les
+cinq tests sur une machine française**, puisque `fr_FR` et `en_US_POSIX` replient pareil. La
+régression n'était détectable que par une machine turque. D'où la règle
+`no_folding_outside_text_folding` — vérifiée en injectant la faute, elle mord.
+
+Au passage : ma première tentative de preuve n'avait rien prouvé, le `sed` n'ayant rien
+remplacé (la forme réelle était `.foldedForMatching` seul sur sa ligne). Vérifier que
+l'injection a bien eu lieu fait partie de la preuve.
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| `swift test` CineShelfCore | **247 tests** (236 avant) |
+| `swiftlint --strict` | 0 violation / 187 fichiers |
+| `xcrun swift-format lint` | 0 avertissement |
+| Preuve — `TextFolding.locale` remis à `.current` | 2 assertions mordent |
+| Preuve — un modèle contourne `TextFolding` | 5 tests **passent** → d'où la règle de lint |
+| Preuve — la règle de lint, faute injectée | 1 violation, message correct |

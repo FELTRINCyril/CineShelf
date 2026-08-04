@@ -76,6 +76,6 @@ public struct RecentSearchStore {
     }
 
     private static func folded(_ term: String) -> String {
-        term.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        term.foldedForMatching
     }
 }

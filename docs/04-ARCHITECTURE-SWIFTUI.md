@@ -397,7 +397,44 @@ type. Budget de §4 : 50 ms.
 
 ## 7. Import / export
 
-- **Lecture CSV** : framework `TabularData` (`DataFrame(contentsOfCSVFile:)`), colonnes typées, gestion des séparateurs et encodages.
+- **Lecture CSV** : lecteur maison, `CSVReader` dans `CineShelfCore/Services/Transfer/`. ~~Framework `TabularData`.~~
+
+  > **`TabularData` est écarté depuis le 2026-08-04, sur mesure.** Le motif principal est
+  > éliminatoire : **il rejette le fichier entier dès qu'une seule ligne est mal formée.**
+  > Mesuré sur 5 000 lignes valides dont une cassée à la 2 501e —
+  > `DataFrame(contentsOfCSVFile:)` lève « Misplaced quote at row 2501 » et rend **zéro**
+  > ligne exploitable. Même verdict pour un nombre de colonnes incohérent, qui est le cas
+  > d'export Excel le plus banal.
+  >
+  > Or l'addendum d'import de `docs/design/` décrit un aperçu de 1 284 lignes dont 771
+  > prêtes et 417 en erreur groupées par six causes, avec correction en masse. **Ce
+  > parcours est impossible** si le fichier entier est refusé : on ne peut pas montrer 771
+  > lignes prêtes qu'on n'a pas pu lire. C'est le contrat d'interface qui décide, pas une
+  > préférence.
+  >
+  > Trois motifs secondaires, mesurés eux aussi :
+  >
+  > 1. **L'inférence de type dépend des données.** Une colonne `year` est inférée `Int` sur
+  >    un fichier propre et `String` dès qu'une seule valeur est vide ou vaut « vers 1980 ».
+  >    Le type d'une colonne dépend donc du contenu, et un code qui suppose `Int` casse sur
+  >    le fichier suivant. Il faudrait de toute façon forcer tout en `String` et convertir
+  >    à la main — c'est-à-dire n'utiliser du cadre que son découpage.
+  > 2. **Pas de réglage du séparateur après construction** : `CSVReadingOptions.delimiter`
+  >    est en lecture seule, donc pas de détection puis application.
+  > 3. **`nilEncodings` contient `"NA"`, `"NULL"`, `"n/a"` par défaut** : un titre
+  >    littéralement nommé « NA » deviendrait `nil`, et un genre « null » disparaîtrait.
+  >
+  > Le coût de ce choix est mesuré : **2 ms pour 5 000 lignes**, contre 5 ms pour
+  > `DataFrame` — plus rapide, puisqu'il ne fait ni inférence ni colonnes typées. En prime,
+  > ne pas importer le cadre évite ses collisions de noms : il expose `Column`, `Row`,
+  > `DataFrame` et `CSVType`.
+  >
+  > Ce que le lecteur maison rend en échange : **une ligne, un incident**. Chaque ligne est
+  > rendue avec sa `CSVMalformation` éventuelle — guillemet non fermé, nombre de colonnes,
+  > encodage invalide — et les lignes saines restent exploitables. Avec une
+  > resynchronisation au-delà de huit lignes englobées par un guillemet ouvert, sans quoi
+  > une faute de frappe dans une cellule ferait disparaître la moitié du catalogue de
+  > l'aperçu.
 - **Écriture CSV** : sérialiseur maison, UTF-8 **avec BOM** (sinon Excel massacre les accents), séparateur `;` en locale française, échappement RFC 4180.
 - **Archive complète** : un dossier `.cineshelfarchive` (package) contenant `manifest.json`, les JSON par entité et `media/`. Exposé via `Transferable` + `.fileExporter`, donc partageable par AirDrop.
 - **Aperçu d'import** : `Table` éditable avec statut par ligne (nouveau / mise à jour / conflit / erreur), édition en masse de la sélection, revalidation, puis application dans un `ModelActor` avec progression.
@@ -469,7 +506,7 @@ Il attrape immédiatement la propriété non optionnelle sans défaut ou la rela
 | framer-motion | animations SwiftUI + `.navigationTransition` |
 | `@tanstack/react-virtual` | `LazyVGrid`, `List`, `Table` |
 | FTS5 | `searchText` + prédicat + CoreSpotlight |
-| exceljs / xlsx | `TabularData` (CSV) |
+| exceljs / xlsx | `CSVWriter` et `CSVReader` maison (CSV) — voir §7 |
 | sharp | `ImageIO` |
 | Vite, PostCSS, ESLint, Prettier | Xcode, SwiftLint, swift-format |
 | Playwright | XCUITest |

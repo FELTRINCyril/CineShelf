@@ -209,7 +209,7 @@ extension TitleFilter {
         let term =
             searchText
             .trimmingCharacters(in: .whitespacesAndNewlines)
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .foldedForMatching
 
         let keys = KeyPatterns(
             library: libraryID.map(FilterKey.library),

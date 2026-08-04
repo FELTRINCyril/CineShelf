@@ -39,12 +39,13 @@ extension TitleCollection {
     public func refreshDerived() {
         sortName =
             name
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .foldedForMatching
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        searchText = [name, summary]
+        searchText =
+            [name, summary]
             .compactMap { $0 }
             .joined(separator: " ")
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .foldedForMatching
         updatedAt = .now
     }
 }

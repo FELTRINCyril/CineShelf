@@ -94,6 +94,40 @@ résoudre.
 C'est arrivé le 2026-08-04 : treize commits de retard, dont la fermeture du schéma et
 la livraison de `docs/design/`, plus un commit local posé par-dessus.
 
+## Les documents de design contraignent le rendu, jamais le modèle
+
+`docs/design/` et les planches décrivent ce que l'utilisateur **voit**. `docs/02` décrit ce
+qui est **stocké**. Quand un document de design paraît contraindre le modèle, c'est une
+erreur de catégorie : le **signaler**, pas l'appliquer.
+
+Deux incidents, la même erreur :
+
+- « Cinq étoiles pleines, pas de demi-étoile » (planche 6) a été appliqué à
+  `Title.rating`, borné à `0...5` avec refus des décimales. Or `docs/02` §3.3 dit 0–10, et
+  `TitleFormat.fiveStarRating` divise déjà par deux depuis le prompt 11. La planche décrit
+  le rendu. En l'état, l'import aurait refusé **la moitié de l'échelle**.
+- « Contenu privé géré au niveau du profil » (handoff §7) décrivait aussi un comportement
+  d'affichage. Dans le modèle, `isPrivate` appartient à l'entité, et l'appliquer au profil
+  aurait rendu un titre privé **indexable dans Spotlight**, dont l'index est unique pour
+  l'appareil. C'est la fuite que `L3` a fermée.
+
+Le test : « est-ce que ça change ce qui est **écrit en base**, ou ce qui est **montré** ? »
+Si c'est la base, la source est `docs/02`, et le document de design est à amender.
+
+### Le corollaire, pour les tests
+
+**Citer la source de chaque assertion non évidente.** Un seuil, une borne, un format : dire
+d'où il vient, fichier et section.
+
+Et si la source citée est un document de design alors que le sujet est le modèle, c'est un
+**signal d'alarme**. C'est exactement comment « une demi-étoile est refusée » a verrouillé
+le bug au lieu de l'attraper : le test citait la planche 6, ce qui le rendait crédible, et
+il a fallu un arbitrage sur l'import pour découvrir qu'il testait une règle d'affichage
+appliquée au mauvais niveau.
+
+Un test qui encode une intention fausse est pire qu'un test absent : il transforme le bug
+en comportement attendu, et il faut le remplacer par son contraire. C'est arrivé deux fois.
+
 ## Une garde à la compilation se prouve en cassant le build
 
 Quand un filet est une **erreur de compilation** — une ambiguïté de nom, un `switch`

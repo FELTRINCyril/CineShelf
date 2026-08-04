@@ -220,3 +220,40 @@ custom_rules:
       - doccomment
       - string
     severity: error
+
+  # `sortName`, `searchText` et `nameKey` sont des champs **persistés et synchronises par
+  # CloudKit**. Les replier avec `locale: .current` fait ecrire des valeurs differentes
+  # selon la locale de l'appareil, et rien ne le signale.
+  #
+  # Mesure du 2026-08-04, `folding(options: [.diacriticInsensitive, .caseInsensitive])` :
+  #
+  #     mot            | fr_FR        | tr_TR
+  #     Interstellar   | interstellar | ınterstellar
+  #     ITALIA         | italia       | ıtalıa
+  #     Independant    | independant  | ındependant
+  #
+  # Ce n'est pas un cas exotique : le turc et l'azeri ont un `i` sans point, donc **tout**
+  # mot contenant un `I` majuscule diverge. `Genre.nameKey` sert au dedoublonnage — notre
+  # remplacement de `@Attribute(.unique)` que CloudKit interdit — donc deux appareils qui
+  # ne s'accordent pas sur la cle creent un doublon en silence.
+  #
+  # **Pourquoi une regle de lint et pas seulement des tests.** Verifie : un modele qui
+  # contourne `TextFolding` passe les cinq tests d'invariance **sur une machine
+  # francaise**, puisque `fr_FR` et `en_US_POSIX` replient pareil. La regression n'est
+  # detectable que par une machine turque ou par cette regle.
+  no_folding_outside_text_folding:
+    name: "Repliage de texte hors TextFolding"
+    message: >-
+      Le repliage se fait par `.foldedForMatching` (TextFolding.swift), jamais en direct :
+      sortName, searchText et nameKey sont synchronises par CloudKit, et `locale: .current`
+      leur fait prendre des valeurs differentes selon l'appareil.
+    regex: '\.folding\('
+    excluded:
+      - ".*/Packages/CineShelfCore/Sources/CineShelfCore/Models/TextFolding.swift"
+      # Les tests comparent volontairement a d'autres locales : c'est leur controle negatif.
+      - ".*/Tests/.*"
+    excluded_match_kinds:
+      - comment
+      - doccomment
+      - string
+    severity: error

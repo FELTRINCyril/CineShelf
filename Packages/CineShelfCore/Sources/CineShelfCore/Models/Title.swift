@@ -90,12 +90,13 @@ extension Title {
     public func refreshDerived() {
         sortName =
             name
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .foldedForMatching
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        searchText = [name, originalName, summary]
+        searchText =
+            [name, originalName, summary]
             .compactMap { $0 }
             .joined(separator: " ")
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .foldedForMatching
         filterKeys = FilterKey.keys(
             [library?.id].compactMap { $0 }.map(FilterKey.library)
                 + [collection?.id].compactMap { $0 }.map(FilterKey.collection)

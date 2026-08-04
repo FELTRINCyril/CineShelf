@@ -96,12 +96,13 @@ extension Person {
     public func refreshDerived() {
         displayName = "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
         sortName = "\(lastName) \(firstName)"
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .foldedForMatching
             .trimmingCharacters(in: .whitespaces)
-        searchText = [displayName, bio]
+        searchText =
+            [displayName, bio]
             .compactMap { $0 }
             .joined(separator: " ")
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .foldedForMatching
         filterKeys = FilterKey.keys(
             [library?.id].compactMap { $0 }.map(FilterKey.library)
                 + (genres ?? []).map { FilterKey.genre($0.id) }

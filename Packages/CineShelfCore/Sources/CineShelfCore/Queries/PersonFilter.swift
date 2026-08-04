@@ -81,7 +81,7 @@ extension PersonFilter {
         let term =
             searchText
             .trimmingCharacters(in: .whitespacesAndNewlines)
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .foldedForMatching
 
         let libraryPattern = libraryID.map { FilterKey.pattern(FilterKey.library($0)) }
         let genrePattern = genreID.map { FilterKey.pattern(FilterKey.genre($0)) }

@@ -2660,3 +2660,68 @@ faite de ce piège — plafond de `#Predicate`, pending contre SQL, frontière d
 | `swiftlint --strict` | 0 violation |
 | `xcrun swift-format lint` | 0 avertissement |
 | Sondes TabularData | 4 fichiers de mesure, reproductibles |
+
+---
+
+## 2026-08-04 (7) — `L11a`, premier jalon : le format CSV dans les deux sens
+
+**Livré et testé** : le sérialiseur, le lecteur tolérant, le schéma de colonnes comme
+donnée, l'export et les gabarits. 35 tests, dont l'aller-retour complet.
+
+**Ce module n'importe pas `TabularData`, et c'est le résultat d'une mesure.** La fiche
+exigeait déjà un sérialiseur maison ; la mesure a ensuite exclu le cadre pour la lecture
+aussi. Ne plus l'importer évite en prime les collisions de noms qu'il aurait causées —
+il expose `Column`, `Row`, `DataFrame` et `CSVType`.
+
+**Le lecteur, et la ligne qui n'emporte pas les autres**
+
+Le cas qui a décidé de tout, mesuré : 5 000 lignes valides dont une seule mal formée à la
+2 501e. `DataFrame` rend « Misplaced quote at row 2501 » et **zéro** ligne exploitable.
+Le lecteur maison rend 4 999 lignes utilisables et une ligne nommée.
+
+La resynchronisation au-delà de huit lignes englobées est le compromis visible de ce
+choix : RFC 4180 dit qu'un guillemet ouvert protège les sauts de ligne — c'est sa raison
+d'être — mais un guillemet jamais refermé avalerait 2 500 lignes. Preuve d'échec faite :
+seuil désactivé, le test tombe à 25 lignes utilisables au lieu de 40 et « Titre 49 »
+disparaît.
+
+**Trois bugs attrapés par les tests, tous réels**
+
+1. **Un décalage de fuseau d'un jour sur les dates.** Une date construite au 15 juin en
+   heure locale s'écrivait `1970-06-14` en UTC. Or `Title.releaseYear` utilise
+   `Calendar.current` : dans le **même fichier**, la colonne « Année » aurait été locale et
+   « Date de sortie » en UTC, et un titre du 1er janvier aurait affiché l'année précédente.
+   Le fuseau courant l'emporte — un CSV est relu par un humain, pas par un serveur.
+2. **Un octet non UTF-8 était avalé en silence.** `String(decoding:as:)` remplace par
+   U+FFFD, donc « Renée » venu d'un fichier Windows-1252 devenait « Ren?e » et passait
+   pour une valeur. C'est la règle SwiftLint `optional_data_string_conversion` qui l'a
+   signalé, et le remède ajoute une vraie capacité : `CSVMalformation.invalidEncoding`,
+   ligne rendue et **nommée**.
+3. `#expect` refuse un message `String` non littéral — trois sites corrigés.
+
+**Décisions de format, chacune avec son motif**
+
+| Point | Choix | Pourquoi |
+|---|---|---|
+| Séparateur de valeurs multiples | barre oblique | La virgule est le séparateur décimal en locale française, le point-virgule celui des colonnes |
+| Décimales | point, pas virgule | Les deux conventions coexisteraient dans un fichier selon la locale de l'exportateur |
+| Dates | ISO 8601 sans heure, fuseau courant | Un tableur le reconnaît comme date et le trie ; l'heure serait du bruit dans « Naissance » |
+| Booléens | `oui` / `non` | L'app est en français, et `trueEncodings` de `TabularData` ne nous concerne plus |
+| Clés de colonnes | stables, jamais renommées | Elles voyagent dans `ImportMapping.columnMapData`, entité **synchronisée** : renommer casserait les correspondances de tous les appareils sans le moindre signal |
+
+**Ce que `L11a` n'a pas encore**
+
+La correspondance des colonnes et ses trois qualités, `headerSignature` sous locale
+invariante, le repository d'`ImportMapping`, la validation ligne à ligne avec causes
+groupables, et les deux rapports. C'est la moitié subtile de `L11a`, et je préfère la
+prendre entière plutôt que d'en écrire les trois quarts.
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| `swift test` CineShelfCore | **236 tests** (201 avant) |
+| `swiftlint --strict` | 0 violation / 185 fichiers |
+| `xcrun swift-format lint` | 0 avertissement |
+| Preuve d'échec — resynchronisation désactivée | 25 lignes au lieu de 40, « Titre 49 » perdu |

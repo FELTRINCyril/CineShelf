@@ -47,9 +47,19 @@ La suppression est un seul geste, et elle doit être faite en bloc :
 6. Rendre leurs noms courts à `Icon.ratingStar` et `Icon.watchedMark`, qui ne les ont
    pris que parce que `Icon.rating` et `Icon.watched` désignaient des `SymbolPair`.
 7. Retirer la règle `no_legacy_design_system` de `.swiftlint.yml`, devenue sans objet.
+8. Dans `PresentationModels.swift`, retirer de `ShelfRailModel` les deux membres
+   `counter(visible:)` et `progress(visible:)` — **morts depuis `I4`**, et ils sont le
+   seul endroit de ce dossier qui n'est pas dans ce dossier. Ils servaient au filet du
+   `ShelfRail` de l'ancienne direction : un compteur « 01–08 / 24 » et une portion
+   visible en accent, posés sous la rangée. La direction courante l'interdit
+   explicitement — « défilement horizontal : signalé uniquement par la carte coupée au
+   bord droit. Ni flèche, ni dégradé, ni pagination » (handoff §7) — et `TileRail` ne
+   les appelle pas. Le reste de `ShelfRailModel` (`label`, `items`, `totalCount`) est
+   vivant : `TileRail` s'en sert.
 
 Ce qui reste ensuite compile ou ne compile pas : il n'y a pas d'état intermédiaire à
-gérer, et c'est la raison pour laquelle tout est dans un seul dossier.
+gérer, et c'est la raison pour laquelle tout est dans un seul dossier — à l'exception
+du point 8, qui est justement la raison pour laquelle il est écrit ici.
 
 ## Ce que ce dossier ne contient pas, et pourquoi
 

@@ -35,6 +35,7 @@ enum CatalogSection: String, CaseIterable, Identifiable {
     // ci-dessous, ils ne s'y ajoutent pas.
     case cardTiles = "Tuiles · I2"
     case cardSurfaces = "Surfaces · I3"
+    case layout = "Rail · Grille · Squelette · I4"
     // Les sept composants du banc d'essai, ancienne direction. Ils partent avec
     // Legacy/ à V12 ; on ne les investit plus.
     case stateView = "StateView"
@@ -132,6 +133,7 @@ struct CatalogRootView: View {
         case .icons: IconSheet()
         case .cardTiles: CardTilesSheet()
         case .cardSurfaces: CardSurfacesSheet()
+        case .layout: LayoutSheet()
         case .stateView: StateViewSheet()
         case .fieldRow: FieldRowSheet()
         case .filterBar: FilterBarSheet()

@@ -88,6 +88,11 @@ public struct ShelfRailModel: Identifiable, Hashable, Sendable {
     }
 
     /// Compteur monospace du filet : « 01–08 / 24 ».
+    ///
+    /// **Mort depuis `I4`, et il part avec `Legacy/` à `V12`** — voir le point 8 de
+    /// `Legacy/README.md`. Son seul appelant est le `ShelfRail` de l'ancienne direction.
+    /// `TileRail` ne peut pas s'en servir : la direction courante ne signale le
+    /// défilement que par la carte coupée au bord droit, sans pagination d'aucune sorte.
     public func counter(visible range: ClosedRange<Int>) -> String {
         let lo = String(format: "%02d", max(1, range.lowerBound + 1))
         let hi = String(format: "%02d", min(totalCount, range.upperBound + 1))
@@ -95,6 +100,8 @@ public struct ShelfRailModel: Identifiable, Hashable, Sendable {
     }
 
     /// Portion visible, matérialisée en Ember sous le filet.
+    ///
+    /// Mort depuis `I4`, même raison et même sort que `counter(visible:)`.
     public func progress(visible range: ClosedRange<Int>) -> ClosedRange<Double> {
         guard totalCount > 0 else { return 0...0 }
         let total = Double(totalCount)

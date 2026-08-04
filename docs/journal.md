@@ -3600,3 +3600,94 @@ faute d'identifiant de paquet.
   vérifiée que par `plutil`, et `UTType(filenameExtension:)` fabrique un type dynamique
   quand la déclaration manque : une faute de frappe dans l'identifiant passerait tous les
   tests. La vérification appartient à `Tests/CineShelfTests`, qui a un bundle — non fait.
+
+---
+
+## 2026-08-04 — La revue de `L12` : sept défauts, et une correction que les tests ont rejetée
+
+Sous-agent de revue adverse, comme la rigueur maximale l'exige. Il a construit sa propre
+sonde hors dépôt et **trouvé sept défauts de plus** après les deux de la mienne, chacun
+reproduit et chiffré avant d'être affirmé. Tous corrigés, tous avec un test.
+
+### Ce qu'ils avaient en commun, et pourquoi je ne les voyais pas
+
+**Tous les sept vivent dans la restauration sur un magasin qui n'est pas vide.** Or mes
+tests restauraient sur une cible vide et comparaient des comptes ; le seul qui touchait à
+une base peuplée vérifiait que l'archive **n'écrase pas** — jamais que ce qu'elle
+**ajoute** est cohérent. La fusion partielle est pourtant le mode d'emploi que j'ai moi-même
+écrit sur le type : « récupérer trois fiches perdues n'oblige pas à tout effacer d'abord ».
+
+C'est un angle mort de suite de tests, pas une inattention : j'avais testé le chemin que
+j'avais conçu, et le chemin que j'avais **annoncé** restait nu.
+
+| # | Défaut | Effet mesuré |
+|---|---|---|
+| 1 | Un crédit rendu à un titre déjà en base laissait `filterKeys` périmé | **0 titre trouvé au lieu de 1** par le prédicat SQL, la fiche affichant la personne |
+| 2 | Rejouer l'archive ne reposait jamais les octets d'un asset présent mais vide | Asset vide **pour toujours**, bilan « ignoré », zéro anomalie |
+| 3 | Des octets tronqués étaient restaurés en silence | **7 octets** posés pour 4 096 annoncés, zéro compteur |
+| 4 | `manifest.schemaVersion` était écrite et relue par **personne** | Archive de schéma 9.9.9 acceptée sans un mot |
+| 5 | Un fichier de `entities/` inconnu était invisible | `episodes.json` d'un schéma V2 ignoré sans trace |
+| 6 | `mediaFileCount` n'était vérifié par personne | `media/` entièrement perdu, relu sans erreur |
+| 7 | Deux erreurs avalées (`?? []` et `try?`) | `media/` illisible → **0 orphelin**, soit la réponse d'une archive saine |
+
+**Le premier est le plus grave, et c'est la classe de défaut de `L1`** : le titre s'affiche
+parfaitement et n'existe pour aucun critère. `Title.refreshDerived()` compose `filterKeys`
+depuis `credits`, et ma passe des dérivés ne traitait que ce qu'elle venait de créer. La
+correction rafraîchit tout titre touché, créé ou non, **en gardant son `updatedAt` de
+base** — la fiche appartient à l'utilisateur, seul son index était périmé, et le redater
+serait le même défaut à l'envers.
+
+Le septième mérite d'être noté pour lui-même : le `try?` de `exists()` faisait lire « n'existe
+pas » à une erreur de `fetch`, donc **insérait un doublon d'identifiant** dans une base sans
+`@Attribute(.unique)`, que le dédoublonnage applicatif ne regarde pas pour ces tables. Une
+erreur de magasin doit interrompre, pas se transformer en écriture.
+
+### La correction que les tests ont rejetée
+
+Pour le sixième, ma première correction faisait de l'écart de `mediaFileCount` une **erreur
+de relecture**. Deux tests existants ont rougi immédiatement — et ils avaient raison :
+refuser contredit deux décisions déjà prises et écrites, « un média manquant n'annule pas la
+restauration » (sinon on perd neuf cent quatre-vingt-dix-neuf affiches pour une absente) et
+« un orphelin n'est pas une erreur ».
+
+Ce qui manquait n'était pas un refus, c'était **l'information avant d'écrire**. D'où
+`mediaFilesFound` et `mediaFileDelta`, relevés à la relecture et reportés au bilan.
+
+C'est le premier cas du dépôt où un test existant attrape une **régression de décision**
+plutôt qu'une régression de code. Ça vaut d'être dit : les deux tests en question ne
+vérifiaient pas un comportement subtil, ils encodaient un arbitrage — et c'est ce qui les a
+rendus utiles trois heures plus tard.
+
+### Le défaut d'interruption, corrigé au passage
+
+La revue a aussi mesuré, avec un observateur concurrent sur le même fichier de magasin, que
+`checkpoint()` commettait **700 titres sur 700** avec `sortName` et `searchText` vides
+pendant la restauration : introuvables en recherche, et une interruption — `save()` qui lève,
+jetsam iOS — les y laisse pour de bon. Les dérivés sont désormais posés dès la passe 1, puis
+reposés en passe 3 avec les relations. Aucun état commis n'est plus vide.
+
+### Ce que la revue a vérifié et trouvé correct
+
+Utile à savoir, parce que ça ferme des questions : **couverture champ par champ des
+dix-neuf `@Model`, aucun champ manquant** ; aucune relation du schéma qui tombe entre les
+deux conventions ; `exists()` voit les insertions en attente, donc deux enregistrements de
+même identifiant dans un fichier donnent une ligne et non deux ; l'ordre est préservé partout
+où un champ le porte (`orderIndex`, `pinIndex`, `sortIndex`, `roleValues`).
+
+Un point relevé et **assumé** : `sorted(_:)` normalise l'ordre de `Title.genres`, et sa
+justification — « SwiftData ne garantit pas l'ordre d'un `to-many` » — est **fausse**, il le
+préserve. Le tri reste nécessaire à la diffabilité de l'archive, et `filterKeys` est
+insensible à l'ordre, donc rien de fonctionnel ne casse : c'est l'ordre d'affichage des
+genres d'une fiche qu'une sauvegarde réécrit. Inscrit aux écarts.
+
+### Vérifications après correction
+
+| Contrôle | Résultat |
+|---|---|
+| `swift test` CineShelfCore | **450 tests** (36 d'archive) |
+| `xcodebuild test` macOS | **67 tests** |
+| Builds macOS et iOS | `** BUILD SUCCEEDED **` |
+| `swiftlint --strict` | 0 violation |
+| `xcrun swift-format lint` | 0 avertissement |
+| Preuve d'échec, défaut 1 | mord : prédicat SQL à **0 au lieu de 1** |
+| Remesure des 7 sur la sonde | tous fermés |

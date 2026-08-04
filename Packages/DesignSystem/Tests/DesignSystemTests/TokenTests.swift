@@ -229,11 +229,20 @@ func inspectorIsASheetBelowPadLandscape() {
     #expect(Breakpoint.macWide.showsInspectorAsColumn)
 }
 
-@Test("Le nombre de colonnes croit avec la largeur")
-func columnCountGrowsWithWidth() {
-    let columns = Breakpoint.allCases.map(\.columns)
-    #expect(columns == columns.sorted())
-    #expect(columns == [2, 3, 4, 5, 6, 7])
+// Le compte de colonnes n'est plus une propriete de `Breakpoint` : il se calcule, et
+// ses tests sont dans `GridMetricsTests`. Voir la note en tete de `GridMetrics.swift`.
+
+@Test("Seul macWide desaccorde la gouttiere de la densite")
+func macWideWidensTheGutter() {
+    // `docs/design/README.md` §4.6 : « ≥ 1680 · marges 64, gouttiere 24 », alors que la
+    // densite par defaut du Mac est dense, donc 16.
+    #expect(Breakpoint.macWide.gridGutter(.dense) == 24)
+    #expect(Breakpoint.macStandard.gridGutter(.dense) == 16)
+    #expect(Breakpoint.macStandard.gridGutter(.roomy) == 24)
+    for cran in Breakpoint.allCases where cran != .macWide {
+        #expect(cran.gridGutter(.dense) == Density.dense.gridGutter, "\(cran.rawValue)")
+        #expect(cran.gridGutter(.roomy) == Density.roomy.gridGutter, "\(cran.rawValue)")
+    }
 }
 
 // MARK: - Typographie

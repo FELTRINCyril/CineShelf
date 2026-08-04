@@ -165,9 +165,19 @@ public enum Layer {
 
 // MARK: - Points de rupture
 //
-// Sur **largeur de fenêtre**, pas sur classe de taille. Le nombre de colonnes est
-// celui de la grille en portrait medium ; il se recalcule pour les autres crans, la
-// largeur de carte étant fixe.
+// Sur **largeur de fenêtre**, pas sur classe de taille.
+//
+// **Le nombre de colonnes ne figure pas ici, et c'est délibéré : il se calcule, il ne
+// se déclare pas.** La règle arrêtée est celle de l'addendum 2 bloc `13c` — « le nombre
+// de colonnes n'est pas un réglage : la largeur de carte est fixe par le cran de la
+// matrice, la grille prend ce qui rentre ». `GridMetrics.columnCount` est le seul
+// endroit où ce compte existe.
+//
+// La colonne « Colonnes » du tableau des points de rupture de `docs/design/README.md`
+// §4.6 reste dans le document, comme la référence indicative qu'elle dit être. Elle a
+// été transcrite ici par `I1` en constante, et `I4` l'a retirée : une constante que
+// personne ne lit et qui contredit le calcul finit par se faire « respecter » par
+// quelqu'un qui croit corriger un oubli.
 
 public enum Breakpoint: String, Sendable, CaseIterable, Identifiable {
     case phonePortrait, phoneLandscape, padPortrait, padLandscape, macStandard, macWide
@@ -186,18 +196,6 @@ public enum Breakpoint: String, Sendable, CaseIterable, Identifiable {
         }
     }
 
-    /// Colonnes de la grille en portrait medium.
-    public var columns: Int {
-        switch self {
-        case .phonePortrait: 2
-        case .phoneLandscape: 3
-        case .padPortrait: 4
-        case .padLandscape: 5
-        case .macStandard: 6
-        case .macWide: 7
-        }
-    }
-
     /// Marge horizontale d'écran de ce cran.
     ///
     /// Elle ne se déduit pas de la densité : le design la donne par point de
@@ -211,6 +209,17 @@ public enum Breakpoint: String, Sendable, CaseIterable, Identifiable {
         case .macStandard: 32
         case .macWide: 64
         }
+    }
+
+    /// La gouttière de grille de ce cran, à une densité donnée.
+    ///
+    /// C'est celle de la densité partout, **sauf en `macWide`** : le tableau des points
+    /// de rupture y écrit « marges 64, gouttière 24 » alors que la densité par défaut
+    /// du Mac est dense, donc 16. Une fenêtre de 1680 pt aère, elle ne resserre pas.
+    /// Même raison d'être que `screenMargin` — le design donne ces deux mesures par
+    /// point de rupture, pas seulement par densité.
+    public func gridGutter(_ density: Density) -> CGFloat {
+        self == .macWide ? Density.roomy.gridGutter : density.gridGutter
     }
 
     /// L'inspecteur est une colonne à partir de 1024 pt, une feuille en dessous.

@@ -186,13 +186,22 @@ struct MetricsSheet: View {
     // MARK: Points de rupture
 
     private var breakpoints: some View {
-        section("Points de rupture", note: "Sur largeur de fenêtre, pas sur classe de taille.") {
+        section(
+            "Points de rupture",
+            note: """
+                Sur largeur de fenêtre, pas sur classe de taille. Le nombre de colonnes \
+                n'est pas ici : il se calcule à largeur de carte constante, et se voit \
+                sur la planche « Rail · Grille · Squelette ».
+                """
+        ) {
             VStack(alignment: .leading, spacing: Space.s2) {
                 ForEach(Breakpoint.allCases) { cran in
                     caption(
                         """
                         \(cran.rawValue) · ≥ \(number(cran.minWidth)) pt · \
-                        \(cran.columns) colonnes · marge \(number(cran.screenMargin)) · \
+                        marge \(number(cran.screenMargin)) · \
+                        gouttière \(number(cran.gridGutter(.dense)))/\
+                        \(number(cran.gridGutter(.roomy))) · \
                         inspecteur \(cran.showsInspectorAsColumn ? "en colonne" : "en feuille")
                         """
                     )

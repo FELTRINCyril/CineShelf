@@ -530,7 +530,7 @@ qui remplace le banc d'essai des prompts 10 et 11.
 | # | Tâche | Ce qu'elle débloque | Rigueur |
 |---|---|---|---|
 | 1 | `I2` — carte affiche (6 variantes) · carte paysage · carte personne | Tout ce qui affiche une image de catalogue. Le lot qui change le plus l'allure | légère — ✅ `8262878` |
-| 2 | `I3` — carte collection · vignette galerie · **avatar de profil** | L'avatar est réclamé par le chrome (sélecteur de profil), la vignette par la fiche | légère |
+| 2 | `I3` — carte collection · vignette galerie · **avatar de profil** | L'avatar est réclamé par le chrome (sélecteur de profil), la vignette par la fiche | légère — ✅ `ad55476` |
 | 3 | `I4` — rail horizontal · grille adaptative · squelette de chargement | **Sans lui aucun écran ne peut être posé** : c'est lui qui porte les 6 points de rupture | légère |
 | 4 | `I6` — badge d'état · barre de notation · indicateur de progression | Les états d'une carte et d'une fiche : vu, favori, note | légère |
 | 5 | `V0` — **chrome** : navigation régulière, barres d'outils, en-têtes, sélecteur de profil | Remplace la coquille du prompt 10. Toutes les `V` s'y posent | légère |
@@ -1262,7 +1262,7 @@ Trois décisions de décompte, pour que le chiffre soit vérifiable :
 | Tâche | Les trois composants | Planche de validation | État |
 |---|---|---|---|
 | `I2` | Carte affiche (les 6 variantes de la matrice) · carte paysage · carte personne | Planche 1 et §5 du handoff — la matrice se juge d'un bloc | ✅ `8262878` — `PosterTile` couvre affiche **et** paysage par `CardLayout` ; le troisième composant est `PosterTileDetail` |
-| `I3` | Carte collection · vignette galerie · avatar de profil | Planche 4 | ⬜ |
+| `I3` | Carte collection · vignette galerie · avatar de profil | Planche 3 bloc `4e`, planche 4 bloc `6b`, planche 5 bloc `7f` | ✅ `ad55476` |
 | `I4` | Rail horizontal · grille adaptative (les 6 points de rupture) · squelette de chargement | Planches 1 et 3 — le squelette est un rail vide à la géométrie finale, il se valide avec eux | ⬜ |
 | `I5` | Ligne de tableau · jeton de filtre · pastille de compteur | Planche 5, aux deux crans de densité | ⬜ |
 | `I6` | Badge d'état · barre de notation · indicateur de progression | Planche 7 | ⬜ |

@@ -3837,3 +3837,81 @@ cibles, y compris les bundles de test, qu'aucune raison n'oblige à signer.
 | Copie du `.example` sans édition, rejouée | `DEVELOPMENT_TEAM` vide, 52 tests verts |
 
 **Suite : `I3`** — carte collection, vignette de galerie, avatar de profil.
+
+---
+
+## 2026-08-04 (4) — Le piège des directions fermé, et `I3`
+
+**Trois corrections de méthode**, toutes destinées à ne plus dépendre de ma mémoire.
+
+*Le piège des directions est fermé par un document, pas par une intention.* `docs/design/README.md`
+gagne un §0 « Comment lire les planches » qui **nomme** les cinq blocs abandonnés — `1a`
+Salle obscure, `1b` Rayonnage, `1c` Console, `2b` Soixante-cinq, `2c` Paysage — et donne le
+point qui rend la règle utilisable : **tout ce qui porte un numéro de bloc `3` ou plus est
+déjà dans la direction retenue**, donc le doute ne porte que sur `1x` et `2x`. Renvoi dans
+`CLAUDE.md`, à la liste des documents de référence.
+
+Deux pièges de plus, trouvés en inventoriant : `Directions.dc.html` est un **agrégat de
+307 Ko** où une direction abandonnée voisine une planche finale, et `Tokens.dc.html` comme
+`États.dc.html` sont des **versions courtes** de leurs planches (32 Ko contre 89, cinq blocs
+contre onze). Les quatorze fichiers sont arrivés dans le même commit, donc la date ne tranche
+pas ; ce qui tranche est que la planche numérotée contient tout ce que la version courte a,
+et davantage.
+
+*Une règle nouvelle dans `CLAUDE.md`, et c'est celle qui compte le plus.* Un tableau de
+vérification ne porte que des commandes **réellement passées**. Une commande non lancée
+s'écrit « non lancée », jamais ✅ ; un sous-ensemble le dit ; un chiffre repris d'une session
+précédente est marqué comme tel ; aucune inférence. C'est le seul risque qui soit
+indétectable de l'autre côté.
+
+*Son corollaire, tiré du défaut de `P0` :* **une preuve exerce le geste, pas la valeur.** Le
+contre-test lisait `DEVELOPMENT_TEAM` ; le bug était dans le fait de **copier** le fichier.
+Trois mesures vertes, et le défaut passait entre elles. `P0` est remise à jour : elle
+désignait `9984a52`, le commit qui portait le défaut, sans mentionner le correctif
+`faf07cd`.
+
+### `I3` — et le §0 a servi tout de suite
+
+Le premier composant que j'ai cherché est l'avatar de profil. Le bloc `1a` en montre un —
+**rond, 28 px, initiale en Archivo**. Le bloc `7f`, retenu, en montre un autre — **carré,
+46 px, initiale en Bebas Neue, texte sombre sur la couleur du profil**. J'aurais dessiné le
+rond, et il aurait été le **seul arrondi de toute l'interface** : la direction `2a` n'a aucun
+rayon, nulle part. Le piège s'est donc rejoué exactement comme prévu, un lot après avoir
+mordu — et cette fois la règle l'a arrêté.
+
+Deux autres relevés qui ne se devinent pas :
+
+- **La mosaïque de collection n'a pas de gouttière.** Le `grid` du prototype n'a pas de
+  `gap` : les quatre jaquettes se touchent, ce qui fait **une** image. Une gouttière en
+  aurait fait quatre vignettes. Et le survol y est à 1,03, pas 1,06 — la collection est plus
+  large, donc le même facteur la ferait déborder davantage.
+- **La vignette de galerie porte le ratio de l'image**, pas un ratio imposé. C'est toute la
+  différence entre une galerie et une grille, et c'est pour ça qu'elle ne prend pas de
+  `CardLayout` : lui en donner un l'aurait transformée en `PosterTile`.
+
+**Une question laissée ouverte par le report de `L6` se referme ici.** Le report annonçait
+« reste en v1 : un repli calculé à l'affichage ». Ce repli **est** le design retenu — le
+sous-titre du bloc `4e` dit « couverture générée en mosaïque quand elle manque ». La mosaïque
+se compose à l'écran depuis les jaquettes déjà chargées et n'écrit rien ; `L6` n'ajoutera que
+la possibilité d'en faire un asset exportable.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `swift test` (DesignSystem) | ✅ **51 tests** |
+| `xcodebuild build -scheme DesignSystemCatalog -destination macOS` | ✅ `BUILD SUCCEEDED` |
+| `xcodebuild test -scheme DesignSystemCatalog -destination macOS` | ✅ **52 tests** |
+| `xcodebuild build -scheme CineShelf -destination macOS` | ✅ `BUILD SUCCEEDED` |
+| `xcodebuild build -scheme CineShelf -destination iOS Simulator` | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| `swift test` CineShelfCore · MediaKit | **non lancées** — aucun de leurs fichiers n'est touché par `I3` |
+| `xcodebuild test -scheme CineShelf` (macOS) | **non lancée** — `I3` ne touche ni `App/` ni `Tests/` |
+
+Les deux dernières lignes sont l'application de la règle du jour : je ne les ai pas lancées,
+donc elles ne sont pas vertes. Leur dernier passage connu date de la session précédente
+(450 · 38 · 67).
+
+**Suite : `I4`** — rail horizontal, grille adaptative, squelette de chargement. C'est le lot
+qui débloque les écrans : sans lui, aucune `V` ne peut être posée.

@@ -4244,3 +4244,56 @@ suite existante ne peut pas distinguer — c'est la planche du catalogue qui les
 
 **Suite : `I7`** — champ texte, zone de texte, champ nombre. C'est ce qui débloque
 l'éditeur, donc ce qui reste de `V0 bis`.
+
+---
+
+## 2026-08-04 (10) — L'accueil, et une barre qui réservait sa place
+
+`V5a`, dernière tâche du palier « belle et navigable ». Rigueur légère.
+
+**Un défaut de `V0` que seul le hero pouvait révéler.** La barre de navigation était posée
+en `safeAreaInset`, qui **réserve** sa hauteur. Sur la grille et la fiche, invisible. Sur
+l'accueil, l'image ne pouvait pas passer dessous : il restait une bande noire de 60 pt
+au-dessus du hero, et le « plein cadre bord à bord » — ce que la direction a de plus
+identifiable — disparaissait. Elle passe en `overlay`, et c'est désormais l'écran qui
+décide : l'accueil et la fiche passent dessous, les écrans à en-tête se décalent de
+`TopNavigationBar.height` par `ScreenHeader`.
+
+C'est le genre de défaut qu'aucun test n'attrape et qu'aucun des deux écrans précédents ne
+montrait. Il a fallu l'écran qui en dépend.
+
+**La question ouverte des genres épinglés se referme, et la piste était la bonne.** Le bloc
+`3a` défilé montre trois rails : « Ajoutés cette semaine », « **Mes genres · Drame** »,
+« Ma liste · à voir ». Les genres épinglés ne sont donc pas une entrée de navigation
+perdue avec la barre latérale — ils sont la **configuration de l'accueil**. Reste ouvert, et
+c'est autre chose : **où** on épingle un genre, qui appartient à `V5b`.
+
+**Le troisième voile est celui qu'on oublie.** Le hero en a trois : un dégradé vers le haut,
+un vers la droite, et une **trame horizontale à 1,4 %** — une ligne claire tous les 3 pt.
+Isolément invisible ; c'est elle qui donne au hero son grain de projection. Les trois sont
+des dégradés **posés sur une image**, donc explicitement autorisés par le §4.1 : la règle
+« zéro translucidité » ne vaut que pour les surfaces opaques.
+
+**Ce que `V5a` ne fait pas.** `HomeSelection` tient les trois contraintes de la fiche —
+stable dans la journée (la graine est le jour, pas l'instant), jamais archivé, jamais privé
+si le profil les masque. Mais les **sélections éditoriales** de `L18` n'existent pas : ce
+hero est une rotation quotidienne honnête, pas un choix. La tâche reste donc en 🔶.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **67 tests**, 9 suites |
+| `xcodebuild test -scheme CineShelfUITests -destination iOS Simulator` | ✅ **1 test**, 26,6 s |
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **450 · 63 · 38** |
+| `xcodebuild test -scheme DesignSystemCatalog -destination macOS` | ✅ **64 tests** |
+| `xcodebuild build -scheme CineShelf -destination macOS` | ✅ `BUILD SUCCEEDED` |
+| `xcodebuild build -scheme CineShelf -destination iOS Simulator` | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 245 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| Lancement réel sur Mac | ✅ processus `CineShelf` vivant après `open` |
+
+**Aucun test neuf** : `HomeSelection` en mériterait — la règle « stable dans la journée » est
+exactement ce qui se teste — et je ne l'ai pas écrit. C'est une dette, pas une décision.
+
+**Suite : la revue visuelle du catalogue**, puis `I7`.

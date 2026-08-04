@@ -15,14 +15,25 @@ public struct GenreRepository {
     }
 
     /// Le genre existant de même clé, cible et bibliothèque, sinon un genre neuf.
+    ///
+    /// **La règle vit dans `EntityResolver` depuis `L11b`, et ce fichier la lui délègue.**
+    /// L'import ne peut pas passer ici — ce type est `@MainActor` — donc il aurait fallu
+    /// recopier la recherche dans l'acteur. Deux copies d'une règle de dédoublonnage finissent
+    /// par diverger, et une divergence ici crée des doublons **en silence** : c'est
+    /// exactement ce que `nameKey` existe pour empêcher.
+    ///
+    /// Ce qui reste ici est ce que le résolveur ne fait pas, faute de savoir dans quel
+    /// contexte il est appelé : l'entrée de journal.
     public func findOrCreate(name: String, target: GenreTarget = .title, in library: Library) throws -> Genre {
-        if let existing = try find(key: Genre.key(for: name), target: target, in: library) {
-            return existing
+        var resolver = EntityResolver(context: context, library: library)
+        guard let genre = resolver.genre(named: name, target: target) else {
+            throw GenreError.emptyName
         }
-        let genre = Genre(name: name, target: target)
-        genre.library = library
-        context.insert(genre)
-        ActivityRecorder(context: context).record(.create, genre)
+        // Journaliser **seulement** une vraie création : `createdIDs` le dit, et retrouver un
+        // genre existant n'est pas un événement du catalogue.
+        if resolver.createdIDs.contains(genre.id) {
+            ActivityRecorder(context: context).record(.create, genre)
+        }
         return genre
     }
 
@@ -45,6 +56,14 @@ public struct GenreRepository {
         genre.deletedAt = nil
         genre.updatedAt = .now
         ActivityRecorder(context: context).record(.restore, genre)
+    }
+
+    /// Le nom d'un genre ne peut pas être vide.
+    ///
+    /// Un genre sans nom aurait une `nameKey` vide, donc il ferait doublon avec tous les
+    /// autres genres sans nom, et le dédoublonnage les fusionnerait silencieusement.
+    public enum GenreError: Error, Sendable, Hashable {
+        case emptyName
     }
 
     private func find(key: String, target: GenreTarget, in library: Library) throws -> Genre? {

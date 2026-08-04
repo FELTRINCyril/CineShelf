@@ -30,6 +30,41 @@ public enum TitleQuery {
         #Predicate<Title> { $0.id == id }
     }
 
+    /// Le titre vivant de ce nom replié et de cette année, dans une bibliothèque.
+    ///
+    /// **La clé de doublon d'un import**, arrêtée le 2026-08-04 : nom et année, pas la
+    /// réalisation. Voir `EntityResolver.existingTitle(named:year:)` pour le raisonnement.
+    ///
+    /// L'année est comparée sur `releaseDate` par un intervalle plutôt que sur un champ
+    /// d'année, qui n'existe pas — `Title.releaseYear` est calculé, donc inutilisable dans un
+    /// `#Predicate`. Un titre sans date ne fait doublon qu'avec un autre sans date : `year`
+    /// nul cherche `releaseDate == nil`, et non « n'importe quelle date ».
+    public static func living(sortName: String, year: Int?, inLibrary libraryID: UUID) -> Predicate<Title> {
+        guard let year else {
+            return #Predicate<Title> {
+                $0.sortName == sortName && $0.releaseDate == nil && $0.deletedAt == nil
+                    && $0.library?.id == libraryID
+            }
+        }
+        var components = DateComponents()
+        components.year = year
+        components.month = 1
+        components.day = 1
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        // Un intervalle `[1er janvier, 1er janvier suivant[` dans le **fuseau courant** :
+        // `Title.releaseYear` utilise `Calendar.current`, donc borner en UTC ferait diverger
+        // la recherche de doublon de l'année affichée pour les titres du 1er janvier.
+        let start = calendar.date(from: components) ?? .distantPast
+        let end = calendar.date(byAdding: .year, value: 1, to: start) ?? .distantFuture
+
+        return #Predicate<Title> {
+            $0.sortName == sortName && $0.deletedAt == nil
+                && $0.library?.id == libraryID
+                && $0.releaseDate.flatMap { $0 >= start && $0 < end } == true
+        }
+    }
+
     /// Les titres d'un lot d'identifiants.
     ///
     /// Sert a l'edition en masse, qui recoit une selection d'identifiants et doit la
@@ -46,6 +81,22 @@ public enum TitleQuery {
 }
 
 public enum PersonQuery {
+
+    /// La personne vivante de cette clé de tri, dans une bibliothèque.
+    ///
+    /// **`sortName` sert de clé de dédoublonnage**, parce que le schéma est fermé et que
+    /// `Person` n'aura pas de `nameKey` comme `Genre`. Il est déjà replié en locale invariante
+    /// par `refreshDerived()`, donc il est reproductible d'un appareil à l'autre — voir
+    /// `docs/02` §3 et `EntityResolver.person(named:)`.
+    ///
+    /// Trois clauses, loin du plafond de cinq. Le filtre `deletedAt == nil` compte : sans lui,
+    /// l'import ressusciterait une personne mise à la corbeille avec toutes ses anciennes
+    /// associations, ce que personne n'a demandé.
+    public static func living(sortName: String, inLibrary libraryID: UUID) -> Predicate<Person> {
+        #Predicate<Person> {
+            $0.sortName == sortName && $0.deletedAt == nil && $0.library?.id == libraryID
+        }
+    }
 
     /// Une personne par identifiant.
     public static func withID(_ id: UUID) -> Predicate<Person> {
@@ -132,6 +183,15 @@ public enum MediaQuery {
 // premier.
 
 public enum CollectionQuery {
+
+    /// La collection vivante de cette clé de tri, dans une bibliothèque.
+    ///
+    /// Même motif que `PersonQuery.living(sortName:inLibrary:)`.
+    public static func living(sortName: String, inLibrary libraryID: UUID) -> Predicate<TitleCollection> {
+        #Predicate<TitleCollection> {
+            $0.sortName == sortName && $0.deletedAt == nil && $0.library?.id == libraryID
+        }
+    }
 
     /// Les collections d'un lot d'identifiants, **corbeille comprise**.
     ///

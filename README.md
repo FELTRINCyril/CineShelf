@@ -120,7 +120,7 @@ security find-identity -v -p codesigning
 
 # 3. Le poser dans un fichier local, jamais dans le dépôt
 cp Configuration/Local.xcconfig.example Configuration/Local.xcconfig
-$EDITOR Configuration/Local.xcconfig      # DEVELOPMENT_TEAM = A1B2C3D4E5
+$EDITOR Configuration/Local.xcconfig      # décommente la ligne DEVELOPMENT_TEAM
 
 # 4. Vérifier qu'il est bien pris en compte
 xcodebuild -scheme CineShelf -showBuildSettings | grep DEVELOPMENT_TEAM
@@ -150,6 +150,13 @@ Deux raisons, et une conséquence à connaître :
 
 Le `#include?` est **optionnel** — le point d'interrogation compte. Sans lui, un clone
 neuf et la CI échoueraient sur un fichier absent.
+
+> ⚠️ **`DEVELOPMENT_TEAM` s'applique à toutes les cibles, y compris les bundles de
+> test.** Une équipe sans certificat « Mac Development » les fait donc tous échouer sur
+> `No signing certificate "Mac Development" found`, alors qu'aucun test n'a besoin d'être
+> signé. C'est pour ça que la clé est **commentée** dans le `.example` : mesuré, une copie
+> sans édition faisait passer les 52 tests du catalogue de vert à build cassé. Si l'erreur
+> apparaît avec un identifiant valide, ouvre Xcode une fois pour qu'il crée le certificat.
 
 > ⚠️ **Ne jamais remettre `DEVELOPMENT_TEAM` dans `project.yml`.** Un build setting du
 > projet **écrase** un `xcconfig`, et sans rien signaler : `Local.xcconfig` deviendrait

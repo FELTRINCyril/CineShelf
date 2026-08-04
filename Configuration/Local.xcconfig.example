@@ -29,4 +29,18 @@
 // plus probable est un `DEVELOPMENT_TEAM` réintroduit dans `project.yml` : un build
 // setting du projet **écrase** un `xcconfig`, silencieusement.
 
-DEVELOPMENT_TEAM = REMPLACE_MOI
+// La clé est **commentée exprès**. Retire les deux barres obliques et mets ta valeur.
+//
+// Pourquoi commentée : copier ce fichier sans l'éditer doit être **inoffensif**. Avec un
+// `REMPLACE_MOI` actif, Xcode cherchait un certificat pour une équipe qui n'existe pas et
+// `xcodebuild test` échouait sur « No signing certificate "Mac Development" found » — sur
+// la cible `DesignSystemAssetTests`, qui n'a rien à voir avec la signature. Mesuré : les
+// 52 tests du catalogue passaient de vert à build cassé. Un exemple dont la copie casse le
+// build est un piège, pas un exemple.
+//
+// **`DEVELOPMENT_TEAM` s'applique à TOUTES les cibles**, y compris les bundles de test.
+// Une équipe sans certificat « Mac Development » les casse donc tous, alors qu'aucun n'a
+// besoin d'être signé. Si ça t'arrive après avoir mis un vrai identifiant, la cause est
+// là : ouvre Xcode une fois pour qu'il crée le certificat.
+
+// DEVELOPMENT_TEAM = A1B2C3D4E5

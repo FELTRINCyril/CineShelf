@@ -53,7 +53,7 @@ La colonne **LOGIQUE** renvoie aux tâches `L…`, la colonne **VUES** aux tâch
 | 14 | Galerie + visionneuse | `L1 bis` (source, mélange) | `V3` | ⬜ |
 | 15 | Personnes + doublons + fusion | `L8` `L9` | `V4` | ⬜ |
 | 16 | Collections, genres, liens, accueil, fil | `L6` `L7` `L18` | `V5` | ⬜ |
-| 17 | Console de gestion | `L10` | `V6` | ⬜ |
+| 17 | Console de gestion | `L10` ✅ | `V6` | ⬜ |
 | 18 | Profils, bibliothèques, Face ID | `L14` `L15` | `V7` | ⬜ |
 | 19 | Import/export CSV | `L11` `L12` | `V8` | ⬜ |
 | 2 | **Dump de l'app web** | — (dépôt web) | — | ⬜ **dépendance dure de `L13`** |
@@ -183,6 +183,7 @@ de découpage sur sa fiche.
 | **`Icon.ratingStar` et `Icon.watchedMark` portent des noms longs** parce que `Icon.rating` et `Icon.watched` désignent encore les `SymbolPair` de l'ancienne direction. Les noms courts se libèrent avec `Legacy/` | `V12` |
 | **L'accesseur de `separator` s'appelle `separatorLine`.** `ShapeStyle.separator` existe déjà dans SwiftUI : déclarer le nôtre sous le même nom ne casse pas la compilation, ça rend `.separator` **ambigu**, et une vue peut alors prendre la couleur système d'Apple au lieu du token. Le nom du token reste `separator` dans le JSON, fidèle à la planche 8 ; seul l'accesseur Swift est désambiguïsé, par `ACCESSOR_OVERRIDES` dans `generate-colors.py` | permanent |
 | **Le forçage sombre n'est posé nulle part.** L'arbitrage 1 dit que l'accueil, les fiches et la galerie sont forcés en sombre par écran (`.preferredColorScheme(.dark)` sur la racine de chaque surface de visionnage), et non globalement. Les tokens sont prêts — les quatre apparences existent, `bg/viewer` est identique dans les quatre — mais **aucun écran ne le pose** : ce sont les tâches `V` qui écriront ces racines | `V3` `V5` |
+| **Le diff d'édition en masse est écrit mais personne ne le relit.** `L10` pose un `BulkEditDiff` versionné dans `ActivityEntry.payload` et laisse `undoneAt` vide ; `ActivityEntry.isUndoable` dit déjà `true`. Aucun code ne l'annule encore — c'est `L20`. Deux conséquences : `V6` ne doit pas livrer l'édition en masse sans `L20` (déjà noté au tableau des vues), et **le format du diff ne doit pas changer sans faire évoluer `BulkEditDiff.currentVersion`** — un `payload` déjà en base ne se relit pas autrement. `BulkEditDiff.decoded(from:)` refuse une version inconnue plutôt que de deviner | `L20` |
 | Grille non navigable au clavier sur Mac (`PosterCard` ouvre par `onTapGesture`, sans `focusable()`) | `V12` |
 | `MediaEnvironment.displayScale` jamais alimenté : vignettes générées en @2x quelle que soit la dalle | `L5` |
 | `DemoCatalog` hors des repositories : **décision actée** — une fixture n'est pas une action utilisateur, et on ne veut pas 300 `ActivityEntry` fictives dans le fil. L'invariant `refreshDerived()` tient et `DemoCatalogTests` le vérifie. Reste factice : `MediaAsset.checksum` et `blurHash` non calculés | — |
@@ -351,8 +352,8 @@ L1 → L2 → L3 → L4 → L10 → L11 → L12 → prompt 2 → L13
 | 2 | `L2` | Service de recherche : portées, résultats groupés, comptes, recherches récentes | `02 §5`, `04 §6` | `L1` | ✅ `6ea6a8e` |
 | 3 | `L3` | Indexation Spotlight : indexer, désindexer, réindexer, jamais le privé | `02 §5`, `04 §6`, `03 §9` | `L2` | ✅ `4e696ee` |
 | 4 | `L4` | Mathématiques du recadrage : geste ↔ `MediaCrop`, bornes, rect final | `02 §2.4 §3.7`, `04 §4` | — | ✅ `07890db` |
-| 5 | `L10` | Édition en masse : décrire une mutation, l'appliquer à une sélection | `03 §12` | — | ⬜ **suivant** — mais voir « fermeture du schéma » ci-dessous |
-| 6 | `L11` | CSV : lire, écrire, valider, résoudre les références, appliquer par lots | `03 §10`, `04 §7` | `L10` | ⬜ |
+| 5 | `L10` | Édition en masse : décrire une mutation, l'appliquer à une sélection | `03 §12` | — | ✅ `68688b2` |
+| 6 | `L11` | CSV : lire, écrire, valider, résoudre les références, appliquer par lots | `03 §10`, `04 §7` | `L10` | ⬜ **suivant** |
 | 7 | `L12` | Archive `.cineshelfarchive` : écriture et relecture | `04 §7`, `03 §10` | `L11` | ⬜ |
 | 8 | **prompt 2** | **Dump du bundle depuis l'app web** — dans le dépôt web, pas ici | `02 §7` étape 1 | — | ⬜ **dépendance dure de `L13`** |
 | 9 | `L13` | Migration des vraies données depuis le bundle web | `02 §7` | `L1` `L3` `L4` `L11` `L12` **+ prompt 2** | ⬜ |

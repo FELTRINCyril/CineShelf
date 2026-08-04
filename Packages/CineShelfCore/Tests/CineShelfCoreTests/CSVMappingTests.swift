@@ -318,20 +318,6 @@ struct CSVSchemaIntegrityTests {
     }
 }
 
-// MARK: - Fixtures
-
-/// Un CSV construit octet par octet : BOM, `CRLF`, point-virgule.
-///
-/// La même forme que `CSVWriter` produit, écrite à la main pour que le test ne dépende pas
-/// de l'écrivain qu'il sert à éprouver.
-func csv(header: [String], rows: [[String]]) -> Data {
-    var text = header.joined(separator: ";") + "\r\n"
-    for row in rows {
-        text += row.joined(separator: ";") + "\r\n"
-    }
-    return CSVWriter.byteOrderMark + Data(text.utf8)
-}
-
 // Les défauts de correspondance trouvés par la revue du 2026-08-04.
 struct ColumnMatcherRegressionTests {
 

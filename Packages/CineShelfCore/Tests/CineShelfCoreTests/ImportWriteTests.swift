@@ -213,11 +213,17 @@ struct ImportDuplicateRuleTests {
             importRows(header: ["Titre", "Année"], rows: [["Dune", ""], ["Dune", "2021"], ["Dune", ""]]),
             fileName: "f.csv", libraryID: fixture.library.id)
 
-        // Les confondre écrirait dans la mauvaise fiche. Le troisième « Dune » sans année
-        // retrouve le premier, et n'a rien à y compléter.
+        // Les confondre écrirait dans la mauvaise fiche.
         #expect(result.createdTitleIDs.count == 2)
-        #expect(result.unchangedTitleIDs.count == 1)
         #expect(try fixture.titles().count == 2)
+        // **Le troisième « Dune » sans année retrouve le premier, et disparaît du bilan.** Il
+        // n'est pas compté « inchangé » : le repliage par entité donne la précédence à `created`,
+        // parce que la fiche a bien été créée **par cet import**. L'annulation doit donc la
+        // retirer, et non restaurer un état d'avant qui n'a jamais existé. La première version
+        // comptait la ligne séparément, ce qui faisait dire au bilan « 2 ajoutés, 1 inchangé »
+        // pour deux fiches.
+        #expect(result.unchangedTitleIDs.isEmpty)
+        #expect(result.processedCount == 3, "les trois lignes ont bien été traitées")
     }
 
     @Test("Réimporter le même fichier ne duplique rien, et ne journalise rien")

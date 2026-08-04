@@ -69,10 +69,27 @@ public struct ImportBatchDiff: Codable, Sendable, Hashable {
         /// une information et non une absence d'information : c'est précisément la valeur à
         /// rétablir.
         public let previousValues: [String: String?]
+        /// Les genres que cet import a **rattachés** à une fiche existante.
+        ///
+        /// Un champ vide se rétablit en réécrivant son ancienne valeur ; une relation ajoutée, non
+        /// — il faut savoir laquelle détacher. Sans ces deux listes, un réimport enrichi serait
+        /// appliqué mais **pas annulable**, et `L20` défairait la moitié d'un lot en croyant tout
+        /// défaire. Le genre lui-même n'est pas supprimé : il peut avoir été rattaché ailleurs
+        /// depuis, et c'est `createdReferenceIDs` qui dit lesquels sont nés de cet import.
+        public let attachedGenreIDs: [UUID]
+        /// Les crédits que cet import a créés sur une fiche existante. Eux se suppriment.
+        public let addedCreditIDs: [UUID]
 
-        public init(entityID: UUID, previousValues: [String: String?]) {
+        public init(
+            entityID: UUID,
+            previousValues: [String: String?],
+            attachedGenreIDs: [UUID] = [],
+            addedCreditIDs: [UUID] = []
+        ) {
             self.entityID = entityID
             self.previousValues = previousValues
+            self.attachedGenreIDs = attachedGenreIDs
+            self.addedCreditIDs = addedCreditIDs
         }
     }
 

@@ -163,6 +163,77 @@ public struct ImportDraftStore: Sendable {
     }
 }
 
+// MARK: - Reprendre : du brouillon vers une analyse
+
+extension ImportDraft {
+
+    /// Le document que ce brouillon décrit, malformations comprises.
+    ///
+    /// **Cette fonction manquait, et son absence était un trou de contrat.** Le brouillon
+    /// s'écrivait, se relisait, portait `malformationCauseKey` — et **personne ne lisait cette
+    /// clé**. La seule reprise démontrée l'était dans un test, qui ré-sérialisait les lignes puis
+    /// les redécoupait : une ligne refusée pour colonnes décalées redevenait alors prête, donc
+    /// importable avec ses valeurs dans les mauvais champs.
+    ///
+    /// Ici les lignes ne sont pas re-sérialisées du tout : elles sont **déjà découpées**, et
+    /// refaire un aller-retour par le texte ne peut que perdre quelque chose.
+    ///
+    /// Le nombre de colonnes d'un `fieldCountMismatch` se recalcule depuis l'en-tête et la ligne ;
+    /// le compte de lignes absorbées d'un `unterminatedQuote`, non — il appartient au découpage
+    /// d'origine et le brouillon ne le porte pas. Il est rendu à zéro, donc le message dit
+    /// « un guillemet n'est pas fermé » sans chiffrer la perte. C'est une information de moins,
+    /// pas une information fausse.
+    public func restoredDocument() -> CSVReader.Document {
+        CSVReader.Document(
+            header: header,
+            rows: rawRows.map { row in
+                CSVRow(
+                    number: row.number,
+                    fields: row.fields,
+                    malformation: Self.malformation(
+                        forCause: row.malformationCauseKey,
+                        fieldCount: row.fields.count,
+                        expected: header.count))
+            })
+    }
+
+    static func malformation(
+        forCause cause: String?,
+        fieldCount: Int,
+        expected: Int
+    ) -> CSVMalformation? {
+        switch cause {
+        case "fieldCountMismatch": .fieldCountMismatch(expected: expected, found: fieldCount)
+        case "unterminatedQuote": .unterminatedQuote(absorbedLines: 0)
+        case "invalidEncoding": .invalidEncoding
+        default: nil
+        }
+    }
+
+    /// L'analyse à l'endroit exact où l'utilisateur s'est arrêté.
+    ///
+    /// La correspondance mémorisée est **rejouée** — donc les colonnes qu'il avait affectées à la
+    /// main reviennent en `.certain` — puis les corrections sont appliquées **dans l'ordre**. Cet
+    /// ordre compte : une correction peut en découvrir une autre, et les rejouer autrement ne
+    /// redonnerait pas le même état.
+    ///
+    /// - Returns: `nil` si l'entité du brouillon n'a pas de schéma de colonnes, ce qui n'arrive
+    ///   qu'avec un fichier écrit par une version qui en connaissait un de plus.
+    public func restoredAnalysis() -> ImportAnalysis? {
+        guard let schema = CSVSchema.schema(for: entity) else { return nil }
+        let document = restoredDocument()
+        let columns = ColumnMatcher(schema: schema)
+            .analyze(header: document.header, rows: document.rows, remembered: mapping)
+        let validator = ImportValidator(schema: schema)
+
+        var analysis = validator.analyze(document: document, columns: columns)
+        for correction in corrections {
+            analysis = validator.applying(correction, to: analysis)
+        }
+        return analysis
+    }
+}
+
 // MARK: - Le pont entre un brouillon et une analyse
 
 extension ImportDraft {

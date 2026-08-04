@@ -414,7 +414,15 @@ struct ImportReportTests {
 
     @Test("Une ligne trop courte ne voit pas le message d'erreur atterrir dans ses données")
     func shortRowIsPaddedBeforeErrorColumn() throws {
-        let (validator, analysis) = analyze(header: ["Titre", "Année"], rows: [["Dune"]])
+        // Octets bruts : `CSVWriter` complète une ligne courte à la largeur de l'en-tête, donc il
+        // est incapable de produire le cas que ce test exerce.
+        let document = CSVReader().read(rawCSV(["Titre;Année", "Dune"]))
+        let columns = ColumnMatcher(schema: .title)
+            .analyze(header: document.header, rows: document.rows)
+        let validator = ImportValidator(schema: .title)
+        let analysis = validator.analyze(document: document, columns: columns)
+        try #require(analysis.refusedRows.count == 1)
+
         let reread = CSVReader().read(validator.rejectedRowsCSV(from: analysis))
         let row = try #require(reread.rows.first)
 

@@ -33,17 +33,51 @@ public struct ImportWriter: ~Copyable {
     public enum Outcome: Sendable, Hashable {
         /// Un titre neuf.
         case created(UUID)
-        /// Un titre existant complété. Les champs remplis, avec leur valeur d'avant.
-        case completed(UUID, previousValues: [String: String?])
+        /// Un titre existant complété : les champs remplis avec leur valeur d'avant, et les
+        /// relations ajoutées avec de quoi les détacher.
+        case completed(
+            UUID,
+            previousValues: [String: String?],
+            attachedGenreIDs: [UUID] = [],
+            addedCreditIDs: [UUID] = [])
         /// Un doublon dont rien n'était à compléter : l'existant avait déjà tout.
         case unchanged(UUID)
+
+        /// L'entité touchée, quelle que soit l'issue.
+        public var entityID: UUID {
+            switch self {
+            case .created(let id), .unchanged(let id): id
+            case .completed(let id, _, _, _): id
+            }
+        }
+
+        /// La nature de l'issue, comparable, pour replier plusieurs lignes d'une même fiche.
+        public var kind: OutcomeKind {
+            switch self {
+            case .created: .created
+            case .completed: .completed
+            case .unchanged: .unchanged
+            }
+        }
+    }
+
+    /// Les issues, ordonnées de la plus forte à la plus faible.
+    ///
+    /// **L'ordre est le contrat de repliage** : une fiche créée puis complétée par une ligne
+    /// suivante du même fichier est **créée** par cet import. L'annulation doit donc la retirer,
+    /// et non restaurer un état d'avant qui n'a jamais existé.
+    public enum OutcomeKind: Int, Sendable, Hashable, Comparable {
+        case unchanged
+        case completed
+        case created
+
+        public static func < (lhs: Self, rhs: Self) -> Bool { lhs.rawValue < rhs.rawValue }
     }
 
     let context: ModelContext
     let library: Library
     let schema: CSVSchema
     var resolver: EntityResolver
-
     public init(context: ModelContext, library: Library, schema: CSVSchema) {
         self.context = context
         self.library = library
@@ -63,12 +97,31 @@ public struct ImportWriter: ~Copyable {
     ///   gagnerait sans que personne ne l'ait décidé.
     public mutating func write(title row: ImportRow) -> Outcome {
         let name = (row.cell("title") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let year = row.cell("year").flatMap(CSVValueParser.year)
+        let year = Self.duplicateYear(of: row)
 
         if let existing = resolver.existingTitle(named: name, year: year) {
             return complete(existing, from: row)
         }
         return create(titleNamed: name, from: row)
+    }
+
+    /// L'année qui entre dans la clé de doublon.
+    ///
+    /// **Elle vient de `year` ou de `release_date`, et ne pas regarder la seconde était un bug
+    /// bloquant.** `TitleQuery.living(sortName:year:inLibrary:)` traite une année nulle comme
+    /// « cherche un titre **sans** date » — décision juste, deux éditions dont l'une est datée
+    /// n'en sont pas une seule. Mais un fichier qui porte « Date de sortie » **sans** « Année »
+    /// écrivait alors une `releaseDate` non nulle puis cherchait `releaseDate == nil` : la
+    /// recherche ne trouvait jamais rien, ni contre l'existant ni dans le lot.
+    ///
+    /// Mesuré avant correction, sur un fichier de deux lignes identiques importé deux fois :
+    /// **quatre fiches** « Dune », aucun signal, et un bilan cohérent avec lui-même.
+    static func duplicateYear(of row: ImportRow) -> Int? {
+        if let year = row.cell("year").flatMap(CSVValueParser.year) { return year }
+        guard let date = row.cell("release_date").flatMap(CSVValueParser.date) else { return nil }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        return calendar.component(.year, from: date)
     }
 
     private mutating func create(titleNamed name: String, from row: ImportRow) -> Outcome {
@@ -94,10 +147,67 @@ public struct ImportWriter: ~Copyable {
             else { continue }
             previous[field.key] = currentValue(field.key, on: title)
         }
-        guard !previous.isEmpty else { return .unchanged(title.id) }
 
+        // **Le travail se décide avant d'écrire, et pas après.** `refreshDerived()` pose
+        // `updatedAt = .now`, donc appeler `apply` « pour voir » sur une ligne qui n'apporte rien
+        // ferait une écriture — et une synchronisation CloudKit — par ligne inchangée. Sur un
+        // réimport de 1 284 lignes, c'est 1 284 écritures pour rien.
+        let additions = additiveWork(in: row, on: title)
+        guard !previous.isEmpty || !additions.isEmpty else { return .unchanged(title.id) }
+
+        let genresBefore = Set((title.genres ?? []).map(\.id))
+        let creditsBefore = Set((title.credits ?? []).map(\.id))
         apply(row, to: title, overwriting: false)
-        return .completed(title.id, previousValues: previous)
+
+        return .completed(
+            title.id,
+            previousValues: previous,
+            attachedGenreIDs: Set((title.genres ?? []).map(\.id)).subtracting(genresBefore).sorted {
+                $0.uuidString < $1.uuidString
+            },
+            addedCreditIDs: Set((title.credits ?? []).map(\.id)).subtracting(creditsBefore).sorted {
+                $0.uuidString < $1.uuidString
+            })
+    }
+
+    /// Les champs additifs dont la cellule apporte au moins un membre qui manque.
+    ///
+    /// **Sans effet de bord** : les valeurs sont comparées par leur **clé repliée** aux membres
+    /// déjà attachés, sans passer par le résolveur — qui créerait le genre ou la personne. C'est
+    /// ce qui permet de décider s'il y a du travail avant d'en faire.
+    private func additiveWork(in row: ImportRow, on title: Title) -> Set<String> {
+        var keys: Set<String> = []
+        for field in schema.fields where Self.isAdditive(field.key) {
+            guard let raw = row.cell(field.key)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                !raw.isEmpty
+            else { continue }
+            let wanted = Set(CSVSchema.splitMultiValue(raw).map { Self.memberKey($0, for: field.key) })
+            guard !wanted.subtracting(attachedMemberKeys(field.key, on: title)).isEmpty else {
+                continue
+            }
+            keys.insert(field.key)
+        }
+        return keys
+    }
+
+    /// La clé d'un membre de cellule, dans la forme que le résolveur emploie.
+    private static func memberKey(_ value: String, for field: String) -> String {
+        guard field == "genres" else {
+            let split = EntityResolver.splitName(
+                value.trimmingCharacters(in: .whitespacesAndNewlines))
+            return Person.sortKey(firstName: split.first, lastName: split.last)
+        }
+        return Genre.key(for: value)
+    }
+
+    /// Les clés des membres déjà attachés au titre pour ce champ.
+    private func attachedMemberKeys(_ field: String, on title: Title) -> Set<String> {
+        switch field {
+        case "genres": Set((title.genres ?? []).map(\.nameKey))
+        case "director": Set(credits(of: title, role: .director).compactMap(\.person?.sortName))
+        case "cast": Set(credits(of: title, role: .cast).compactMap(\.person?.sortName))
+        default: []
+        }
     }
 
     /// Applique les cellules d'une ligne à un titre.
@@ -114,7 +224,9 @@ public struct ImportWriter: ~Copyable {
             guard let raw = row.cell(field.key) else { continue }
             let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !value.isEmpty else { continue }
-            guard overwriting || isEmpty(field.key, on: title) else { continue }
+            guard overwriting || isEmpty(field.key, on: title) || Self.isAdditive(field.key) else {
+                continue
+            }
             set(field.key, to: value, on: title)
         }
         // **L'invariant, appelé ici et nulle part ailleurs dans ce fichier.** Il vient après
@@ -123,194 +235,22 @@ public struct ImportWriter: ~Copyable {
         title.refreshDerived()
     }
 
-    // MARK: Les champs, un par un
-
-    /// Ce champ est-il vide sur ce titre ?
+    /// Les champs dont écrire **n'écrase rien**, parce qu'ils ajoutent.
     ///
-    /// Sert à la règle « compléter sans écraser ».
+    /// **Sans cette exception, un réimport enrichi ne faisait rien, en silence.** Mesuré : un
+    /// premier import avec « sci-fi » et un acteur, puis le même fichier enrichi de « thriller »
+    /// et d'un second acteur — bilan « 0 ajoutés, 0 complétés, 1 inchangés », et les deux ajouts
+    /// **abandonnés sans être comptés nulle part**. C'est le geste le plus naturel qu'un
+    /// utilisateur fera après avoir complété son tableur.
     ///
-    /// **Le compilateur ne garde rien ici, et il ne faut pas se raconter le contraire.** La clé
-    /// est une `String`, donc ce `switch` a un `default` et une clé ajoutée au schéma y tombe
-    /// **silencieusement** : elle serait considérée comme jamais vide, donc jamais complétée sur
-    /// un doublon. Aucune erreur, aucun test rouge, juste une colonne qui n'arrive pas.
+    /// Ce n'est pas une entorse à « ne jamais écraser » : rien n'est retiré. Un genre ou un crédit
+    /// déjà présent est reconnu et sauté — c'est le résolveur et le dédoublonnage de
+    /// `attachCredits` qui s'en chargent — donc l'opération est idempotente.
     ///
-    /// Le filet est donc un test et non une garde de compilation :
-    /// `everySchemaFieldIsHandledByTheWriter` parcourt `CSVSchema.title.fields` et exige que
-    /// chaque clé soit citée ici **et** dans `set(_:to:on:)`. Il échoue à l'ajout d'une colonne,
-    /// ce qui est le moment où on peut encore décider.
-    private func isEmpty(_ key: String, on title: Title) -> Bool {
-        scalarIsEmpty(key, on: title) ?? relationIsEmpty(key, on: title)
-    }
-
-    /// Les champs qui portent une valeur. `nil` si la clé n'en est pas un.
-    private func scalarIsEmpty(_ key: String, on title: Title) -> Bool? {
-        switch key {
-        case "title": title.name.isEmpty
-        case "original_title": title.originalName?.isEmpty ?? true
-        case "year", "release_date": title.releaseDate == nil
-        case "runtime": title.runtimeMinutes == nil
-        case "rating": title.rating == nil
-        case "summary": title.summary?.isEmpty ?? true
-        case "season_count": title.seasonCount == nil
-        case "episode_count": title.episodeCount == nil
-        // `kindRaw`, `createdAt` et les booléens ont toujours une valeur : ils ne sont jamais
-        // « vides », donc un doublon ne les complète pas.
-        case "kind", "added_at", "is_private", "is_archived": false
-        default: nil
-        }
-    }
-
-    /// Les champs qui portent une relation.
-    private func relationIsEmpty(_ key: String, on title: Title) -> Bool {
-        switch key {
-        case "collection": title.collection == nil
-        case "genres": (title.genres ?? []).isEmpty
-        case "director": credits(of: title, role: .director).isEmpty
-        case "cast": credits(of: title, role: .cast).isEmpty
-        default: false
-        }
-    }
-
-    /// La valeur actuelle d'un champ, en texte, pour le diff d'annulation.
-    private func currentValue(_ key: String, on title: Title) -> String? {
-        switch key {
-        case "original_title": title.originalName
-        case "year", "release_date": title.releaseDate.map { ISO8601DateFormatter().string(from: $0) }
-        case "runtime": title.runtimeMinutes.map(String.init)
-        case "rating": title.rating.map { String($0) }
-        case "summary": title.summary
-        case "collection": title.collection?.name
-        case "genres": (title.genres ?? []).isEmpty ? nil : CSVSchema.joinMultiValue((title.genres ?? []).map(\.name))
-        case "season_count": title.seasonCount.map(String.init)
-        case "episode_count": title.episodeCount.map(String.init)
-        default: nil
-        }
-    }
-
-    /// Écrit une cellule sur un titre.
-    ///
-    /// Les valeurs illisibles sont **ignorées** et non forcées : la ligne a été validée, donc
-    /// une conversion qui échoue ici est une incohérence entre le validateur et l'écrivain, pas
-    /// une donnée fautive. L'ignorer laisse le champ vide ; l'écrire de force écrirait une
-    /// valeur inventée.
-    private mutating func set(_ key: String, to value: String, on title: Title) {
-        if setScalar(key, to: value, on: title) { return }
-        setRelation(key, to: value, on: title)
-    }
-
-    /// Écrit un champ de valeur. Rend `false` si la clé n'en est pas un.
-    private func setScalar(_ key: String, to value: String, on title: Title) -> Bool {
-        if setText(key, to: value, on: title) { return true }
-        if setNumber(key, to: value, on: title) { return true }
-        return setTyped(key, to: value, on: title)
-    }
-
-    /// Le texte libre.
-    private func setText(_ key: String, to value: String, on title: Title) -> Bool {
-        switch key {
-        case "title": title.name = value
-        case "original_title": title.originalName = value
-        case "summary": title.summary = value
-        default: return false
-        }
-        return true
-    }
-
-    /// Les nombres. Une conversion qui échoue laisse le champ tel quel : la ligne a été
-    /// validée, donc l'échec serait une incohérence entre le validateur et l'écrivain, pas une
-    /// donnée fautive — et écrire de force inventerait une valeur.
-    private func setNumber(_ key: String, to value: String, on title: Title) -> Bool {
-        switch key {
-        case "runtime": title.runtimeMinutes = CSVValueParser.integer(value)
-        case "rating": title.rating = CSVValueParser.decimal(value)
-        case "season_count": title.seasonCount = CSVValueParser.integer(value)
-        case "episode_count": title.episodeCount = CSVValueParser.integer(value)
-        default: return false
-        }
-        return true
-    }
-
-    /// Les champs à conversion : booléens, énumération, dates.
-    private func setTyped(_ key: String, to value: String, on title: Title) -> Bool {
-        switch key {
-        case "is_private": title.isPrivate = CSVValueParser.boolean(value) ?? title.isPrivate
-        case "is_archived": title.isArchived = CSVValueParser.boolean(value) ?? title.isArchived
-        case "kind": setKind(value, on: title)
-        case "year": setYear(value, on: title)
-        case "release_date": setReleaseDate(value, on: title)
-        // `added_at` est délibérément ignoré à l'écriture : `createdAt` dit quand la fiche est
-        // entrée **dans ce catalogue**, et le réécrire depuis un fichier étranger mentirait sur
-        // l'historique local. La colonne reste exportable, et la relire n'est pas une erreur —
-        // c'est le seul champ dont l'aller-retour n'est pas symétrique, et c'est un choix.
-        case "added_at": break
-        default: return false
-        }
-        return true
-    }
-
-    private func setKind(_ value: String, on title: Title) {
-        guard
-            let raw = CSVValueParser.enumerated(
-                value, allowedValues: TitleKind.allCases.map(\.rawValue)),
-            let kind = TitleKind(rawValue: raw)
-        else { return }
-        title.kind = kind
-    }
-
-    /// Une année seule devient le 1er janvier, avec la précision qui le dit.
-    ///
-    /// Sans `releasePrecision`, l'interface afficherait « 1er janvier 2021 » là où le fichier ne
-    /// disait que « 2021 ».
-    private func setYear(_ value: String, on title: Title) {
-        guard let year = CSVValueParser.year(value), let date = Self.firstDay(of: year) else {
-            return
-        }
-        title.releaseDate = date
-        title.releasePrecision = .year
-    }
-
-    private func setReleaseDate(_ value: String, on title: Title) {
-        guard let date = CSVValueParser.date(value) else { return }
-        title.releaseDate = date
-        title.releasePrecision = .day
-    }
-
-    /// Écrit une relation.
-    private mutating func setRelation(_ key: String, to value: String, on title: Title) {
-        switch key {
-        case "collection": title.collection = resolver.collection(named: value)
-        case "genres": attachGenres(value, to: title)
-        case "director": attachCredits(value, role: .director, to: title)
-        case "cast": attachCredits(value, role: .cast, to: title)
-        default: break
-        }
-    }
-
-    private mutating func attachGenres(_ value: String, to title: Title) {
-        let genres = CSVSchema.splitMultiValue(value)
-            .compactMap { resolver.genre(named: $0, target: .title) }
-        guard !genres.isEmpty else { return }
-        title.genres = (title.genres ?? []) + genres
-    }
-
-    /// Rattache des personnes à un titre, dans l'ordre du fichier.
-    ///
-    /// `orderIndex` suit l'ordre de la cellule : c'est l'ordre du générique, et l'export le
-    /// relit tel quel. Les personnes sont résolues par le résolveur, donc dédoublonnées contre
-    /// l'existant **et** dans le lot.
-    private mutating func attachCredits(_ value: String, role: CreditRole, to title: Title) {
-        let base = (title.credits ?? []).filter { $0.role == role }.count
-        for (offset, name) in CSVSchema.splitMultiValue(value).enumerated() {
-            guard let person = resolver.person(named: name) else { continue }
-            let credit = Credit(role: role, orderIndex: base + offset)
-            credit.person = person
-            credit.title = title
-            context.insert(credit)
-        }
-    }
-
-    private func credits(of title: Title, role: CreditRole) -> [Credit] {
-        (title.credits ?? []).filter { $0.role == role }
+    /// La collection n'en fait **pas** partie : un titre n'a qu'une collection, donc l'écrire
+    /// remplacerait la précédente, ce qui est exactement ce que la règle interdit.
+    static func isAdditive(_ key: String) -> Bool {
+        key == "genres" || key == "director" || key == "cast"
     }
 
     /// Les clés que cet écrivain traite, déclarées pour être vérifiées.

@@ -79,48 +79,70 @@ public enum ImportRunError: Error, Sendable, Hashable {
     case alreadyRunning
 }
 
-/// Le verrou d'un import à la fois, porté par l'acteur.
+/// Le verrou d'un import à la fois **par magasin**.
 ///
-/// Une classe et non une propriété d'`ImportActor` : le macro `@ModelActor` synthétise le
-/// stockage de l'acteur, et une extension ne peut pas y ajouter de propriété. L'instance est
-/// isolée par l'acteur qui la détient, donc l'accès reste sérialisé.
+/// Une classe et non une propriété d'`ImportActor` : le macro `@ModelActor` synthétise le stockage
+/// de l'acteur, et une extension ne peut pas y ajouter de propriété.
 final class ImportRunLock {
+    private let mutex = NSLock()
     private var running = false
 
     /// Prend le verrou, ou rend `false` s'il est déjà pris.
     func acquire() -> Bool {
-        guard !running else { return false }
-        running = true
-        return true
+        mutex.withLock {
+            guard !running else { return false }
+            running = true
+            return true
+        }
     }
 
-    func release() { running = false }
+    func release() { mutex.withLock { running = false } }
+}
+
+/// Les verrous, un par `ModelContainer` vivant.
+///
+/// **La première version indexait sur `ObjectIdentifier(actor)`, et ça ne protégeait rien.**
+/// Deux défauts mesurés :
+///
+///  - deux `ImportActor` **distincts** sur le même conteneur avaient deux verrous et
+///    s'entrelaçaient librement. Mesuré : deux acteurs, le même fichier de 300 lignes en
+///    parallèle, **600 titres** en base et deux personnes au lieu d'une, sans qu'aucun
+///    `alreadyRunning` ne soit levé. Le cas n'est pas théorique — une propriété calculée qui
+///    fabrique un acteur par accès suffit, et mon propre montage de test en avait une ;
+///  - `ObjectIdentifier` est une **adresse recyclée**. Mesuré : cinq acteurs créés
+///    successivement donnaient **deux** identités distinctes. La clé n'identifiait donc pas un
+///    acteur mais un emplacement mémoire, et l'association que le commentaire décrivait
+///    n'existait pas.
+///
+/// Le verrou protège un **magasin**, pas un objet : c'est le `ModelContext` partagé qui est en
+/// jeu, et deux acteurs sur un conteneur écrivent dans le même. `NSMapTable` à clés **faibles**
+/// pour ne pas retenir les conteneurs — un test en crée un par cas — et pour que l'entrée
+/// disparaisse avec le conteneur au lieu de survivre à une adresse recyclée.
+final class ImportRunLockTable: @unchecked Sendable {
+    static let shared = ImportRunLockTable()
+
+    private let mutex = NSLock()
+    /// Clés **faibles et comparées par pointeur**.
+    ///
+    /// `weakToStrongObjects()` appelle `-hash` sur la clé, et `ModelContainer` est `Equatable` sans
+    /// être `Hashable` : la console le signalait par « this can lead to severe performance
+    /// problems ». `objectPointerPersonality` compare les adresses, ce qui est exactement
+    /// l'identité qu'on veut ici, et ne hache rien.
+    private let table = NSMapTable<ModelContainer, ImportRunLock>(
+        keyOptions: [.weakMemory, .objectPointerPersonality],
+        valueOptions: [.strongMemory])
+
+    func lock(for container: ModelContainer) -> ImportRunLock {
+        mutex.withLock {
+            if let existing = table.object(forKey: container) { return existing }
+            let lock = ImportRunLock()
+            table.setObject(lock, forKey: container)
+            return lock
+        }
+    }
 }
 
 extension ImportActor {
-
-    /// Le verrou de cet acteur. Un seul import à la fois.
-    ///
-    /// Associé à l'acteur par son identité plutôt que stocké dans une propriété, que
-    /// `@ModelActor` empêche d'ajouter depuis une extension. La table est protégée par le fil
-    /// principal : elle n'est touchée qu'à la prise et à la libération du verrou, deux
-    /// opérations courtes.
-    private static let locks = LockTable()
-
-    final class LockTable: @unchecked Sendable {
-        private let mutex = NSLock()
-        private var table: [ObjectIdentifier: ImportRunLock] = [:]
-
-        func lock(for actor: ImportActor) -> ImportRunLock {
-            mutex.withLock {
-                let key = ObjectIdentifier(actor)
-                if let existing = table[key] { return existing }
-                let lock = ImportRunLock()
-                table[key] = lock
-                return lock
-            }
-        }
-    }
 
     /// Applique des lignes **déjà validées** à la bibliothèque.
     ///
@@ -146,7 +168,7 @@ extension ImportActor {
         guard let schema = CSVSchema.schema(for: entity), entity == .title else {
             throw ImportRunError.unsupportedEntity(entity)
         }
-        let lock = Self.locks.lock(for: self)
+        let lock = ImportRunLockTable.shared.lock(for: modelContainer)
         guard lock.acquire() else { throw ImportRunError.alreadyRunning }
         defer { lock.release() }
         let library = try self.library(id: libraryID)
@@ -264,21 +286,24 @@ extension ImportActor {
         // Le repliage est fait **ici et une seule fois**, à partir des issues durables. Le
         // tenir à jour dans la boucle obligeait à défaire trois listes en cas d'annulation, et
         // c'est là que la première version se trompait.
-        var created: [UUID] = []
-        var completed: [UUID] = []
-        var unchanged: [UUID] = []
-        var completions: [ImportBatchDiff.Completion] = []
-        for outcome in outcomes {
-            switch outcome {
-            case .created(let id):
-                created.append(id)
-            case .completed(let id, let previousValues):
-                completed.append(id)
-                completions.append(.init(entityID: id, previousValues: previousValues))
-            case .unchanged(let id):
-                unchanged.append(id)
-            }
-        }
+        //
+        // **Il replie aussi par entité, et l'oublier faisait compter le même titre trois fois.**
+        // Un fichier peut décrire la même fiche sur plusieurs lignes — un export « une ligne par
+        // visionnage » le fait — et chaque ligne produit alors une issue. Mesuré sur trois lignes
+        // « Dune 2021 » complémentaires : bilan « 1 ajouté, 2 complétés » pour **un** titre, et le
+        // même `UUID` présent dans `createdTitleIDs` **et** dans `completions`. Pour `L20`, ce
+        // diff n'est pas défaisable : il supprimerait le titre puis tenterait de restaurer des
+        // champs sur une fiche disparue.
+        //
+        // Précédence `created` > `completed` > `unchanged` : une fiche créée puis complétée par
+        // une ligne suivante est **créée** par cet import, donc l'annulation doit la retirer et
+        // non restaurer un état d'avant qui n'existait pas. Les valeurs d'avant sont fusionnées
+        // par entité, la **première** gagnant : c'est celle d'avant l'import.
+        let folded = Self.fold(outcomes)
+        let created = folded.created
+        let completed = folded.completed
+        let unchanged = folded.unchanged
+        let completions = folded.completions
 
         guard !created.isEmpty || !completions.isEmpty else {
             return ImportRunResult(
@@ -315,6 +340,58 @@ extension ImportActor {
             activityID: entry.id,
             wasCancelled: cancelled,
             processedCount: outcomes.count)
+    }
+
+    /// Ce qu'un repliage d'issues produit.
+    struct FoldedOutcomes {
+        var created: [UUID] = []
+        var completed: [UUID] = []
+        var unchanged: [UUID] = []
+        var completions: [ImportBatchDiff.Completion] = []
+    }
+
+    /// Replie les issues **par entité**.
+    ///
+    /// Extrait de `finish` pour tenir sous la limite de longueur du lint, et le découpage tombe
+    /// juste : c'est une transformation pure, sans magasin ni journal, et c'est celle qui portait
+    /// le défaut de comptage.
+    static func fold(_ outcomes: [ImportWriter.Outcome]) -> FoldedOutcomes {
+        var order: [UUID] = []
+        var kinds: [UUID: ImportWriter.OutcomeKind] = [:]
+        var previousByEntity: [UUID: [String: String?]] = [:]
+        var attachedByEntity: [UUID: [UUID]] = [:]
+        var addedCreditsByEntity: [UUID: [UUID]] = [:]
+
+        for outcome in outcomes {
+            let id = outcome.entityID
+            if kinds[id] == nil { order.append(id) }
+            kinds[id] = max(kinds[id] ?? .unchanged, outcome.kind)
+            if case .completed(_, let values, let genres, let credits) = outcome {
+                previousByEntity[id, default: [:]].merge(values) { first, _ in first }
+                attachedByEntity[id, default: []].append(contentsOf: genres)
+                addedCreditsByEntity[id, default: []].append(contentsOf: credits)
+            }
+        }
+
+        var result = FoldedOutcomes()
+        for id in order {
+            switch kinds[id] ?? .unchanged {
+            case .created:
+                result.created.append(id)
+            case .completed:
+                result.completed.append(id)
+                result.completions.append(
+                    .init(
+                        entityID: id,
+                        previousValues: previousByEntity[id] ?? [:],
+                        attachedGenreIDs: attachedByEntity[id] ?? [],
+                        addedCreditIDs: addedCreditsByEntity[id] ?? []))
+            case .unchanged:
+                result.unchanged.append(id)
+            }
+        }
+
+        return result
     }
 
     /// Le texte du fil d'activité. En français, comme toute l'interface.

@@ -54,11 +54,13 @@ extension ActivityEntry {
 
     /// Construit une entrée, sans l'insérer.
     ///
-    /// **Pourquoi cette fabrique existe.** `ActivityRecorder` est `@MainActor`, et une
-    /// écriture de masse tourne dans un acteur dédié : elle ne peut pas l'appeler. Sans
-    /// ce point commun, l'édition en masse recopierait les quatre affectations, et le
-    /// jour où une cinquième colonne devient obligatoire, l'un des deux chemins
-    /// écrirait des entrées incomplètes — dans une piste d'audit, en silence.
+    /// **Pourquoi cette fabrique existe.** À l'origine, parce que `ActivityRecorder` était
+    /// `@MainActor` et qu'une écriture de masse tournant dans un acteur ne pouvait pas
+    /// l'appeler. `L11b` a levé cette isolation — elle était par contagion — donc la raison
+    /// première a disparu, et la fabrique reste pour la seconde, qui vaut toujours : sans ce
+    /// point commun, chaque écrivain recopierait les quatre affectations, et le jour où une
+    /// cinquième colonne devient obligatoire, l'un des chemins écrirait des entrées incomplètes
+    /// — dans une piste d'audit, en silence.
     ///
     /// N'insère pas : l'appelant connaît son contexte, la fabrique non.
     static func make(

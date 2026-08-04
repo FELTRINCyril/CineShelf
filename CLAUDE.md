@@ -12,6 +12,12 @@ React + Express retirée. **Aucun backend.** SwiftData + CloudKit privé.
 - `docs/06-BRIEF-DESIGN.md` — le brief de design : registre, écrans à concevoir,
   méthode. Il **remplace** `01-DESIGN-SYSTEM-APPLE.md`, archivé dans
   `docs/_archive/OBSOLETE-design-system-productivite.md` : ne plus s'y référer.
+- `docs/design/README.md` — le paquet de design livré, et **son §0 « Comment lire les
+  planches » avant d'ouvrir un seul `.dc.html`**. Six propositions de direction y
+  coexistent, **une seule est retenue** (`2a` Plein cadre), et rien dans les fichiers ne
+  distingue un bloc abandonné d'un bloc final. Les blocs `1a` `1b` `1c` `2b` `2c` sont
+  morts ; tout ce qui porte un numéro `3` ou plus est dans la direction retenue. Le piège
+  a mordu sur `I2`.
 - `docs/PROMPTS.md` — le plan et l'avancement : tâches LOGIQUE (L1, L2...), tâches
   VUES, tableau d'état, écarts connus.
 
@@ -297,6 +303,33 @@ indépendants de la machine et portent le sens, et (b) des plafonds absolus cal�
 l'environnement le plus lent où il tourne, qui n'attrapent qu'un ordre de grandeur.
 Les budgets de `docs/04` §4 se vérifient avec Instruments sur appareil, comme ce
 document le dit lui-même.
+
+## Un tableau de vérification ne porte que des commandes réellement passées
+
+**C'est la règle la plus importante du fichier, parce que c'est le seul risque que tu ne
+peux pas rattraper.** Tu n'as aucun moyen de savoir ce qui a tourné, sinon ce que mes
+rapports affirment. Un tableau vert sur une commande que je n'ai pas lancée n'est pas une
+approximation : c'est une information fausse, et elle est indétectable.
+
+- Une commande non lancée s'écrit **« non lancée »**, jamais ✅, jamais « devrait passer ».
+- Une commande lancée sur un **sous-ensemble** le dit : « `swift test --filter Archive`,
+  36 tests » et non « `swift test` ».
+- Un chiffre reporté d'une session précédente est marqué comme tel, pas réaffirmé au
+  présent.
+- Aucune inférence : que le build passe ne dit rien des tests, et qu'un paquet passe ne
+  dit rien des trois autres.
+
+### Une preuve doit exercer le geste, pas seulement la valeur
+
+Corollaire de `P0`, et le défaut était réel. Le contre-test vérifiait
+`xcodebuild -showBuildSettings | grep DEVELOPMENT_TEAM`, donc **la lecture de la valeur**.
+Or le bug était dans le **geste que le `README` recommande** — copier
+`Local.xcconfig.example` — et il cassait `xcodebuild test` sur une cible de test sans
+rapport avec la signature. Trois mesures vertes, et le défaut passait entre elles.
+
+La question à se poser : **quelle est la suite de gestes qu'un lecteur de ma documentation
+va réellement faire ?** C'est celle-là qu'il faut jouer, en entier, avant d'écrire qu'elle
+fonctionne. Lire une valeur n'est pas exécuter un chemin.
 
 ## Déroulé attendu de chaque tâche
 1. Lire la section pertinente des docs.

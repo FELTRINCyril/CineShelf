@@ -605,7 +605,7 @@ pas sans elle.
 | `L11b` CSV — application au magasin | ✅ `8f68345` + revue `c393ed9` |
 | `L12` archive `.cineshelfarchive` | ✅ `e7e2915` `7a10b52` + revue `47ceb35` |
 | `I1` tokens de la nouvelle direction | ✅ `9b4b64e` |
-| `P0` mécanique de signature | 🟡 `9984a52` — **configurée, non vérifiée sur appareil** |
+| `P0` mécanique de signature | 🟡 `9984a52` + correctif `faf07cd` — **configurée, non vérifiée sur appareil.** La première livraison avait un défaut : un `.example` dont la copie cassait tous les tests |
 
 ### Tâches d'appoint — à insérer quand tu veux changer de sujet
 
@@ -676,7 +676,17 @@ l'interface d'Xcode serait perdue à la régénération suivante**. Un `xcconfig
 **Ce que je ne peux pas faire à ta place :** la connexion du compte. Elle est
 interactive, dans Xcode › Settings › Accounts.
 
-**Le mécanisme est en place et vérifié** (`9984a52`) — trois mesures, dont un contre-test :
+**Le mécanisme est en place et vérifié** — `9984a52`, plus le correctif `faf07cd`, dont la
+raison d'être est instructive : **la première série de mesures était verte et insuffisante.**
+
+Elle vérifiait `-showBuildSettings`, donc la *lecture* de la valeur. Le défaut était dans
+le **geste** que le `README` recommande — copier `Local.xcconfig.example` — qui posait un
+`REMPLACE_MOI` actif et faisait échouer `xcodebuild test` sur `DesignSystemAssetTests`,
+une cible sans rapport avec la signature. Trois mesures vertes, et le défaut passait entre
+elles. La règle qui en sort est dans `CLAUDE.md` : une preuve exerce le geste, pas
+seulement la valeur.
+
+Les mesures, dans leur état corrigé :
 
 | Mesure | Résultat |
 |---|---|
@@ -685,6 +695,7 @@ interactive, dans Xcode › Settings › Accounts.
 | `DEVELOPMENT_TEAM: ""` réintroduit dans `project.yml`, `Local.xcconfig` toujours rempli | rend une valeur **vide** — le build setting du projet écrase bien le `xcconfig`, silencieusement |
 | Build appareil sans équipe | `error: Signing for "CineShelf" requires a development team.` |
 | Builds macOS et simulateur iOS | `** BUILD SUCCEEDED **` — le dépôt compile sans configuration locale, ce dont la CI a besoin |
+| **Le geste recommandé**, joué en entier : copie du `.example` sans édition | `DEVELOPMENT_TEAM` vide, **52 tests du catalogue verts**. C'est la mesure qui manquait |
 
 Le troisième est le seul qui comptait vraiment : il vérifie l'affirmation portée par les
 commentaires, au lieu de la supposer. C'est aussi le premier endroit à regarder si le

@@ -19,6 +19,61 @@ Le paquet contient huit planches de validation et trois addenda. Les addenda ne 
 
 ---
 
+## 0. Comment lire les planches — à lire avant d'ouvrir un `.dc.html`
+
+> **Six propositions de direction coexistent dans ces fichiers, et une seule est
+> retenue.** Ce n'est pas signalé dans les fichiers eux-mêmes : rien, en ouvrant une
+> planche, ne dit qu'un bloc appartient à une piste écartée. C'est un piège qui a déjà
+> mordu, le 2026-08-04, sur le premier lot de composants : le bloc `1a` a été relevé et
+> implémenté avant qu'une relecture ne montre qu'il appartenait à « Salle obscure ». La
+> différence n'était pas cosmétique — `1a` entoure la carte d'un liseré d'accent au
+> survol, `2a` l'agrandit de 6 % sans liseré.
+
+### La direction retenue est **`2a` — Plein cadre**
+
+**Les cinq blocs abandonnés, nommément.** Ils sont dans `Planche 1 - Direction.dc.html`
+et dans `Directions.dc.html` :
+
+| Bloc | Nom | Statut |
+|---|---|---|
+| `1a` | Salle obscure | ⛔ **abandonné** |
+| `1b` | Rayonnage | ⛔ **abandonné** |
+| `1c` | Console | ⛔ **abandonné** |
+| **`2a`** | **Plein cadre** | ✅ **retenue — c'est la seule qui fait foi** |
+| `2b` | Soixante-cinq | ⛔ **abandonné** |
+| `2c` | Paysage | ⛔ **abandonné** |
+
+**Tout ce qui porte un numéro de bloc `3` ou plus est déjà dans la direction retenue** —
+le chrome (`3a`–`3c`), la navigation (`4a`–`4f`, `5a`–`5e`), la galerie (`6a`–`6f`), la
+gestion (`7a`–`7g`), les formulaires (`8a`–`8e`), les états (`9a`–`9d`), les tokens
+(`10a`–`10l`) et les addenda (`11`, `12`, `13`). Il n'y a donc **aucune ambiguïté au-delà
+du bloc `2c`**, et c'est la seule chose à retenir : **le doute ne porte que sur les blocs
+`1x` et `2x`.**
+
+### Le réflexe, en une ligne
+
+Avant de relever une géométrie dans une planche, **regarder l'identifiant du bloc qui la
+contient**. S'il commence par `1` ou par `2`, vérifier qu'il s'agit bien de `2a`.
+
+### Trois fichiers font double emploi, et le plus gros est le plus trompeur
+
+Mesuré au 2026-08-04 — les quatorze fichiers sont arrivés dans le même commit
+(`ff2baf0`), donc leur date ne dit pas lequel prime :
+
+| Fichier | Contenu | À utiliser ? |
+|---|---|---|
+| `Planche 1` … `Planche 8` | Une étape de la méthode chacune, blocs `1a` à `10l` | **oui, ce sont les références** |
+| `Addendum`, `Addendum 2`, `Addendum 3` | Blocs `11`, `13`, `12` | **oui** |
+| `Directions.dc.html` (307 Ko) | **Agrégat de tous les blocs**, de `1a` à `10l` | pour **chercher**, pas pour lire — c'est le seul fichier où une direction abandonnée voisine une planche finale |
+| `Tokens.dc.html` (32 Ko) | Blocs `10a`–`10e` seulement | non — `Planche 8` (89 Ko) porte les mêmes blocs **plus** `10f`–`10l` |
+| `États.dc.html` (27 Ko) | Blocs `9a`–`9d` | non — `Planche 7` (32 Ko) porte les mêmes blocs, en plus complet |
+
+Les deux fichiers sans numéro sont des **versions courtes** de leur planche : ils n'ont
+rien qu'elle n'ait pas, et il leur manque des blocs. Les ouvrir n'est pas faux, c'est
+incomplet — et rien ne le signale de l'intérieur.
+
+---
+
 ## 1. Vue d'ensemble
 
 CineShelf est une bibliothèque de films **possédée et locale** : l'utilisateur catalogue ce qu'il a (disques, fichiers, éditions), pas ce qu'un service lui propose. L'app est native Apple, sur trois plateformes — macOS, iPadOS, iOS — avec un modèle de données et une partie du code déjà existants.

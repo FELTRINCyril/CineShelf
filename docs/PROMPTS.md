@@ -319,6 +319,7 @@ de découpage sur sa fiche.
 | `Typo.sectionTitle` inutilisé dans `App/` : **décision actée** — aucun en-tête de section n'est aujourd'hui sans style, donc rien à y brancher. Les quatre en-têtes de contenu de `TitleDetailView` gardent `railLabelStyle()` ; les promouvoir serait un changement de hiérarchie visuelle (12 → 20 pt de base sur iOS, perte des majuscules et du `tracking`), pas un branchement. À reprendre au prompt 16, qui écrit Accueil, Collections et Genres — de vrais groupes de contenu. Poser alors `sectionTitle` **une fois**, dans un `sectionTitleStyle()` sur le modèle de `railLabelStyle()`, plutôt que sur chaque appelant : ce serait un ajout aux composants, dont l'anatomie est désormais à refaire (voir la bascule) | `V5` |
 | Prédicat de production sans couverture : **il n'en reste qu'un**, `Bootstrap.existingProfile`, structurellement inatteignable en test — il ne sert qu'au cas d'une relation inverse désynchronisée par CloudKit. Les six qui étaient déclarés dans des vues (`MediaEnvironment`, `TitleDetailView`, `RouteInspector`, `Sidebar`, `TitleFilterSheet`, `DemoCatalog`) sont rapatriés dans `CineShelfCore/Queries/EntityQueries.swift`, couverts par `EntityQueryTests`, et la règle `no_predicate_outside_core` interdit qu'un septième réapparaisse dans une vue | `L17` |
 | `MediaRepository.asset(withID:)` : code mort, aucun appelant dans le dépôt | — |
+| **Le simulateur iOS ne peut pas valider les budgets de `docs/04` §4, et il ne faut pas croire la mesure faite.** Il exécute le code sur le **processeur et le GPU du Mac** : le décodage d'image y est servi par une machine dix fois plus puissante que l'appareil, et sans son accélérateur dédié — donc un chiffre relevé au simulateur ne dit **rien** du défilement sur un iPhone. C'est la même erreur de catégorie que les seuils sur runner partagé (`CLAUDE.md`), à un détail près qui la rend plus traître : le simulateur est *plus rapide* que l'appareil, donc il donne des chiffres **rassurants** — un budget qui passe au simulateur peut échouer d'un facteur cinq sur le matériel. Les budgets se vérifient avec **Instruments, sur appareil**, ce qui suppose `P0` vérifiée. Tant que ce n'est pas fait, les budgets de `04 §4` sont des **intentions**, pas des mesures, et `L5` ne peut pas prétendre les avoir tenus | `P0` puis `L5` |
 | **Une sauvegarde réécrit l'ordre d'affichage des genres d'une fiche.** `ArchiveWriter.sorted(_:)` normalise `Title.genres` et `Person.genres` par `uuidString`, et sa justification d'origine — « SwiftData ne garantit pas l'ordre d'un `to-many` » — est **fausse** : mesuré par la revue, il le préserve. Le tri reste **nécessaire** à la propriété qui fait la valeur de ce format (deux archives du même catalogue identiques octet pour octet, donc diffables), et `filterKeys` est insensible à l'ordre — `FilterKey.keys` trie et dédoublonne — donc rien de fonctionnel ne casse. Ce qui change est l'ordre dans lequel les genres s'affichent après une restauration. Le jour où cet ordre devient signifiant, il faudra un `orderIndex` sur la relation, pas retirer le tri | `V5` |
 | **L'état intermédiaire d'une restauration n'est vérifié par aucun test.** Les dérivés sont posés dès la passe 1 précisément pour qu'aucune ligne commise par `checkpoint()` ne soit vide — mesuré par la revue avant correction : 700 titres sur 700 traversaient le disque avec `sortName` et `searchText` vides, et une interruption les y laissait. Mais le constater demande un **observateur concurrent** sur un second `ModelContainer` ouvert sur le même fichier, ce qui n'a pas sa place dans un test unitaire. Ce qui reste vérifié est l'état final ; ce qui protège l'invariant est l'appel de la passe 1, et le retirer ne fait rougir personne | `V8` |
 | **Une restauration qui lève perd son bilan.** `restore(_:from:)` construit le rapport dans un état local : si un `save()` échoue à un lot tardif, ce qui a déjà été commis reste en base et **aucune trace de ce qui est entré** n'est rendue. Le remède est le même que celui de la progression — un acteur sur le modèle d'`ImportActor`, dont la fermeture de progression rapporte au fil de l'eau | `V8` |
@@ -504,81 +505,106 @@ qui l'affichera.
 3. **Toute écriture appelle `refreshDerived()`**, et `CloudKitConformanceTests` passe
    avant le commit.
 
-### Le chemin critique — dans cet ordre
+### Le chemin critique — trois paliers, sur Mac
 
-> **Réordonné le 2026-08-04 (2).** L'ordre précédent plaçait `prompt 2` et `L13` en tête,
-> sur ce raisonnement : « la direction artistique ne pourra être jugée que sur les vraies
-> affiches, donc le chemin le plus court vers `L13` est le chemin le plus court vers la
-> capacité à valider le design ». **Ce raisonnement ne tient plus** : le catalogue de
-> tokens est validé, et les 120 titres de `DemoCatalog` suffisent pour juger tout le
-> reste. Toucher à l'app web n'est plus un préalable à quoi que ce soit.
+> **Recentré sur le Mac le 2026-08-04 (3).** Les deux versions précédentes de cette
+> section ordonnaient le travail autour d'un jalon iPhone — d'abord « juger le design sur
+> mes vraies affiches », puis « l'app s'installe sur mon iPhone ». **Les deux étaient à
+> côté** : l'objectif principal est l'app **sur Mac**, et l'iPhone vient après.
 >
-> `L13` passe donc **en dernière étape avant CloudKit**, et `prompt 2` devient sa
-> dépendance immédiate — les deux forment un bloc qu'on aborde quand le reste est fait.
+> Ce que ça change concrètement : **`P0` (la signature) sort du chemin critique.** Elle ne
+> bloque rien — le Mac ne demande aucune signature, le simulateur iOS non plus. Elle se
+> vérifiera le jour où l'appareil devient nécessaire, c'est-à-dire pour les **mesures de
+> performance réelles**, en fin de parcours.
 
-**Ce qui ordonne désormais.** Le seul jalon qui compte est *l'app tourne sur mon iPhone,
-avec les données de démonstration, dans la nouvelle direction*. Il se décompose en deux,
-et la distinction vaut d'être tenue :
+Le Mac n'a besoin de rien d'autre que du code : `DemoCatalog` peuple 120 titres depuis les
+Réglages, et la signature ad hoc suffit. Les trois paliers ci-dessous décrivent donc
+uniquement du travail d'interface et de logique.
 
-- **utilisable** — l'app s'installe et se manipule. L'interface des prompts 10 et 11
-  suffit, `DemoCatalog` peuple depuis les Réglages. Il ne manque que la **signature** ;
-- **présentable** — la nouvelle direction est à l'écran. Ça demande les composants
-  (chaîne `I`) puis les écrans (chaîne `V`).
+#### Palier 1 — belle et navigable sur Mac
 
-```
-P0 → I2…I10 → V1…V5 → (L d'appoint au fil) → prompt 2 → L13 → prompt 21
-```
+Ce qui rend l'app présentable : l'accueil, la grille des titres, la fiche. C'est le palier
+qui remplace le banc d'essai des prompts 10 et 11.
 
-| # | Tâche | Objectif en une ligne | Docs à lire | Dépend de | État |
-|---|---|---|---|---|---|
-| 1 | `L1` | Rendre interrogeables en SQL les critères de filtre des titres **et** des personnes | `02 §3 §5`, `04 §3`, écarts ci-dessus | — | ✅ `eb05149` `e347b11` |
-| 2 | `L2` | Service de recherche : portées, résultats groupés, comptes, recherches récentes | `02 §5`, `04 §6` | `L1` | ✅ `6ea6a8e` |
-| 3 | `L3` | Indexation Spotlight : indexer, désindexer, réindexer, jamais le privé | `02 §5`, `04 §6`, `03 §9` | `L2` | ✅ `4e696ee` |
-| 4 | `L4` | Mathématiques du recadrage : geste ↔ `MediaCrop`, bornes, rect final | `02 §2.4 §3.7`, `04 §4` | — | ✅ `07890db` |
-| 5 | `L10` | Édition en masse : décrire une mutation, l'appliquer à une sélection | `03 §12` | — | ✅ `68688b2` |
-| 6 | `L11a` | CSV : le format et l'analyse — sérialiseur, lecteur tolérant, correspondance, validation. **Aucune écriture de modèle** | `03 §10`, `04 §7`, `design/README.md` §6 | `L10` (de forme) | ✅ `902bfb1` `4697fe2` `fe63fa0` `738f5c5` `6676c44` `f6b13b4` `4a42907` + revue `e5d37ac` `c29140a` `f10bc13` `034157c` |
-| 6 bis | `L11b` | CSV : l'application au magasin — références, dédoublonnage, `ImportActor`, brouillon | idem | `L11a` | ✅ `02f2ec7` `8447134` `b5f8d76` `8f68345` + revue `c393ed9` |
-| 7 | `L12` | Archive `.cineshelfarchive` : écriture et relecture | `04 §7`, `03 §10` | `L11a` (le sérialiseur suffit) | ✅ `e7e2915` `7a10b52` + revue `47ceb35` |
-| 8 | **`P0`** | **Signature de développement** : renseigner `DEVELOPMENT_TEAM` hors du dépôt | `README` § « Signer pour un appareil » | — (ton Apple ID) | 🟡 `9984a52` — mécanisme en place et mesuré ; **il te reste à ajouter ton compte Apple dans Xcode** |
-| 9 | `I2`…`I10` | Les composants de la nouvelle direction, par lots de trois | section « Tâches INTÉGRATION DU DESIGN » | `I1` ✅ | ⬜ |
-| 10 | `V1`…`V5` | Les écrans qui remplacent le banc d'essai | section « Tâches VUES » | les lots `I` correspondants | ⬜ |
-| 11 | **prompt 2** | **Dump du bundle depuis l'app web** — dans l'autre dépôt, pas ici | `02 §7` étape 1 | — | ⬜ dépendance immédiate de `L13` |
-| 12 | `L13` | Migration des vraies données depuis le bundle web | `02 §7` | `L1` `L3` `L4` `L11a` `L11b` `L12` **+ prompt 2** | ⬜ **dernière étape avant CloudKit** |
-| 13 | **prompt 21** | Config CloudKit — abonnement requis | `README` § « Activer CloudKit » | `L13` (le gel de `versionIdentifier`) | ⬜ |
+| # | Tâche | Ce qu'elle débloque | Rigueur |
+|---|---|---|---|
+| 1 | `I2` — carte affiche (6 variantes) · carte paysage · carte personne | Tout ce qui affiche une image de catalogue. Le lot qui change le plus l'allure | légère |
+| 2 | `I3` — carte collection · vignette galerie · **avatar de profil** | L'avatar est réclamé par le chrome (sélecteur de profil), la vignette par la fiche | légère |
+| 3 | `I4` — rail horizontal · grille adaptative · squelette de chargement | **Sans lui aucun écran ne peut être posé** : c'est lui qui porte les 6 points de rupture | légère |
+| 4 | `I6` — badge d'état · barre de notation · indicateur de progression | Les états d'une carte et d'une fiche : vu, favori, note | légère |
+| 5 | `V0` — **chrome** : navigation régulière, barres d'outils, en-têtes, sélecteur de profil | Remplace la coquille du prompt 10. Toutes les `V` s'y posent | légère |
+| 6 | `V0 bis` — **titres** : grille, fiche, éditeur | Remplace le prompt 11. C'est l'écran où l'app se juge | légère |
+| 7 | `V5a` — **accueil** : hero + rails par genre | Le premier écran qu'on voit. Demande `L18` pour la règle de choix du hero | légère |
 
-> **`P0` est le seul blocage réel vers l'iPhone, et il ne coûte presque rien.**
-> `DEVELOPMENT_TEAM` est vide, et dans cet état l'app **ne s'installe que dans le
-> simulateur** : `xcodebuild` refuse de signer pour un appareil. Un Apple ID **gratuit**
-> suffit (profil de 7 jours, renouvelable) ; l'abonnement n'est requis que pour CloudKit,
-> le widget et les App Intents — tous hors du chemin, `L19` étant reportée en v1.1.
->
-> Vérifié le 2026-08-04 : `security find-identity -p codesigning` rend **0 identité**, et
-> aucun compte n'est enregistré dans Xcode. La partie qui demande une action humaine est
-> donc réelle et ne peut pas être automatisée : il faut se connecter une fois.
->
-> **L'identifiant d'équipe ne va pas dans le dépôt, qui est public.** Il vit dans un
-> `Local.xcconfig` gitignoré — voir la fiche `P0`.
+**`V0` et `V0 bis` sont des tâches nouvelles, et leur absence était un trou du plan.** Les
+prompts 10 (navigation) et 11 (titres) sont marqués ✅ — mais en **banc d'essai**, et
+aucune tâche `V` ne les reprenait : le tableau des `V` est indexé sur les prompts 12 à 24.
+Sans elles, « refaire la grille des titres contre le nouveau design » n'appartenait à
+personne. `V5a` détache l'accueil de `V5`, qui portait cinq écrans d'un bloc.
 
-> **`L13` n'est plus un préalable au design, et c'est un changement de fond.** Elle reste
-> sur le chemin, en **dernière position avant CloudKit**, pour la raison qui n'a pas
-> bougé : elle déclenche le gel de `versionIdentifier`, donc **tout ce qui touche au
-> schéma doit être passé avant elle**. C'est le cas de `L20` (déjà pourvue de son champ) et
-> ce serait le cas de toute addition découverte en route.
->
-> Ce qui a changé est le motif : `L13` servait à obtenir de vraies affiches pour juger le
-> design. Le catalogue de tokens étant validé et `DemoCatalog` fournissant 120 titres, ce
-> motif a disparu. Elle redevient ce qu'elle est — une migration de données, à faire quand
-> on veut vraiment ses données.
+#### Palier 2 — utilisable au quotidien sur Mac
 
-#### Ce qui manque encore pour « mes vraies données sur mon iPhone »
+Ce qui manque pour s'en servir vraiment : trouver, parcourir les images, et que ça ne
+saccade pas.
 
-Hors chemin critique désormais, mais à ne pas oublier le jour où `L13` arrivera. **La
-contrainte porte sur l'écriture de `L13` elle-même, donc elle se lit maintenant :**
+| # | Tâche | Ce qu'elle débloque | Rigueur |
+|---|---|---|---|
+| 8 | `L5` — préchargement de vignettes, pression mémoire, échelle d'écran | Le défilement qui ne saccade pas. Branche `startObservingMemoryPressure()`, que personne n'appelle | légère |
+| 9 | `L1 bis` — filtres de galerie (source, mélange à graine stable) et store de préférences | La galerie ne peut pas s'écrire sans sa source de données | légère |
+| 10 | `I10` — vue vide paramétrée · notification temporaire | Chaque écran a un état vide ; sans lui ils sont muets quand il n'y a rien | légère |
+| 11 | `V1` — recherche : champ, portées, résultats groupés | `L2` et `L3` sont faites depuis longtemps et ne servent à rien sans écran | légère |
+| 12 | `V2` — médias : `PhotosPicker`, glisser-déposer, collage, éditeur de recadrage | Ajouter ses propres images. `L4` est faite, son geste n'existe pas | légère |
+| 13 | `V3` — galerie : masonry, matrice rendue, visionneuse | L'écran qui montre le mieux la direction « plein cadre » | légère |
 
-**`L13` doit lire un bundle *choisi par l'utilisateur*, pas un chemin local.** Sans
-CloudKit, une migration jouée sur le Mac **ne se propage pas** à l'iPhone : il faut
-AirDrop puis un `fileImporter`. Écrite en supposant un fichier sur le disque du Mac, son
-point d'entrée serait à réécrire. Le coût d'y penser à l'écriture est nul.
+#### Palier 3 — complète
+
+Le reste des `V`, et les `L` qu'elles réclament. L'ordre interne compte moins ; ce qui
+compte est que **`L20` passe avant `L13`** (elle touche au schéma) et que `V6` ne se livre
+pas sans elle.
+
+| # | Tâche | Ce qu'elle débloque | Rigueur |
+|---|---|---|---|
+| 14 | `I5` — ligne de tableau · jeton de filtre · pastille de compteur | La console de gestion et les barres de filtre | légère |
+| 15 | `I7` `I8` `I9` — les champs de formulaire, trois lots | Tout éditeur : titre, personne, collection, profil | légère |
+| 16 | `L18` — sélections éditoriales, fil d'activité, statistiques | L'accueil (`V5a`), « ma liste », le fil. **Rien ne lit `ActivityEntry` aujourd'hui** | légère |
+| 17 | `L20` — annulation de l'édition en masse et de la fusion | `V6`. **Doit passer avant `L13`** : le champ est posé, le format se fige | **maximale** |
+| 18 | `L14` — `AppLock` : authentification, délai de grâce, portée par profil | `V7`, le verrouillage | légère **sauf la portée du déverrouillage** |
+| 19 | `L16` — maintenance et corbeille : orphelins, purge à 30 jours | `V10` | **maximale** |
+| 20 | `L17` — état de synchronisation, les 6 cas, espace occupé | `V10`. **Jamais vérifiable avant le prompt 21** | légère |
+| 21 | `V4` — personnes : grille, fiche, éditeur | — | légère |
+| 22 | `V5b` — collections, genres, liens et signets, fil | — | légère |
+| 23 | `V6` — console de gestion : tableau, édition inline, édition en masse | — . **Ne pas livrer sans `L20`** | légère |
+| 24 | `V7` — profils, bibliothèques, transfert, verrouillage | — | légère |
+| 25 | `V8` — import et export : aperçu ligne à ligne, corrections, progression | `L11a` `L11b` `L12` sont faites et n'ont aucun écran | légère |
+| 26 | `V10` — synchronisation : indicateur, corbeille, espace occupé | — | légère |
+| 27 | `V12` — passe d'accessibilité sur les écrans définitifs | — | légère |
+
+**Reportées en v1.1**, donc absentes de ces paliers : `L6` `L8` `L9` `L15` `L19`, `V9`,
+`V11`, et `V6` au-delà d'une `Table` brute. Voir « Reporté en v1.1 ».
+
+#### Ce qui reste après les trois paliers
+
+| # | Tâche | Note |
+|---|---|---|
+| 28 | **`P0` vérifiée sur appareil** | Le jour où l'iPhone devient nécessaire — c'est-à-dire pour les mesures de `docs/04` §4, que le simulateur **ne peut pas** faire. Voir l'écart correspondant |
+| 29 | **prompt 2** — dump du bundle web | Dans l'autre dépôt. Voir la fiche pour l'emplacement du clone |
+| 30 | `L13` — migration des vraies données | **Dernière étape avant CloudKit** : elle gèle `versionIdentifier` |
+| 31 | **prompt 21** — CloudKit | Abonnement requis |
+
+#### Ce qui est déjà fait, et qui porte tout ça
+
+| Tâche | État |
+|---|---|
+| `L1` requêtes interrogeables | ✅ `eb05149` `e347b11` |
+| `L2` service de recherche | ✅ `6ea6a8e` |
+| `L3` indexation Spotlight | ✅ `4e696ee` |
+| `L4` mathématiques du recadrage | ✅ `07890db` |
+| `L10` édition en masse | ✅ `68688b2` |
+| `L11a` CSV — format et analyse | ✅ `902bfb1` … `4a42907` + revue |
+| `L11b` CSV — application au magasin | ✅ `8f68345` + revue `c393ed9` |
+| `L12` archive `.cineshelfarchive` | ✅ `e7e2915` `7a10b52` + revue `47ceb35` |
+| `I1` tokens de la nouvelle direction | ✅ `9b4b64e` |
+| `P0` mécanique de signature | 🟡 `9984a52` — **configurée, non vérifiée sur appareil** |
 
 ### Tâches d'appoint — à insérer quand tu veux changer de sujet
 
@@ -617,7 +643,12 @@ design : elle touche le schéma, et doit donc passer **avant** le gel de
 
 ---
 
-### `P0` — Signature de développement
+### `P0` — Signature de développement — **configurée, non vérifiée sur appareil**
+
+> **Hors du chemin critique.** Elle ne bloque rien : le Mac ne demande aucune signature
+> et le simulateur iOS non plus. Ce qui suit est en place et mesuré ; ce qui manque est
+> une vérification sur un vrai iPhone, à faire le jour où l'appareil sert — donc pour les
+> mesures de performance de `docs/04` §4, en fin de parcours.
 
 **Objectif.** Que `xcodebuild` accepte de signer pour un **appareil**, sans mettre
 d'identifiant personnel dans un dépôt public.
@@ -662,7 +693,9 @@ commentaires, au lieu de la supposer. C'est aussi le premier endroit à regarder
 le compte dans Xcode, relever l'identifiant, le coller dans `Configuration/Local.xcconfig`.
 
 **Terminé quand :** `xcodebuild -scheme CineShelf -destination 'generic/platform=iOS'
-build` réussit, et que l'app s'installe sur l'iPhone depuis Xcode. La signature ad hoc
+build` réussit, et que l'app s'installe sur l'iPhone depuis Xcode. **Ces deux points ne
+sont pas vérifiés** — d'où le statut « configurée, non vérifiée sur appareil » plutôt
+qu'un ✅. Ce qui est vérifié est le mécanisme : le tableau ci-dessus. La signature ad hoc
 macOS (`CODE_SIGN_IDENTITY[sdk=macosx*]: "-"`) reste en place tant qu'il n'y a pas
 d'abonnement : elle ne gêne pas iOS, et la retirer casserait le build macOS local.
 
@@ -1253,11 +1286,14 @@ Chacune s'écrit **une seule fois**, contre le design final.
 
 | Tâche | Écrans | Prompt d'origine | S'appuie sur |
 |---|---|---|---|
+| `V0` | **Chrome** — navigation régulière (Mac, iPad) et compacte (iPhone), en-têtes et comportement au défilement, barres d'outils (tri, filtres, affichage, actions), sélecteur de profil, indicateur de synchronisation, barre de menus et raccourcis Mac. **Remplace la coquille du prompt 10**, qui est un banc d'essai | 10 | `I2` `I3` `I4` |
+| `V0 bis` | **Titres** — grille, filtres, tri, bascule d'affichage · fiche (hero, affiche, métadonnées, casting, galerie, liens) · éditeur. **Remplace le prompt 11.** L'éditeur attend les champs `I7`–`I9` ; la grille et la fiche non | 11 | `V0`, `I2` `I4` `I6` |
+| `V5a` | **Accueil** — hero + rails par genre. Détaché de `V5`, qui portait cinq écrans d'un bloc. Le hero exige la règle de choix de `L18` : stable dans la journée, jamais un titre archivé ni privé si le profil les masque | 16 | `V0`, `I4`, `L18` |
 | `V1` | Recherche : champ, portées, suggestions, résultats groupés. **L'anti-rebond de la saisie est affaire de vue, pas du service** : `SearchService` est une fonction pure, appelable à chaque frappe, et c'est la vue qui décide quand l'appeler. Le mettre dans le service le rendrait intestable et imposerait un rythme à des appelants qui n'ont pas de frappe à amortir — l'App Intent de `L19`, par exemple. Deux branches obligatoires, et le compilateur les impose : `SearchOutcome.idle` (champ vide → recherches récentes) et `.results` dont les groupes peuvent être vides (→ « aucun résultat ») | 12 | `L2` `L3` |
 | `V2` | Médias : `PhotosPicker`, import de fichier, glisser-déposer, collage, `CropEditor`, branchement de `MediaThumbnail` | 13b | `L4` `L5` |
 | `V3` | Galerie : masonry, matrice `layout × size` rendue, visionneuse, immersif | 14 | `L1 bis` `L4` `L5` |
 | `V4` | Personnes : grille, fiche, éditeur, écran de fusion champ par champ | 15 | `L8` `L9` |
-| `V5` | Collections, genres, liens et signets, accueil, fil. **Dont** : le multi-sélecteur de genres affiche « genre existant » plutôt que « créer » quand la frappe correspond à un `nameKey` connu (voir « Arbitrages tranchés », point 2) | 16 | `L6` `L7` `L18` |
+| `V5b` | Collections, genres, liens et signets, fil — **l'accueil en est détaché, voir `V5a`**. **Dont** : le multi-sélecteur de genres affiche « genre existant » plutôt que « créer » quand la frappe correspond à un `nameKey` connu (voir « Arbitrages tranchés », point 2) | 16 | `L6` `L7` `L18` |
 | `V6` | Console de gestion : tableau par entité, édition inline, édition en masse. **Ne pas livrer sans `L20`** : une édition en masse sans annulation peut détruire une heure de saisie sur une sélection mal cliquée, sans autre recours que de tout ressaisir | 17 | `L10` · **`L20`** |
 | `V7` | Profils, bibliothèques, transfert, verrouillage, écran de confidentialité | 18 | `L14` `L15` |
 | `V8` | Import et export : sélecteur de champs, aperçu ligne à ligne, correction, progression | 19 | `L11` `L12` |

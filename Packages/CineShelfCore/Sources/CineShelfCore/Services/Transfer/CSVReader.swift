@@ -48,8 +48,14 @@ public struct CSVRow: Sendable, Hashable {
 /// c'est une erreur de contenu — voir `ImportIssue`.
 public enum CSVMalformation: Sendable, Hashable {
     /// Un champ ouvert par un guillemet ne l'a jamais refermé, et la lecture a dû
-    /// reprendre de force à la fin de ligne.
-    case unterminatedQuote
+    /// reprendre de force.
+    ///
+    /// **`absorbedLines` n'est pas décoratif : c'est la perte, et elle doit être dite.**
+    /// La première version de ce cas n'avait aucune valeur associée, et le rapport annonçait
+    /// alors « 7 lignes analysées » sur un fichier de 15 — huit titres valides avalés par un
+    /// guillemet, sans un mot nulle part. Un lecteur qui refuse `TabularData` parce qu'il
+    /// perd tout le fichier ne peut pas en perdre huit lignes en silence.
+    case unterminatedQuote(absorbedLines: Int)
     /// La ligne n'a pas le nombre de champs de l'en-tête.
     case fieldCountMismatch(expected: Int, found: Int)
     /// Un champ n'est pas de l'UTF-8 valide.
@@ -62,6 +68,12 @@ public enum CSVMalformation: Sendable, Hashable {
 
     public var message: String {
         switch self {
+        case .unterminatedQuote(let absorbed) where absorbed > 0:
+            """
+            Un guillemet n'est pas fermé, et \(absorbed) ligne\(absorbed > 1 ? "s" : "") \
+            suivante\(absorbed > 1 ? "s ont" : " a") été absorbée\(absorbed > 1 ? "s" : "") \
+            avec celle-ci. Vérifier les guillemets à partir de cette ligne.
+            """
         case .unterminatedQuote:
             "Un guillemet n'est pas fermé. Vérifier les guillemets de cette ligne."
         case .fieldCountMismatch(let expected, let found):
@@ -70,29 +82,61 @@ public enum CSVMalformation: Sendable, Hashable {
             "Cette ligne n'est pas en UTF-8. Réenregistrer le fichier en UTF-8 depuis le tableur."
         }
     }
+
+    /// `true` si la ligne a été coupée par un guillemet non fermé, quel qu'en soit le coût.
+    ///
+    /// Sert aux assertions et aux filtres : comparer à `.unterminatedQuote(absorbedLines: 0)`
+    /// obligerait chaque appelant à connaître un compte qui ne l'intéresse pas.
+    public var isUnterminatedQuote: Bool {
+        if case .unterminatedQuote = self { return true }
+        return false
+    }
 }
 
 /// Découpe un CSV, ligne par ligne, sans jamais rejeter le fichier entier.
 public struct CSVReader: Sendable {
 
-    /// Au-delà de combien de sauts de ligne un champ quoté est déclaré fautif.
+    /// Au-delà de combien de sauts de ligne un champ quoté est déclaré fautif — **quand il
+    /// reste un doute**.
     ///
-    /// **Le compromis le plus visible de ce lecteur.** RFC 4180 dit qu'un guillemet ouvert
-    /// protège les sauts de ligne — c'est même sa raison d'être, un synopsis sur trois
-    /// lignes est légitime. Mais mesuré : sur 5 000 lignes dont la 2 501e ouvre un
-    /// guillemet jamais refermé, un lecteur strictement conforme rend **2 502 lignes** au
-    /// lieu de 5 001. Le champ resté ouvert avale les 2 500 suivantes, et la moitié du
-    /// catalogue disparaît de l'aperçu sans autre signal qu'une ligne fautive.
+    /// RFC 4180 dit qu'un guillemet ouvert protège les sauts de ligne : c'est sa raison
+    /// d'être, un synopsis sur trois lignes est légitime. Mais mesuré : sur 5 000 lignes dont
+    /// la 2 501e ouvre un guillemet jamais refermé, un lecteur strictement conforme rend
+    /// **2 502 lignes** au lieu de 5 001. La moitié du catalogue disparaît de l'aperçu.
     ///
-    /// Huit lignes : au-delà, on referme le champ de force, on marque la ligne
-    /// `unterminatedQuote`, et on reprend à la ligne suivante. Aucun champ du modèle n'a
-    /// besoin de plus — `summary` est du texte libre, pas un roman.
-    public static let maximumQuotedLines = 8
+    /// **Ce seuil ne décide plus seul, et c'est ce qui a résolu le compromis.** Un budget de
+    /// lignes oppose deux besoins qu'il ne sait pas distinguer : un synopsis de douze lignes
+    /// est légitime, un guillemet jamais refermé doit coûter le moins possible. Un seuil bas
+    /// déclare le synopsis fautif ; un seuil haut fait payer 32 lignes au fichier corrompu.
+    /// Mesuré dans les deux sens, sur les mêmes fixtures.
+    ///
+    /// La sortie est de **regarder** au lieu de parier : au premier saut de ligne dans un
+    /// champ quoté, `closingQuoteExists` cherche en avant un guillemet fermant. S'il n'y en a
+    /// pas, le champ ne se refermera jamais — ce n'est plus une hypothèse — et la ligne est
+    /// close **immédiatement**, sans rien absorber. S'il y en a un, le champ est du texte
+    /// multiligne légitime et ce seuil sert alors de garde-fou : il borne le cas tordu où un
+    /// guillemet parasite trouve un fermant appartenant à une *autre* cellule, plus loin dans
+    /// le fichier.
+    public static let maximumQuotedLines = 32
+
+    /// Jusqu'où chercher le guillemet fermant.
+    ///
+    /// Le coût de la recherche est payé **une fois par champ quoté multiligne**, ce qui est
+    /// rare, et jamais sur un fichier de cellules courtes. Le plafond évite qu'un fichier
+    /// entièrement quoté dégénère en coût quadratique. 64 Kio : aucune cellule de ce modèle
+    /// n'approche cette taille, et au-delà la ligne est de toute façon signalée — jamais
+    /// avalée en silence.
+    static let closingQuoteSearchLimit = 64 * 1024
 
     public let delimiter: UInt8
     public let hasHeaderRow: Bool
 
+    /// - Precondition: `delimiter` est un caractère ASCII. Le découpage travaille sur des
+    ///   octets, donc un délimiteur multi-octets couperait au milieu d'une séquence UTF-8 et
+    ///   produirait des cellules invalides. Le refuser tôt vaut mieux que le découvrir sur un
+    ///   fichier.
     public init(delimiter: Character = ";", hasHeaderRow: Bool = true) {
+        precondition(delimiter.isASCII, "Le délimiteur doit être un caractère ASCII.")
         self.delimiter = Array(String(delimiter).utf8).first ?? 0x3B
         self.hasHeaderRow = hasHeaderRow
     }
@@ -103,10 +147,20 @@ public struct CSVReader: Sendable {
         public let header: [String]
         /// Les lignes de données, dans l'ordre du fichier, fautives comprises.
         public let rows: [CSVRow]
+        /// L'incident qui a frappé la **ligne d'en-tête**, s'il y en a un.
+        ///
+        /// **Il était jeté, et c'est le fichier entier qu'on perdait.** `read` prenait les
+        /// champs de la première ligne et abandonnait sa malformation. Sur un en-tête à
+        /// guillemet non fermé, le résultat était donc : `header` = tout le fichier, `rows`
+        /// vide, et un rapport annonçant « champ requis `title` sans colonne » devant un
+        /// fichier qui *contient* une colonne titre. Le lecteur promet « rien de perdu » ;
+        /// c'est ce champ qui rend la promesse tenable pour la première ligne aussi.
+        public let headerMalformation: CSVMalformation?
 
-        public init(header: [String], rows: [CSVRow]) {
+        public init(header: [String], rows: [CSVRow], headerMalformation: CSVMalformation? = nil) {
             self.header = header
             self.rows = rows
+            self.headerMalformation = headerMalformation
         }
 
         /// Les lignes exploitables : celles dont le découpage n'a rien signalé.
@@ -129,6 +183,7 @@ public struct CSVReader: Sendable {
         }
         let headerRow = lines.removeFirst()
         let header = headerRow.fields
+        let headerMalformation = headerRow.malformation
 
         // Le nombre de colonnes se vérifie après le découpage, pas pendant : une ligne à
         // deux champs de trop doit rester lisible et signalée, pas faire échouer la
@@ -141,7 +196,7 @@ public struct CSVReader: Sendable {
                 malformation: .fieldCountMismatch(expected: header.count, found: row.fields.count)
             )
         }
-        return Document(header: header, rows: checked)
+        return Document(header: header, rows: checked, headerMalformation: headerMalformation)
     }
 
     // MARK: - Le découpage
@@ -161,6 +216,9 @@ public struct CSVReader: Sendable {
         var linesInsideQuote = 0
         var lineNumber = 1
         var hadInvalidEncoding = false
+        /// `true` entre la refermeture forcée d'un champ quoté et la fin de sa ligne
+        /// physique. Voir `consumeRecovering`.
+        var recovering = false
 
         /// Termine le champ courant.
         ///
@@ -191,36 +249,106 @@ public struct CSVReader: Sendable {
 
         /// Un octet à l'intérieur d'un champ entre guillemets.
         ///
-        /// - Returns: `true` si l'octet suivant a été consommé (guillemet doublé).
-        mutating func consumeQuoted(_ byte: UInt8, nextIsQuote: Bool) -> Bool {
+        /// - Returns: `true` si l'octet suivant a été consommé (guillemet doublé, ou `CR` de
+        ///   fin de ligne).
+        mutating func consumeQuoted(_ byte: UInt8, next: UInt8?, closingQuoteAhead: Bool) -> Bool {
             switch byte {
-            case 0x22 where nextIsQuote:
+            case 0x22 where next == 0x22:
                 field.append(0x22)  // guillemet doublé : un vrai guillemet
                 return true
             case 0x22:
                 inQuotes = false
-            case 0x0A where linesInsideQuote >= CSVReader.maximumQuotedLines:
-                // Resynchronisation : le guillemet ne se refermera pas. On rend la ligne
-                // fautive et on reprend proprement à la suivante.
-                inQuotes = false
-                let resumeAt = quoteOpenedAtLine + linesInsideQuote + 1
-                lineNumber = quoteOpenedAtLine
-                endRow(malformation: .unterminatedQuote)
-                lineNumber = resumeAt
-                linesInsideQuote = 0
+            case 0x0D:
+                // **Un `CRLF` dans une cellule devient un `LF`.** Sans cette normalisation,
+                // le même synopsis donne deux valeurs de `summary` selon que le tableur a
+                // écrit `\n` ou `\r\n` — deux fichiers que l'utilisateur tient pour
+                // identiques, et rien ne montre la différence. Hors guillemets, le `CR` est
+                // déjà traité comme une fin de ligne : les deux côtés s'accordent.
+                appendLineBreakInsideQuote(closingQuoteAhead: closingQuoteAhead)
+                return next == 0x0A
             case 0x0A:
-                linesInsideQuote += 1
-                field.append(byte)
+                appendLineBreakInsideQuote(closingQuoteAhead: closingQuoteAhead)
             default:
                 field.append(byte)
             }
             return false
         }
 
-        /// Un octet hors guillemets.
-        mutating func consumeUnquoted(_ byte: UInt8) {
+        /// Un saut de ligne à l'intérieur d'un champ quoté, ou la refermeture forcée.
+        ///
+        /// - Parameter closingQuoteAhead: `false` s'il est **établi** qu'aucun guillemet
+        ///   fermant ne suit. La ligne est alors close tout de suite, sans rien absorber :
+        ///   c'est ce qui fait qu'un guillemet parasite coûte une ligne et non huit.
+        private mutating func appendLineBreakInsideQuote(closingQuoteAhead: Bool) {
+            guard closingQuoteAhead else {
+                // **Pas de phase de reprise ici, et c'était une ligne de trop.** L'octet
+                // courant *est* le saut de ligne : la ligne fautive s'arrête donc exactement
+                // là, il n'y a rien à jeter derrière. Y entrer quand même faisait consommer la
+                // ligne **suivante** en entier — 48 lignes utilisables au lieu de 49 sur la
+                // fixture de 50. Les guillemets reprennent leur sens dès la ligne d'après.
+                inQuotes = false
+                endRow(malformation: .unterminatedQuote(absorbedLines: linesInsideQuote))
+                linesInsideQuote = 0
+                return
+            }
+            guard linesInsideQuote >= CSVReader.maximumQuotedLines else {
+                linesInsideQuote += 1
+                field.append(0x0A)
+                return
+            }
+            // Le garde-fou de dernier recours : un guillemet fermant existe quelque part,
+            // mais il appartient probablement à une autre cellule. La ligne est rendue
+            // fautive avec le **compte** de ce qu'elle a absorbé, et la phase de reprise jette
+            // ce qui reste du champ jusqu'au prochain saut de ligne — ce texte est déjà
+            // déclaré perdu, et le relire ferait rouvrir un champ sur son guillemet fermant.
+            inQuotes = false
+            recovering = true
+            let absorbed = linesInsideQuote
+            let resumeAt = quoteOpenedAtLine + linesInsideQuote + 1
+            lineNumber = quoteOpenedAtLine
+            endRow(malformation: .unterminatedQuote(absorbedLines: absorbed))
+            lineNumber = resumeAt
+            linesInsideQuote = 0
+        }
+
+        /// Les octets jetés entre la refermeture forcée et la fin de la ligne physique.
+        ///
+        /// **Sans cette phase, la refermeture forcée corrompait la fin du fichier.** L'état
+        /// de quote était remis à `false` mais la lecture reprenait *au milieu* du champ
+        /// d'origine : le guillemet fermant, quand il arrivait, était relu comme un
+        /// guillemet **ouvrant** et avalait tout jusqu'à la fin du fichier. Mesuré sur dix
+        /// lignes dont un synopsis de douze lignes correctement quoté : trois lignes
+        /// utilisables, quatre fautives, trois évaporées, et les paragraphes du synopsis
+        /// remontés en fausses lignes de données.
+        ///
+        /// Ici les guillemets n'ont plus de sens jusqu'au prochain saut de ligne : ce qui
+        /// reste du champ est du texte déjà déclaré perdu, et le rouvrir n'a aucun intérêt.
+        ///
+        /// - Returns: `true` si l'octet suivant a été consommé.
+        mutating func consumeRecovering(_ byte: UInt8, next: UInt8?) -> Bool {
             switch byte {
-            case 0x22:
+            case 0x0A:
+                recovering = false
+            case 0x0D:
+                recovering = false
+                return next == 0x0A
+            default:
+                break
+            }
+            return false
+        }
+
+        /// Un octet hors guillemets.
+        ///
+        /// - Returns: `true` si l'octet suivant a été consommé (`LF` d'un `CRLF`).
+        mutating func consumeUnquoted(_ byte: UInt8, next: UInt8?) -> Bool {
+            switch byte {
+            // **Un guillemet n'ouvre un champ qu'en début de champ**, comme RFC 4180 le dit.
+            // La première version ouvrait sur n'importe quel guillemet : `Le mur de 6" de
+            // haut` déclenchait alors une resynchronisation, et coûtait huit titres valides
+            // sans que rien ne le signale. Un pouce, une taille d'écran ou une citation dans
+            // un titre suffisaient.
+            case 0x22 where field.isEmpty:
                 inQuotes = true
                 quoteOpenedAtLine = lineNumber
                 linesInsideQuote = 0
@@ -229,10 +357,17 @@ public struct CSVReader: Sendable {
             case 0x0A:
                 endRow(malformation: nil)
             case 0x0D:
-                break  // CRLF : c'est le LF qui termine la ligne
+                // `CRLF` : le `LF` est consommé avec le `CR`. Un `CR` **seul** termine la
+                // ligne — c'est le format « CSV (Macintosh) », que la première version
+                // jetait octet par octet : le fichier entier devenait un en-tête, zéro
+                // ligne, et le rapport réclamait une colonne titre que le fichier
+                // contenait.
+                endRow(malformation: nil)
+                return next == 0x0A
             default:
                 field.append(byte)
             }
+            return false
         }
 
         /// Ce qui reste en fin de fichier.
@@ -241,8 +376,8 @@ public struct CSVReader: Sendable {
         /// peut-être exploitables, et l'utilisateur doit voir laquelle corriger.
         mutating func finish() {
             if inQuotes {
-                endRow(malformation: .unterminatedQuote)
-            } else if !field.isEmpty || !fields.isEmpty {
+                endRow(malformation: .unterminatedQuote(absorbedLines: linesInsideQuote))
+            } else if !recovering, !field.isEmpty || !fields.isEmpty {
                 endRow(malformation: nil)
             }
         }
@@ -254,20 +389,77 @@ public struct CSVReader: Sendable {
 
         while index < data.endIndex {
             let byte = data[index]
-            if splitter.inQuotes {
-                let next = data.index(after: index)
-                let nextIsQuote = next < data.endIndex && data[next] == 0x22
-                if splitter.consumeQuoted(byte, nextIsQuote: nextIsQuote) {
-                    index = next
-                }
+            let nextIndex = data.index(after: index)
+            let next = nextIndex < data.endIndex ? data[nextIndex] : nil
+
+            let consumedNext: Bool
+            if splitter.recovering {
+                consumedNext = splitter.consumeRecovering(byte, next: next)
+            } else if splitter.inQuotes {
+                // Le regard en avant n'est calculé que sur un saut de ligne **dans** un champ
+                // quoté : c'est le seul moment où la réponse change une décision, et c'est
+                // rare. Une cellule courte ne le paie jamais.
+                let isLineBreak = byte == 0x0A || byte == 0x0D
+                let ahead =
+                    isLineBreak
+                    ? Self.closingQuoteExists(in: data, from: nextIndex, delimiter: delimiter)
+                    : true
+                consumedNext = splitter.consumeQuoted(byte, next: next, closingQuoteAhead: ahead)
             } else {
-                splitter.consumeUnquoted(byte)
+                consumedNext = splitter.consumeUnquoted(byte, next: next)
             }
+            if consumedNext { index = nextIndex }
+
             index = data.index(after: index)
         }
 
         splitter.finish()
         return splitter.rows
+    }
+
+    /// Existe-t-il, en avant, un guillemet qui **ferme** un champ ?
+    ///
+    /// Un guillemet fermant est suivi du délimiteur, d'une fin de ligne, ou de la fin du
+    /// fichier. Un guillemet doublé — `""` — n'en est pas un : il est sauté par paires, sinon
+    /// un synopsis contenant une citation se ferait passer pour terminé et le champ se
+    /// couperait au milieu.
+    ///
+    /// Répondre `true` par défaut au bout du plafond est le choix prudent : on continue de
+    /// lire le champ comme légitime, et le garde-fou de `maximumQuotedLines` reprend la main.
+    /// Répondre `false` couperait un champ long mais valide.
+    static func closingQuoteExists(in data: Data, from start: Data.Index, delimiter: UInt8) -> Bool {
+        var index = start
+        var scanned = 0
+        while index < data.endIndex {
+            // **Le plafond rend `true`, la fin du fichier rend `false`, et confondre les deux
+            // annulait toute la mécanique.** La première version sortait de la boucle sur les
+            // deux conditions puis rendait `true` : arriver au bout du fichier sans trouver de
+            // guillemet fermant — c'est-à-dire le cas même qu'on cherche à détecter — se
+            // lisait donc « champ légitime », et rien ne se resynchronisait jamais. Mesuré sur
+            // la fixture de 50 lignes : 25 lignes utilisables au lieu de 49, sur un fichier
+            // qui ne contient qu'**un seul** guillemet.
+            guard scanned < closingQuoteSearchLimit else { return true }
+            defer {
+                index = data.index(after: index)
+                scanned += 1
+            }
+            guard data[index] == 0x22 else { continue }
+
+            let next = data.index(after: index)
+            guard next < data.endIndex else { return true }  // guillemet en fin de fichier
+            switch data[next] {
+            case 0x22:
+                // Guillemet doublé : ce n'est pas une fermeture. Sauter le second, sinon la
+                // paire serait relue et le premier compté comme fermant.
+                index = next
+                scanned += 1
+            case delimiter, 0x0A, 0x0D:
+                return true
+            default:
+                continue
+            }
+        }
+        return false
     }
 
     /// Le premier octet du contenu, marque d'ordre des octets exclue.

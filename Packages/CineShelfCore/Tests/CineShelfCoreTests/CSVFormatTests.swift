@@ -155,10 +155,16 @@ struct CSVReaderTests {
         let document = reader.read(file(lines))
 
         let usable = document.wellFormedRows
-        #expect(usable.count >= 40, "Les lignes saines doivent survivre : \(usable.count)")
-        #expect(document.malformedRows.isEmpty == false)
+        // **Un compte exact, et non `>= 40`.** La première version de ce test tolérait neuf
+        // disparitions sans le dire : sur 50 lignes dont une fautive, elle passait à 41
+        // comme à 49. Une revue a mesuré 41, c'est-à-dire huit lignes évaporées derrière un
+        // test vert. Depuis qu'un guillemet n'ouvre qu'en début de champ, la ligne 26 est la
+        // seule perdue — elle commence vraiment par un guillemet jamais refermé — et le
+        // compte est celui-là, sans marge.
+        #expect(usable.count == 49, "Les lignes saines doivent survivre : \(usable.count)")
+        #expect(document.malformedRows.count == 1)
         #expect(
-            document.malformedRows.contains { $0.malformation == .unterminatedQuote },
+            document.malformedRows.allSatisfy { $0.malformation?.isUnterminatedQuote == true },
             "La ligne fautive doit être nommée, pas silencieuse"
         )
         // Et les lignes d'après doivent être relues pour de vrai, pas juste comptées.
@@ -172,9 +178,9 @@ struct CSVReaderTests {
         #expect(short.rows.allSatisfy { !$0.isMalformed })
 
         // Au-delà, le guillemet est déclaré fautif plutôt que d'avaler le reste.
-        let long = Array(repeating: "l", count: 20).joined(separator: "\n")
+        let long = Array(repeating: "l", count: 40).joined(separator: "\n")
         let document = reader.read(file(["a", "\"\(long)", "suite;normale"]))
-        #expect(document.rows.contains { $0.malformation == .unterminatedQuote })
+        #expect(document.rows.contains { $0.malformation?.isUnterminatedQuote == true })
     }
 
     @Test("Un nombre de colonnes incohérent est signalé, la ligne reste lisible")
@@ -277,5 +283,164 @@ struct CSVEncodingTests {
         #expect(document.rows.allSatisfy { $0.malformation != .invalidEncoding })
         #expect(document.rows[0].fields[0] == "Renée Falconetti")
         #expect(document.rows[1].fields[0] == "Œil")
+    }
+}
+
+// Les six défauts du lecteur trouvés par la revue du 2026-08-04.
+//
+// Tous mesurés sur des entrées que la première batterie n'atteignait pas : un pouce dans un
+// titre, un synopsis long mais correct, un fichier « CSV (Macintosh) », un en-tête fautif.
+// Ils sont ici parce que chacun était **muet** — le lecteur rendait moins de lignes qu'il
+// n'en avait reçu, et le rapport ne le disait pas.
+struct CSVReaderRegressionTests {
+
+    private let reader = CSVReader()
+
+    private func file(_ lines: [String], newline: String = "\r\n") -> Data {
+        CSVWriter.byteOrderMark + Data((lines.joined(separator: newline) + newline).utf8)
+    }
+
+    @Test("Un guillemet au milieu d'un champ n'ouvre rien, et ne coûte aucune ligne")
+    func quoteInsideFieldIsLiteral() throws {
+        // RFC 4180 ne compte un guillemet que collé au **début** d'un champ. La première
+        // version ouvrait sur n'importe lequel : mesuré, `Le mur de 6" de haut` faisait rendre
+        // 7 lignes sur 15 — huit titres valides avalés, et le rapport annonçait sereinement
+        // « 7 analysées ».
+        var lines = ["titre;annee"]
+        for index in 1...15 {
+            lines.append(index == 3 ? "Le mur de 6\" de haut;2001" : "Titre \(index);2001")
+        }
+        let document = reader.read(file(lines))
+
+        #expect(document.rows.count == 15)
+        #expect(document.malformedRows.isEmpty)
+        let pouce = try #require(document.rows.first { $0.number == 4 })
+        #expect(pouce.fields[0] == "Le mur de 6\" de haut")
+    }
+
+    @Test("Un synopsis de douze lignes correctement quoté reste intact")
+    func longQuotedFieldSurvives() throws {
+        // Le seuil de lignes seul ne savait pas distinguer un synopsis d'un guillemet oublié.
+        // Mesuré avant correction : trois lignes utilisables sur dix, quatre fautives, trois
+        // évaporées, et les paragraphes du synopsis remontés en **fausses lignes de données**.
+        let synopsis = (1...12).map { "paragraphe \($0)" }.joined(separator: "\n")
+        var lines = ["titre;resume"]
+        for index in 1...10 {
+            lines.append(index == 4 ? "Long synopsis;\"\(synopsis)\"" : "Titre \(index);court")
+        }
+        let document = reader.read(file(lines))
+
+        #expect(document.rows.count == 10)
+        #expect(document.malformedRows.isEmpty)
+        let long = try #require(document.rows.first { $0.fields[0] == "Long synopsis" })
+        #expect(long.fields[1] == synopsis)
+        // Et aucun paragraphe ne s'est échappé en ligne de données.
+        #expect(document.rows.contains { $0.fields[0].hasPrefix("paragraphe") } == false)
+    }
+
+    @Test("Un guillemet jamais refermé ne coûte qu'une ligne, et le dit")
+    func unterminatedQuoteCostsExactlyOneLine() throws {
+        // C'est le regard en avant qui rend ce compte possible : aucun guillemet fermant
+        // n'existe dans la suite du fichier, donc le champ est refermé au premier saut de
+        // ligne au lieu d'absorber un budget entier.
+        var lines = ["titre;annee"]
+        for index in 1...20 {
+            lines.append(index == 5 ? "\"cassé;1970" : "Titre \(index);1970")
+        }
+        let document = reader.read(file(lines))
+
+        #expect(document.wellFormedRows.count == 19)
+        let faulty = try #require(document.malformedRows.first)
+        #expect(faulty.malformation == .unterminatedQuote(absorbedLines: 0))
+        // Les lignes d'après sont relues pour de vrai, guillemets rendus à leur sens.
+        #expect(document.wellFormedRows.contains { $0.fields.first == "Titre 20" })
+    }
+
+    @Test("Un guillemet parasite qui trouve un fermant étranger dit ce qu'il a absorbé")
+    func absorbedLinesAreReported() throws {
+        // Le cas qui reste après le regard en avant : un guillemet fermant existe plus loin,
+        // mais il appartient à une autre cellule. Le garde-fou de `maximumQuotedLines`
+        // reprend alors la main — et la perte doit être **chiffrée**, parce qu'un rapport qui
+        // annonce moins de lignes qu'il n'en a reçu sans expliquer pourquoi est exactement ce
+        // que ce lecteur refuse.
+        var lines = ["titre;resume"]
+        lines.append("\"jamais refermé;1970")
+        for index in 1...40 {
+            lines.append("Titre \(index);court")
+        }
+        lines.append("Dernier;\"un résumé quoté, tout à fait légitime\"")
+        let document = reader.read(file(lines))
+
+        let faulty = try #require(document.malformedRows.first)
+        #expect(faulty.malformation == .unterminatedQuote(absorbedLines: CSVReader.maximumQuotedLines))
+        #expect(faulty.malformation?.message.contains("\(CSVReader.maximumQuotedLines) lignes") == true)
+    }
+
+    @Test("Un guillemet doublé dans un champ multiligne ne passe pas pour un fermant")
+    func doubledQuoteIsNotAClosingQuote() throws {
+        // Le regard en avant saute les paires : sinon un synopsis contenant une citation se
+        // ferait passer pour terminé, et le champ se couperait au milieu d'une phrase.
+        let document = reader.read(
+            file(["titre;resume", "Dune;\"il a dit \"\"non\"\"\nà la ligne suivante\""]))
+
+        #expect(document.rows.count == 1)
+        #expect(document.rows[0].isMalformed == false)
+        #expect(document.rows[0].fields[1] == "il a dit \"non\"\nà la ligne suivante")
+    }
+
+    @Test("Un fichier à fins de ligne CR seules se lit — c'est le format CSV (Macintosh)")
+    func carriageReturnOnlyFile() {
+        // La première version jetait les CR octet par octet : le fichier entier devenait un
+        // en-tête, zéro ligne, et le rapport réclamait une colonne titre que le fichier
+        // portait. Mesuré : `header == ["titre", "anneeDune", "2021Tenet", "2020"]`.
+        let document = reader.read(file(["titre;annee", "Dune;2021", "Tenet;2020"], newline: "\r"))
+
+        #expect(document.header == ["titre", "annee"])
+        #expect(document.rows.count == 2)
+        #expect(document.rows[0].fields == ["Dune", "2021"])
+    }
+
+    @Test("Un CRLF à l'intérieur d'une cellule devient un LF")
+    func crlfInsideCellIsNormalised() {
+        // Sans normalisation, le même synopsis donne deux valeurs de `summary` selon que le
+        // tableur a écrit `\n` ou `\r\n` : deux fichiers que l'utilisateur tient pour
+        // identiques, et rien ne montre la différence.
+        let data = CSVWriter.byteOrderMark + Data("titre;resume\r\nDune;\"l1\r\nl2\"\r\n".utf8)
+        let document = reader.read(data)
+
+        #expect(document.rows[0].fields[1] == "l1\nl2")
+    }
+
+    @Test("Une ligne d'en-tête fautive est nommée au lieu d'être jetée")
+    func headerMalformationIsReported() throws {
+        // Elle était jetée par `read`, et c'était le fichier entier qu'on perdait : `header`
+        // valait tout le fichier, `rows` était vide, et le rapport annonçait « champ requis
+        // sans colonne » devant un fichier qui contient une colonne titre. L'utilisateur
+        // cherchait une colonne manquante au lieu d'un guillemet.
+        let data = CSVWriter.byteOrderMark + Data("\"titre;annee\r\nDune;2021\r\n".utf8)
+        let document = reader.read(data)
+
+        let malformation = try #require(document.headerMalformation)
+        #expect(malformation.isUnterminatedQuote)
+    }
+
+    @Test("Un en-tête sain ne signale rien")
+    func healthyHeaderReportsNothing() {
+        #expect(reader.read(file(["titre;annee", "Dune;2021"])).headerMalformation == nil)
+    }
+
+    @Test("La reprise après un guillemet parasite redonne les bons numéros de ligne")
+    func resynchronisationKeepsLineNumbers() throws {
+        // L'arithmétique de reprise est la seule du lecteur, et rien ne la vérifiait. Le
+        // numéro est celui du **tableur** : c'est ce que l'utilisateur doit corriger.
+        var lines = ["titre;annee"]
+        for index in 1...10 {
+            lines.append(index == 3 ? "\"cassé;1970" : "Titre \(index);1970")
+        }
+        let document = reader.read(file(lines))
+
+        #expect(document.malformedRows.map(\.number) == [4])
+        // La ligne suivante reprend à 5, sans trou ni doublon.
+        #expect(document.rows.map(\.number) == Array(2...11))
     }
 }

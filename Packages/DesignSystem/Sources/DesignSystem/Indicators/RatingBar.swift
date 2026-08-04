@@ -27,10 +27,10 @@ import SwiftUI
 // **pas** réécrite en ouvrant l'éditeur : la barre n'émet que sur un geste. C'est la
 // distinction qui rend la règle du design applicable sans amputer l'échelle.
 //
-// **Et une note fractionnaire, alors ?** Elle s'affiche « 4,5 ★ » — un glyphe et le
-// nombre — et c'est `PosterTileDetail` qui la porte, comme la planche 3 bloc `4a` le
-// montre. Cette barre-ci arrondit au cran le plus proche pour choisir son nombre
-// d'étoiles : elle n'est pas l'affichage de référence d'une note fractionnaire.
+// **Et une note fractionnaire, alors ?** Elle s'affiche « ★ 4,5 » — un glyphe et le
+// nombre — sur la ligne de métadonnées de la **fiche titre** (planche 3 bloc `4b`). Cette
+// barre-ci arrondit au cran le plus proche pour choisir son nombre d'étoiles : elle n'est
+// pas l'affichage de référence d'une note fractionnaire.
 //
 // MARK: - LACUNE DE DESIGN — la barre seule perd de l'information, en silence
 //

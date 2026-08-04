@@ -17,9 +17,9 @@ import SwiftUI
 //    carte posée sur un fond, c'est un pavé d'image.
 // 2. **Aucune ombre, aucune bordure.** Ce que la règle de lint `no_legacy_design_system`
 //    impose déjà.
-// 3. **Aucun texte dans la tuile.** Le titre ne s'affiche pas sous l'image dans les rails
-//    ni dans la grille : l'affiche parle seule. Les métadonnées apparaissent au survol,
-//    et c'est `PosterTileDetail` qui les porte.
+// 3. **Aucun texte dans la tuile, jamais.** Le titre ne s'affiche pas sous l'image dans
+//    les rails ni dans la grille : l'affiche parle seule, et le §10 en fait une décision
+//    arrêtée. Les métadonnées se lisent sur la **fiche**, pas sur la carte.
 // 4. **Le survol agrandit** de 6 %, il n'entoure pas. Pas de liseré — le liseré était la
 //    direction 1a, écartée.
 //
@@ -170,13 +170,29 @@ public struct PosterTile: View {
 /// Extrait de la tuile parce que les trois composants de `I2` en ont besoin à l'identique,
 /// et que `I3` (vignette de galerie, avatar) en aura besoin aussi. La règle du hero —
 /// « remplit et recadre, jamais de bandes noires » — est la même ici.
-struct MediaFill: View {
+///
+/// **Publique depuis `V0 bis`** : le hero de la fiche titre en a besoin, et c'est le seul
+/// endroit où la règle « jamais de bandes noires » se voit vraiment — une affiche 2:3
+/// étirée dans une bande 16:9.
+public struct MediaFill: View {
     let imageURL: URL?
     let crop: MediaCropDisplay
     let targetAspect: CGFloat
     let background: Color
 
-    var body: some View {
+    public init(
+        imageURL: URL?,
+        crop: MediaCropDisplay,
+        targetAspect: CGFloat,
+        background: Color
+    ) {
+        self.imageURL = imageURL
+        self.crop = crop
+        self.targetAspect = targetAspect
+        self.background = background
+    }
+
+    public var body: some View {
         background.overlay {
             if let imageURL {
                 AsyncImage(url: imageURL) { phase in

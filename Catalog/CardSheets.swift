@@ -27,7 +27,6 @@ struct CardTilesSheet: View {
                 portraitScales
                 landscapeScales
                 states
-                detail
                 people
             }
         }
@@ -82,28 +81,6 @@ struct CardTilesSheet: View {
                 labelled("privé") { PosterTile(.samples[6], scale: .l) {} }
                 labelled("sélectionné") { PosterTile(.sample, scale: .l, isSelected: true) {} }
                 labelled("privé · cran s") { PosterTile(.samples[6], scale: .s) {} }
-            }
-        }
-    }
-
-    private var detail: some View {
-        section(
-            "Tuile détaillée",
-            note: """
-                L'élément mis en avant dans une grille : image, titre, méta avec la note \
-                en accent, et trois actions. Une pastille n'apparaît que si son action est \
-                fournie — une pastille inerte est pire qu'une pastille absente.
-                """
-        ) {
-            HStack(alignment: .top, spacing: Space.s4) {
-                PosterTileDetail(
-                    .sample, scale: .l, onOpen: {}, onToggleWatched: {}, onMore: {})
-                labelled("sans actions secondaires") {
-                    PosterTileDetail(.samples[4], scale: .l, onOpen: {})
-                }
-                labelled("privé") {
-                    PosterTileDetail(.samples[6], scale: .l, onOpen: {}, onMore: {})
-                }
             }
         }
     }

@@ -38,11 +38,13 @@ public struct PersonTile: View {
         Button {
             action?()
         } label: {
-            VStack(alignment: .leading, spacing: Space.s2) {
+            // Centré, comme les quatre rendus de personne du prototype. Un nom aligné à
+            // gauche sous un disque se lit de travers : le disque n'a pas de bord gauche.
+            VStack(spacing: Space.s2) {
                 portrait
                 caption
             }
-            .frame(width: scale.width, alignment: .leading)
+            .frame(width: scale.width)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -54,9 +56,22 @@ public struct PersonTile: View {
         .accessibilityAddTraits(action == nil ? [] : .isButton)
     }
 
-    /// Toujours en portrait : une personne en 16:9 est un plan de coupe, pas un portrait.
-    /// La tuile ignore donc `CardLayout`, et c'est délibéré — l'exposer serait offrir un
-    /// réglage qui n'a pas de bonne valeur.
+    /// **Un disque, et c'est la seule forme ronde du catalogue avec la pastille de sync.**
+    ///
+    /// Corrigé par `V0 bis` : `I2` la rendait en rectangle 2:3, comme une affiche. Les
+    /// quatre rendus de personne de la direction retenue sont pourtant des **cercles en
+    /// 1:1** — casting du bloc `4b` (96 pt), grille du bloc `4c` (`aspect-ratio:1` +
+    /// `border-radius:50%`), portrait du bloc `4d` (230 pt) et son rail « Souvent avec »
+    /// (84 pt).
+    ///
+    /// **Ça n'infirme pas la règle « aucun rayon » — ça la précise.** Ce qui n'a jamais de
+    /// coin arrondi, c'est ce qui est **photographique et rectangulaire** : affiches,
+    /// jaquettes, images. Une personne n'est pas une affiche. Et l'avatar de **profil** du
+    /// bloc `7f` reste carré parce que ce n'est pas un portrait : c'est une pastille de
+    /// couleur avec une initiale, qui désigne un compte, pas un visage.
+    ///
+    /// La tuile ignore `CardLayout` : un disque n'a pas de disposition, et l'exposer serait
+    /// offrir un réglage sans bonne valeur.
     private var portrait: some View {
         Group {
             if model.isPrivate {
@@ -71,16 +86,13 @@ public struct PersonTile: View {
                 MediaFill(
                     imageURL: model.imageURL,
                     crop: model.crop,
-                    targetAspect: CardLayout.portrait.aspectRatio,
+                    targetAspect: 1,
                     background: Color.bgSurface
                 )
             }
         }
-        .frame(
-            width: scale.width,
-            height: scale.width / CardLayout.portrait.aspectRatio
-        )
-        .clipped()
+        .frame(width: scale.width, height: scale.width)
+        .clipShape(.circle)
     }
 
     /// Deux lettres au plus, sur le fond de surface — pas d'accent : deux cents pavés
@@ -98,7 +110,7 @@ public struct PersonTile: View {
     /// Les deux lignes sont réservées même quand la seconde est vide : sans ça, une rangée
     /// où une seule personne porte un rôle voit toutes ses tuiles se désaligner.
     private var caption: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(spacing: 2) {
             Text(model.title)
                 .font(Typo.callout)
                 .foregroundStyle(Color.textPrimary)
@@ -110,6 +122,7 @@ public struct PersonTile: View {
                 .foregroundStyle(Color.textTertiary)
                 .lineLimit(1)
         }
+        .multilineTextAlignment(.center)
     }
 
     /// Les initiales d'un nom affiché.

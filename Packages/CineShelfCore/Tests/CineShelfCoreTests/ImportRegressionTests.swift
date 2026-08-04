@@ -88,3 +88,93 @@ struct ImportRegressionTests {
         #expect(CSVValueParser.decimal(" 8,4 ") == 8.4, "les espaces de bord restent tolérées")
     }
 }
+
+// `cells` dérive de `rawFields` : la divergence n'est plus corrigée, elle est irreprésentable.
+//
+// Le correctif du 2026-08-04 écrivait les deux stockages. Il traitait le symptôme : la
+// structure restait deux choses qu'aucune règle n'obligeait à s'accorder — l'initialiseur
+// public acceptait n'importe quelle paire, et l'appelant calculait lui-même l'index de
+// colonne. Ces tests couvrent la projection elle-même, sur le patron des deux branches de
+// `#Predicate` : quand un invariant tient par construction, on vérifie quand même qu'il tient.
+@MainActor
+struct ImportRowProjectionTests {
+
+    private let layout = ColumnLayout(indexByField: ["title": 0, "year": 1])
+
+    @Test("Une cellule se lit dans la ligne, pas dans une copie")
+    func cellIsProjectedFromRawFields() {
+        let row = ImportRow(number: 2, rawFields: ["Dune", "2021"], layout: layout)
+
+        #expect(row.cell("title") == "Dune")
+        #expect(row.cell("year") == "2021")
+        #expect(row.cells == ["title": "Dune", "year": "2021"])
+    }
+
+    @Test("Corriger un champ à colonne écrit dans la ligne, et nulle part ailleurs")
+    func correctingAMappedFieldWritesTheFile() {
+        let row = ImportRow(number: 2, rawFields: ["Dune", "20211"], layout: layout)
+        let corrected = row.settingCell("2021", forKey: "year")
+
+        #expect(corrected.rawFields == ["Dune", "2021"])
+        #expect(corrected.cell("year") == "2021")
+        // Pas de double écriture : un champ est dans la disposition **ou** dans les valeurs
+        // décidées, jamais dans les deux. C'est cette exclusion qui remplace l'accord à
+        // maintenir entre deux stockages.
+        #expect(corrected.overrides.isEmpty)
+    }
+
+    @Test("Corriger un champ sans colonne ne touche pas la ligne du fichier")
+    func correctingAnUnmappedFieldLeavesTheFileAlone() {
+        let row = ImportRow(number: 2, rawFields: ["Dune"], layout: ColumnLayout(indexByField: ["title": 0]))
+        let corrected = row.settingCell("2020", forKey: "year")
+
+        #expect(corrected.rawFields == ["Dune"], "le fichier n'a jamais porté cette valeur")
+        #expect(corrected.overrides == ["year": "2020"])
+        #expect(corrected.cell("year") == "2020")
+    }
+
+    @Test("Le fichier de reprise et les cellules s'accordent après n'importe quelle correction")
+    func reportAndCellsAgreeAfterEveryCorrection() throws {
+        // L'assertion d'accord, celle que réclamait la structure d'avant. Elle est désormais
+        // une conséquence de la projection, et elle reste écrite : c'est elle qui échouerait si
+        // quelqu'un remettait un stockage parallèle.
+        let (validator, analysis) = analyze(
+            header: ["Titre", "Année", "Durée · minutes"],
+            rows: [["Dune", "20211", "2h30"], ["Tenet", "20200", "1h50"]])
+
+        var corrected = analysis
+        for (key, value) in [("year", "2021"), ("runtime", "155")] {
+            corrected = validator.applying(ImportCorrection(fieldKey: key, value: value), to: corrected)
+        }
+        let reread = CSVReader().read(validator.rejectedRowsCSV(from: corrected))
+
+        // Toutes les lignes sont passées : la vérification porte donc sur l'analyse corrigée.
+        #expect(corrected.refusedRows.isEmpty)
+        #expect(reread.rows.isEmpty)
+
+        for row in corrected.rows {
+            for key in row.layout.mappedFieldKeys {
+                let index = try #require(row.layout.index(of: key))
+                #expect(row.cell(key) == row.rawFields[index], "\(key) désaccordé ligne \(row.number)")
+            }
+        }
+    }
+
+    @Test("Une ligne trop courte rend nil au lieu de déborder")
+    func shortRowDoesNotOverflow() {
+        // Le cas est un refus légitime — `fieldCountMismatch` — donc la ligne existe et se lit.
+        let row = ImportRow(number: 2, rawFields: ["Dune"], layout: layout)
+
+        #expect(row.cell("year") == nil)
+        #expect(row.cells == ["title": "Dune"])
+    }
+
+    @Test("Corriger un champ dont la colonne manque à cette ligne ne l'invente pas")
+    func correctingABeyondEndColumnIsANoOp() {
+        // La disposition dit « colonne 1 » mais la ligne n'en a qu'une : écrire y ferait
+        // déborder l'index, et compléter la ligne en douce inventerait une colonne que le
+        // fichier n'a pas. La ligne reste telle quelle, et son refus de découpage subsiste.
+        let row = ImportRow(number: 2, rawFields: ["Dune"], layout: layout)
+        #expect(row.settingCell("2021", forKey: "year") == row)
+    }
+}

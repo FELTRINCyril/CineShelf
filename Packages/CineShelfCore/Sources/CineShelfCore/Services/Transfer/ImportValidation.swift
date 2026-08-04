@@ -111,66 +111,6 @@ public struct ImportIssue: Sendable, Hashable {
     }
 }
 
-/// Une ligne de fichier, ses cellules rangées par champ, et ses refus.
-public struct ImportRow: Sendable, Hashable, Identifiable {
-
-    /// Le numéro de ligne **dans le fichier**, en-tête comprise — celui du tableur.
-    public let number: Int
-    /// Les cellules des colonnes retenues, par clé de champ.
-    public let cells: [String: String]
-    /// La ligne telle qu'elle a été lue, colonnes ignorées comprises.
-    ///
-    /// Conservée pour le **rapport redéposable** : il rend le fichier d'origine augmenté
-    /// d'une colonne d'erreur, donc il a besoin des cellules qu'aucun champ ne réclame.
-    public let rawFields: [String]
-    public let issues: [ImportIssue]
-
-    public var id: Int { number }
-    public var isReady: Bool { issues.isEmpty }
-
-    public init(number: Int, cells: [String: String], rawFields: [String], issues: [ImportIssue]) {
-        self.number = number
-        self.cells = cells
-        self.rawFields = rawFields
-        self.issues = issues
-    }
-
-    /// La même ligne, une cellule remplacée — **dans les deux copies**.
-    ///
-    /// **`rawFields` doit suivre, et l'oublier annulait le travail de l'utilisateur.** La
-    /// première version ne mettait à jour que `cells`, alors que le fichier de reprise est
-    /// construit depuis `rawFields`. Une ligne corrigée sur l'année mais encore refusée pour
-    /// sa durée repartait donc avec **l'ancienne** année. Scénario complet : corriger 214
-    /// années, exporter les écartées pour finir les durées au tableur, redéposer — les 214
-    /// corrections avaient disparu, sans un mot. Le fichier était redéposable au sens du
-    /// format, pas au sens du travail.
-    ///
-    /// - Parameters:
-    ///   - value: la valeur à écrire.
-    ///   - key: la clé du champ corrigé.
-    ///   - columnIndex: la position de la colonne dans le fichier, `nil` si aucune colonne
-    ///     n'alimente ce champ. Dans ce cas la valeur ne vit que dans `cells` : c'est
-    ///     « Saisir une année pour toutes » de la planche 11f, une valeur que le fichier n'a
-    ///     jamais portée et qu'il n'a donc pas à porter au retour.
-    /// - Returns: la ligne corrigée. Ses refus sont inchangés — c'est à l'appelant de la
-    ///   revalider, parce qu'une correction peut en découvrir une autre.
-    func settingCell(_ value: String, forKey key: String, columnIndex: Int?) -> ImportRow {
-        var updatedCells = cells
-        updatedCells[key] = value
-
-        var updatedFields = rawFields
-        if let columnIndex, columnIndex < updatedFields.count {
-            updatedFields[columnIndex] = value
-        }
-        return ImportRow(
-            number: number, cells: updatedCells, rawFields: updatedFields, issues: issues)
-    }
-
-    func settingIssues(_ issues: [ImportIssue]) -> ImportRow {
-        ImportRow(number: number, cells: cells, rawFields: rawFields, issues: issues)
-    }
-}
-
 /// Une cause, et les lignes qu'elle touche.
 public struct ImportCauseGroup: Sendable, Hashable, Identifiable {
     public let causeKey: String
@@ -262,10 +202,13 @@ public struct ImportValidator: Sendable {
     }
 
     /// Analyse un document déjà découpé, selon une correspondance de colonnes.
+    ///
+    /// La disposition est extraite **une fois** et partagée par toutes les lignes : aucune
+    /// n'a de cellules à elle, chacune projette la sienne depuis ses octets.
     public func analyze(document: CSVReader.Document, columns: ColumnAnalysis) -> ImportAnalysis {
+        let layout = ColumnLayout(columns)
         let rows = document.rows.map { row in
-            let cells = self.cells(of: row, columns: columns)
-            let base = ImportRow(number: row.number, cells: cells, rawFields: row.fields, issues: [])
+            let base = ImportRow(number: row.number, rawFields: row.fields, layout: layout)
             return base.settingIssues(issues(for: base, malformation: row.malformation))
         }
         return ImportAnalysis(
@@ -273,20 +216,6 @@ public struct ImportValidator: Sendable {
             header: document.header,
             rows: rows,
             headerMalformation: document.headerMalformation)
-    }
-
-    /// Les cellules d'une ligne, rangées par clé de champ.
-    ///
-    /// Les colonnes ignorées ne sont pas recopiées ici — elles restent dans `rawFields`. Un
-    /// champ dont la colonne manque à cette ligne (ligne trop courte) est simplement absent,
-    /// ce que la validation traite comme une valeur vide.
-    private func cells(of row: CSVRow, columns: ColumnAnalysis) -> [String: String] {
-        var cells: [String: String] = [:]
-        for match in columns.matches {
-            guard let key = match.fieldKey, match.columnIndex < row.fields.count else { continue }
-            cells[key] = row.fields[match.columnIndex]
-        }
-        return cells
     }
 
     /// Les refus d'une ligne.
@@ -300,7 +229,7 @@ public struct ImportValidator: Sendable {
             return [ImportIssue(fieldKey: nil, reason: .rowMalformed(malformation))]
         }
         return schema.fields.compactMap { field in
-            issue(for: field, value: row.cells[field.key] ?? "")
+            issue(for: field, value: row.cell(field.key) ?? "")
         }
     }
 

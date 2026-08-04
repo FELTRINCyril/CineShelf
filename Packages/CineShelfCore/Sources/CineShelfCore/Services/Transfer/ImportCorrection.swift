@@ -39,16 +39,12 @@ extension ImportValidator {
                     .filter { $0.issues.contains { $0.fieldKey == correction.fieldKey } }
                     .map(\.number)
             )
-        // La position de la colonne dans le fichier, pour que la correction reparte aussi
-        // dans le rapport redéposable. `nil` quand aucune colonne n'alimente ce champ.
-        let columnIndex = analysis.columns.matches
-            .first { $0.fieldKey == correction.fieldKey }?
-            .columnIndex
-
         let rows = analysis.rows.map { row -> ImportRow in
             guard targets.contains(row.number) else { return row }
-            let corrected = row.settingCell(
-                correction.value, forKey: correction.fieldKey, columnIndex: columnIndex)
+            // Aucun index n'est passé ici : la ligne consulte sa propre disposition. C'est ce
+            // qui rend impossible d'écrire la correction dans la mauvaise colonne — la version
+            // précédente calculait l'index à cet endroit, et rien ne vérifiait qu'il fût bon.
+            let corrected = row.settingCell(correction.value, forKey: correction.fieldKey)
             // La malformation n'est pas rejouée : elle appartient au découpage, et corriger
             // une cellule ne recolle pas une ligne dont les colonnes sont décalées.
             let malformation = row.issues.compactMap { issue -> CSVMalformation? in
@@ -75,12 +71,12 @@ extension ImportValidator {
     ) -> [ImportCorrectionPreview] {
         let after = applying(correction, to: analysis)
         let changed = zip(analysis.rows, after.rows)
-            .filter { $0.cells[correction.fieldKey] != $1.cells[correction.fieldKey] }
+            .filter { $0.cell(correction.fieldKey) != $1.cell(correction.fieldKey) }
         return changed.prefix(limit).map {
             ImportCorrectionPreview(
                 number: $0.number,
-                before: $0.cells[correction.fieldKey] ?? "",
-                after: $1.cells[correction.fieldKey] ?? "")
+                before: $0.cell(correction.fieldKey) ?? "",
+                after: $1.cell(correction.fieldKey) ?? "")
         }
     }
 }

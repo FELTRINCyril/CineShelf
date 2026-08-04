@@ -11,6 +11,13 @@ public actor ImportActor {
     /// Sauvegarde tous les 200 objets.
     public static let batchSize = 200
 
+    /// Rend la main tous les 50 objets.
+    ///
+    /// Distinct de `batchSize`, et c'est le fond : la **durabilité** a pour unité le lot
+    /// sauvegardé, la **réactivité** a la sienne. Les aligner faisait tenir le fil d'exécution
+    /// 160 ms d'affilée sur un lot de 200 (mesuré), ce qui se voit à l'écran.
+    public static let yieldInterval = 50
+
     /// Insère chaque élément puis sauvegarde tous `batchSize` éléments.
     ///
     /// - Parameters:

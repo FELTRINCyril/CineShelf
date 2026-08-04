@@ -319,6 +319,11 @@ document le dit lui-même.
    > `L3` et `L4`. Vérification en une ligne, quand un doute existe :
    > `grep -oE '\`[0-9a-f]{7}\`' docs/PROMPTS.md | tr -d '\`' | while read h; do`
    > `git merge-base --is-ancestor $h HEAD || echo "$h orphelin"; done`
+   >
+   > **Un seul faux positif attendu : `56ed7a7`.** C'est le commit de l'app **web**, cité
+   > sur la fiche du prompt 2 ; il vit dans `CineShelf_old`, pas ici, et il sera donc
+   > toujours signalé « orphelin » par cette commande. Tout autre hash signalé est un vrai
+   > problème.
 
 > Ne rien cocher dans `docs/03-FONCTIONNALITES-NATIF.md` : ses symboles
 > (✅ ♻️ 🔀 ⛔ ⏸ ➕) décrivent l'**intention** retenue pour chaque

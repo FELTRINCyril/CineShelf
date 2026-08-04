@@ -2810,3 +2810,129 @@ l'injection a bien eu lieu fait partie de la preuve.
 | Preuve — `TextFolding.locale` remis à `.current` | 2 assertions mordent |
 | Preuve — un modèle contourne `TextFolding` | 5 tests **passent** → d'où la règle de lint |
 | Preuve — la règle de lint, faute injectée | 1 violation, message correct |
+
+---
+
+## 2026-08-04 — `L11a`, seconde moitié : correspondance, validation, rapports
+
+La première moitié (902bfb1) avait livré le format dans les deux sens. Restaient la
+correspondance des colonnes, `headerSignature`, le repository d'`ImportMapping`, la
+validation ligne à ligne et les deux rapports. Cinq commits, un par sujet.
+
+**Les bornes sortent de `BulkEditor`** (`fe63fa0`)
+
+Année 1888-2030, note 0-10, durée minimale : nées avec `L10`, et `L11a` en avait besoin.
+Deux copies auraient divergé au premier ajustement, avec ce visage-là : l'édition en masse
+accepte une note de 9, l'import la refuse, et rien ne dit laquelle a raison. `CatalogBounds`
+porte les cinq, chacune avec sa source.
+
+**Trois qualités de correspondance, et l'ordre des passes est la garantie** (`6676c44`)
+
+Nom exact -> sûre. Alias déclaré -> déduite. Forme du contenu -> déduite. Sinon non
+reconnue, ce qui **n'est pas une erreur** : ignorée par défaut et **nommée**.
+
+Un champ n'est réclamé qu'une fois. Sans la règle, un fichier portant `year` et `annee`
+alimente deux fois l'année et personne ne sait laquelle a gagné.
+
+La déduction par le contenu **s'abstient** quand la forme est ambiguë. Trois dates peuvent
+être une date de sortie comme une date d'ajout : deviner écrirait la mauvaise valeur dans le
+bon champ, ce qui ne se voit jamais.
+
+**Le profil Movix, arbitré autrement que par du code en dur.** L'arbitrage du 2026-08-04
+refuse un profil intégré : le script source est inaccessible, et `isBuiltIn` interdit de
+retirer un profil livré. Le besoin qu'il servait — reconnaître `runtime_min`, `my_score` —
+est couvert par des **alias par champ**, une donnée de `CSVField`. Ils produisent une
+correspondance *déduite*, que l'écran montre comme telle et qui se corrige d'un menu.
+
+**Le motif de la propriété invisible, quatrième occurrence**
+
+`headerSignature` se calcule par `foldedForMatching`, donc sous locale invariante :
+`ImportMapping` est synchronisée par CloudKit, la signature est **écrite** par un appareil et
+**comparée** par un autre.
+
+Preuve d'échec, `locale: .current` injecté dans `headerSignature` — injection vérifiée
+présente avant de conclure :
+
+| Filet | Verdict |
+|---|---|
+| Les 5 tests de signature | **passent** |
+| `no_folding_outside_text_folding` | 1 violation, message correct |
+
+C'est la quatrième fois, après `no_literal_color`, `no_predicate_outside_core` et les
+mutateurs de relation : quand la propriété est « ce code passe par tel unique point
+d'entrée » plutôt que « ce code produit telle valeur », seule une règle de lint protège.
+Inscrit dans `CLAUDE.md`.
+
+**Une preuve d'échec qui a démoli mon propre test**
+
+« Une ligne mal découpée ne produit qu'un refus » : court-circuit retiré, le test **passait
+quand même**. Sa fixture — `["Dune", "2021", "de trop"]` sur un en-tête à deux colonnes —
+restait valide après décalage, donc la validation cellule à cellule ne produisait rien de
+plus. Le test ne couvrait pas la règle qu'il énonçait.
+
+Fixture refaite pour que les cellules décalées soient elles-mêmes fautives : 4 refus au lieu
+d'1 quand la garde tombe. Sans la vérification que l'injection avait bien eu lieu, j'aurais
+conclu « le test mord » sur un test creux.
+
+**Deux écarts avec l'addendum, le même motif que la note sur 5**
+
+- **« Année absente » n'est pas une erreur.** `docs/02` §3.3 rend `releaseDate` optionnel.
+  La planche 11e compte 214 lignes en erreur avec le message « L'année est requise pour créer
+  un titre » : elle décrit un modèle où l'année est requise, et ce n'est pas le nôtre.
+  Appliqué, ça écartait des lignes que le modèle accepte. Signalé, pas appliqué.
+- La note reste bornée **0-10**, pas 0-5.
+
+Deux des six causes de la planche perdent donc leur objet — « Année absente » et « Support
+inconnu », ce dernier faute de champ au modèle. L'addendum est à amender.
+
+**Un vrai bug attrapé par un test**
+
+`20211`, la faute de frappe la plus banale sur une année, était refusée comme « attendu en
+chiffres » parce que le lecteur exigeait quatre chiffres. Le message était **faux** devant
+une cellule qui ne contient que des chiffres, et inactionnable. Le nombre est maintenant lu
+puis borné : « Année attendu entre 1888 et 2030. Trouvé « 20211 » ». La reconnaissance de
+colonne garde sa règle des quatre chiffres — reconnaître une colonne et accuser une cellule
+ne demandent pas la même sévérité.
+
+**Trois colonnes ajoutées au schéma** (`738f5c5`)
+
+Réalisation, Distribution, Ajouté le. La planche 11d les fait correspondre à un fichier
+réel ; sans elles, un tel fichier voyait sa réalisation tomber en « colonne ignorée ».
+Décision prise contre l'option « les laisser non reconnues ». La distribution est triée par
+`orderIndex` et non par nom : une distribution alphabétique met la doublure avant la tête
+d'affiche. **L'écriture des crédits à l'import reste `L11b`**, qui n'a pas de résolution de
+références pour les personnes.
+
+**Les deux rapports** (`f6b13b4`)
+
+Le bilan nomme les colonnes ignorées. Le fichier de reprise rend l'en-tête d'origine plus
+`cineshelf_erreur` **en fin** de ligne — en tête, il décalerait tout le fichier redéposé — et
+se relit sans que le BOM contamine la première colonne, ce qui était la raison d'être du
+retrait de BOM à la lecture. Preuve d'échec sur le complètement des lignes courtes : sans
+lui, le message d'erreur atterrit dans une colonne de données.
+
+La revalidation après correction **ne reparse rien** : les `ImportRow` déjà en mémoire sont
+retravaillées, et seules les lignes visées.
+
+**Le repository d'`ImportMapping`** (`4a42907`)
+
+L'entité existait sans personne pour la lire. Mémoriser deux fois le même en-tête met à jour
+au lieu de dupliquer : pas d'`@Attribute(.unique)`, donc l'unicité se tient ici comme pour
+`Genre.nameKey`. Une correspondance intégrée refuse d'être supprimée — la supprimer
+localement la ferait revenir au prochain lancement. Les dix tests relisent depuis un contexte
+**neuf**, donc le chemin SQL est exercé.
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| `swift test` CineShelfCore | **320 tests** (247 avant) |
+| `xcodebuild test` macOS (dont `CloudKitConformanceTests`) | **67 tests**, `TEST SUCCEEDED` |
+| `swiftlint --strict` | 0 violation / 197 fichiers |
+| `xcrun swift-format lint` | 0 avertissement |
+| Preuve — un champ réclamé deux fois | 1 test mord |
+| Preuve — la valeur trouvée remise dans la clé de cause | 1 test mord |
+| Preuve — court-circuit de malformation retiré | 4 refus au lieu d'1 (après réfection de la fixture) |
+| Preuve — complètement des lignes courtes retiré | 2 assertions mordent |
+| Preuve — `headerSignature` en `locale: .current` | 5 tests **passent** -> la règle de lint mord |

@@ -139,13 +139,15 @@ de découpage sur sa fiche.
 >
 > | Question | Pourquoi elle bloque |
 > |---|---|
-> | **Portée de l'apparence claire** | Le design recommande : gestion en clair, accueil et fiches **forcés en sombre** quelle que soit l'apparence système. L'alternative honnête est l'app sombre uniquement. À trancher avant d'écrire le moindre écran |
-> | **Quatre valeurs manquent au système de couleur** | Teinte de remplissage d'état, couleur d'avertissement, trait d'état, piste de progression. Le designer n'en a inventé aucune, et deux jetons sont détournés en attendant (`danger` pour les colonnes non reconnues, `accent` pour les correspondances déduites) |
+> | **Quatre valeurs manquent au système de couleur** | Teinte de remplissage d'état, couleur d'avertissement, trait d'état, piste de progression. Le designer n'en a inventé aucune, et deux jetons sont détournés en attendant (`danger` pour les colonnes non reconnues, `accent` pour les correspondances déduites). **Bloque `I1`** et pas seulement les tâches `V` : intégrer les tokens en l'état graverait le détournement dans le catalogue d'assets |
 > | **`Genre.colorToken`** | Des pastilles de genre colorées ont-elles un sens sous une direction à un seul accent ambre ? Addition postérieure à la v1, jamais une fonctionnalité reprise. Détail à l'écart correspondant |
 > | **Trois décisions sur l'icône** | Variante de dessin sous 32 px, fond sur écran d'accueil sombre, ton assourdi de la tranche |
-> | **Réglages** | L'écran existe pour que la liste soit complète ; il mérite une passe quand le périmètre réel des options sera connu |
 >
 > Aucune n'empêche les tâches `L` d'avancer. Toutes empêchent les tâches `V`.
+>
+> **Deux questions de cette liste sont tranchées** et ont quitté le tableau : la portée
+> de l'apparence claire et la passe sur les réglages. Voir « Arbitrages tranchés », en
+> tête de la bascule de direction artistique.
 
 **Écarts connus, à reprendre plus tard** (tenus à jour au fil des sessions) :
 

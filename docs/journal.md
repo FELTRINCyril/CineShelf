@@ -2051,3 +2051,80 @@ fichier à faire.
 `L10` — édition en masse. Elle ne dépend de rien, et le schéma lui donne déjà de quoi
 journaliser ce qu'elle fera : `ActivityEntry.payload` et `undoneAt` attendent `L20`, qui
 la suit immédiatement.
+
+---
+
+## 2026-08-04 — Un clone périmé de treize commits, et trois arbitrages de design
+
+**L'incident, parce qu'il est instructif**
+
+Reprise sur une nouvelle machine. Le dossier existait déjà, donc ni clone ni `git pull` :
+j'ai travaillé une session entière sur un dépôt qui datait d'avant `L1`. Treize commits
+de retard, dont la **fermeture du schéma** et la livraison de `docs/design/`.
+
+**Rien ne l'a signalé.** `xcodegen generate` a marché, le build macOS est passé du
+premier coup, le tableau d'état paraissait cohérent - il l'était, pour la version du
+31 juillet. Le seul indice est une phrase que j'ai écrite sans y penser : « `L1` reste
+en tête du chemin critique », alors que `L1` à `L4` étaient faites et poussées.
+
+Un dépôt en retard se travaille sans rien signaler. C'est ce qui le rend plus dangereux
+qu'un dépôt en avance, qui finit toujours par buter sur un `push` refusé. La règle est
+maintenant dans `CLAUDE.md`, section « Reprise de session » : `git fetch`, puis **les
+deux** sens du `log`, et le second avant d'écrire une ligne.
+
+Le commit posé sur la base périmée (`ab95dcd`) a été **rebasé**, pas fusionné :
+`7d5422f` sur `2063248`. Deux conflits, tous deux des ajouts adjacents - la ligne `V5`
+du tableau des vues (leur version avait gagné `L20` sur `V6`, la mienne une mention sur
+`V5` : les deux sont gardées) et la fin du journal. L'entrée que j'avais écrite pour
+cette session a été jetée plutôt que fusionnée : elle affirmait que `docs/design/`
+n'existait pas et que `L1` était la suivante. Fausse de bout en bout, et sur le sujet
+même de l'incident.
+
+**Trois arbitrages, désormais fermés** (section « Arbitrages tranchés » de `PROMPTS.md`) :
+
+1. **Portée de l'apparence claire.** Gestion selon l'apparence système ; accueil, fiches
+   et galerie forcés en sombre. C'est la recommandation du §10 du handoff, et la
+   convention d'Apple sur ses surfaces de visionnage. Trois implications inscrites : les
+   quatre apparences de l'Asset Catalog restent, le forçage se pose par écran et non
+   globalement, et **tout jeton partagé garde une valeur claire renseignée**.
+2. **Doublons du multi-sélecteur.** `GenreRepository.findOrCreate` dédoublonne déjà sur
+   `nameKey` : le §10.5 du handoff décrit un problème que la logique a déjà résolu. Reste
+   la part visible, inscrite dans `V5`.
+3. **Passe sur les réglages.** Reportée après les prompts 21 et 22.
+
+Les deux premières et la dernière quittent le tableau « En attente de Claude Design »,
+qui ne compte plus que trois questions ouvertes : les quatre valeurs de couleur,
+`Genre.colorToken`, et les trois décisions sur l'icône.
+
+**Le troisième implication a immédiatement servi**
+
+En relisant l'arbitrage 1 contre la planche 8 : **`bg.inset` n'a qu'une valeur sombre**
+(§4.1, colonnes clair et HC à `—`). Or c'est le fond de la console et des panneaux de
+gestion (blocs 7a-7g, 8a) - précisément les surfaces qui suivent désormais l'apparence
+système. Il lui manque donc trois apparences sur quatre. C'est un cinquième manque du
+système de couleur, révélé par l'arbitrage et non par le handoff, et c'est exactement le
+genre de trou qu'une intégration hâtive graverait dans le catalogue d'assets.
+
+`bg.viewer`, lui, est identique dans les quatre apparences et c'est **voulu** : la
+visionneuse reste sombre en apparence claire, comme la vue plein écran d'Aperçu. Les deux
+jetons se ressemblent, leur traitement est opposé.
+
+**Vérifications après rebase**
+
+| Contrôle | Résultat |
+|---|---|
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| Tests `CineShelf` (macOS) | `** TEST SUCCEEDED **` |
+| Tests `DesignSystemCatalog` (macOS) | `** TEST SUCCEEDED **` |
+| `swift test` Core / DesignSystem / MediaKit | 159 / 24 / 38 |
+| `swiftlint --strict` | 0 violation / 157 fichiers |
+| `xcrun swift-format lint` | 0 avertissement |
+| Les 18 hashes du tableau d'état | tous atteignables depuis `HEAD` |
+| `docs/design/` | 19 fichiers, README et planche 8 présents |
+
+**Suite**
+
+`I1`, dès que les manques du système de couleur sont tranchés. L'inventaire est rendu :
+sur les quatre du handoff, deux se déduisent sans aucune valeur nouvelle, un est une
+décision déjà prise qu'il faut seulement écrire, et un seul - la couleur
+d'avertissement - ne se déduit pas et demande un arbitrage.

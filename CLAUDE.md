@@ -69,6 +69,31 @@ React + Express retirée. **Aucun backend.** SwiftData + CloudKit privé.
   sauvegarde est lui-même le sujet (dédoublonnage intra-lot d'import), le dire
   dans le nom du test et couvrir le chemin SQL ailleurs.
 
+## Reprise de session — le dépôt existe déjà
+
+**Avant toute autre chose, et avant même `xcodegen generate` :**
+
+```bash
+git fetch origin
+git log --oneline origin/main..main   # ce que j'ai en local et qui n'est pas poussé
+git log --oneline main..origin/main   # ce qui est poussé et que je n'ai pas
+```
+
+**Les deux, pas seulement le premier.** Le second est celui qu'on oublie, et c'est le
+dangereux : **un dépôt en retard se travaille sans rien signaler.** Tout compile, tous
+les tests passent, le tableau d'état paraît cohérent - il l'est, pour la version d'il y
+a quatre jours. On rédige alors des décisions contre un plan périmé, et le seul indice
+est une phrase qui sonne faux à la relecture (« `L1` reste en tête du chemin critique »
+alors que `L1` à `L4` étaient faites et poussées).
+
+Si `main..origin/main` n'est pas vide : tirer **avant** d'écrire quoi que ce soit. Si
+un commit local a déjà été posé sur la base périmée, c'est `git rebase origin/main`,
+pas un simple `git pull` - sans quoi la fusion masque le décalage au lieu de le
+résoudre.
+
+C'est arrivé le 2026-08-04 : treize commits de retard, dont la fermeture du schéma et
+la livraison de `docs/design/`, plus un commit local posé par-dessus.
+
 ## Commandes
 ```bash
 xcodegen generate   # après tout ajout de fichier : *.xcodeproj n'est pas versionné

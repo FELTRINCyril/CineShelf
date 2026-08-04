@@ -316,6 +316,21 @@ public struct ArchiveDocument: Sendable, Equatable {
     public var importMappings: [ImportMappingRecord] = []
     public var legacyRecords: [LegacyRecordRecord] = []
 
+    /// Les fichiers de `entities/` que le format courant ne connaît pas.
+    ///
+    /// Pas une erreur — l'archive reste lisible — mais **comptés**. La boucle de relecture
+    /// n'itère que sur `ArchiveEntityFile.allCases` : sans ce relevé, un fichier écrit par
+    /// une version plus récente est parfaitement invisible.
+    public var unknownEntityFiles: [String] = []
+
+    /// Le nombre de fichiers réellement présents dans `media/`, relevé à la relecture.
+    ///
+    /// À comparer à `manifest.mediaFileCount` — c'est ce qui permet de savoir **avant
+    /// d'écrire** qu'une archive a perdu ses images, sans pour autant la refuser : un média
+    /// manquant n'annule pas une restauration, et un orphelin n'est pas une erreur.
+    /// `mediaFileDelta` fait la soustraction.
+    public var mediaFilesFound = 0
+
     public init(manifest: ArchiveManifest) {
         self.manifest = manifest
     }
@@ -363,4 +378,10 @@ public struct ArchiveDocument: Sendable, Equatable {
     public var assetIDsWithMediaFile: [UUID] {
         mediaAssets.filter(\.hasMediaFile).map(\.id)
     }
+
+    /// L'écart entre les fichiers d'octets attendus et ceux trouvés.
+    ///
+    /// Négatif : des images ont été perdues. Positif : des octets sont en trop, ce qui
+    /// signale un asset perdu à l'écriture. Zéro dans une archive saine.
+    public var mediaFileDelta: Int { mediaFilesFound - manifest.mediaFileCount }
 }

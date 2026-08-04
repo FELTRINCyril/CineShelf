@@ -81,6 +81,14 @@ extension ArchiveRestorer {
             model.isArchived = record.isArchived
             model.deletedAt = record.deletedAt
             model.createdAt = record.createdAt
+            // Les dérivés sont posés **dès maintenant**, et reposés en passe 3 une fois les
+            // relations en place. Sans ce premier appel, `checkpoint()` commet des lignes
+            // dont `sortName` et `searchText` sont vides : mesuré par la revue, 700 titres
+            // sur 700 traversent le disque introuvables en recherche, et une interruption
+            // (jetsam, `save()` qui lève) les y laisse pour de bon. Le second appel reste
+            // nécessaire — `filterKeys` a besoin des relations.
+            model.refreshDerived()
+            model.updatedAt = record.updatedAt
             context.insert(model)
             state.collections[record.id] = model
             state.createdIDs.insert(record.id)
@@ -104,6 +112,8 @@ extension ArchiveRestorer {
             model.isArchived = record.isArchived
             model.deletedAt = record.deletedAt
             model.createdAt = record.createdAt
+            model.refreshDerived()
+            model.updatedAt = record.updatedAt
             context.insert(model)
             state.genres[record.id] = model
             state.createdIDs.insert(record.id)
@@ -136,6 +146,8 @@ extension ArchiveRestorer {
             model.isArchived = record.isArchived
             model.deletedAt = record.deletedAt
             model.createdAt = record.createdAt
+            model.refreshDerived()
+            model.updatedAt = record.updatedAt
             context.insert(model)
             state.titles[record.id] = model
             state.createdIDs.insert(record.id)
@@ -160,6 +172,8 @@ extension ArchiveRestorer {
             model.isArchived = record.isArchived
             model.deletedAt = record.deletedAt
             model.createdAt = record.createdAt
+            model.refreshDerived()
+            model.updatedAt = record.updatedAt
             context.insert(model)
             state.people[record.id] = model
             state.createdIDs.insert(record.id)
@@ -173,8 +187,21 @@ extension ArchiveRestorer {
     ) throws {
         let reader = ArchiveReader()
         for record in document.mediaAssets {
-            if state.assets[record.id] != nil {
+            if let existing = state.assets[record.id] {
                 state.report.note(skipped: .mediaAssets)
+                // **Un asset déjà là mais sans ses octets se répare.** Il était sauté avant
+                // d'arriver ici, donc rejouer une archive avec les images sous la main ne
+                // les remettait pas, et ne comptait rien : mesuré par la revue, un asset
+                // restauré une première fois sans source restait vide pour toujours, bilan
+                // « ignoré », zéro anomalie. C'est le cas d'usage central de la fusion —
+                // récupérer ce qui manque — et il ne marchait pas pour les médias.
+                //
+                // Poser des octets là où il n'y en avait aucun n'est **pas** un écrasement :
+                // la règle « rien n'est jamais écrasé » vise les données de l'utilisateur,
+                // et `nil` n'en est pas une.
+                if record.hasMediaFile, existing.data == nil {
+                    restoreBytes(of: record, into: existing, from: mediaSource, reader, state)
+                }
                 continue
             }
             let model = MediaAsset()
@@ -194,26 +221,7 @@ extension ArchiveRestorer {
             model.createdAt = record.createdAt
             model.updatedAt = record.updatedAt
             if record.hasMediaFile {
-                // Un média manquant **n'annule pas** la restauration : refuser l'archive
-                // entière ferait perdre 999 affiches pour une absente, alors que l'asset
-                // sans image reste réparable — sa fiche existe, son recadrage aussi, et
-                // le bilan nomme l'identifiant. Une donnée récupérable ne justifie pas de
-                // jeter celles qui ne le sont pas.
-                //
-                // Le compteur couvre les **deux** façons de finir sans octets : le fichier
-                // absent de l'archive, et `mediaSource` non fourni. La première version ne
-                // comptait que la première, et une restauration sans source rendait alors
-                // un catalogue complet sans une seule image en annonçant zéro anomalie —
-                // trouvé par la sonde, qui l'a mesuré au lieu de le supposer. Du point de
-                // vue du résultat c'est la même perte, donc le même compteur.
-                let bytes = mediaSource.flatMap {
-                    reader.mediaData(forAssetID: record.id, in: $0)
-                }
-                if let bytes {
-                    model.data = bytes
-                } else {
-                    state.report.missingMediaAssetIDs.append(record.id)
-                }
+                restoreBytes(of: record, into: model, from: mediaSource, reader, state)
             }
             context.insert(model)
             state.assets[record.id] = model
@@ -221,5 +229,42 @@ extension ArchiveRestorer {
             state.report.note(created: .mediaAssets)
             try checkpoint(state)
         }
+    }
+
+    /// Pose les octets d'un asset, ou compte la perte.
+    ///
+    /// Un média manquant **n'annule pas** la restauration : refuser l'archive entière ferait
+    /// perdre neuf cent quatre-vingt-dix-neuf affiches pour une absente, alors que l'asset
+    /// sans image reste réparable — sa fiche existe, son recadrage aussi, et le bilan nomme
+    /// l'identifiant.
+    ///
+    /// Le compteur couvre **trois** façons de finir sans les bons octets : le fichier absent
+    /// de l'archive, `mediaSource` non fourni, et le fichier **tronqué**. Le troisième était
+    /// muet : `Data(contentsOf:)` réussit sur un fichier coupé, et rien ne comparait la
+    /// taille relue à `byteSize`, pourtant écrit dans l'archive juste à côté. Mesuré par la
+    /// revue : 7 octets restaurés pour 4 096 annoncés, zéro compteur.
+    ///
+    /// Le `checksum` n'est **pas** vérifié ici, et ce n'est pas un oubli : le calculer
+    /// demanderait de savoir comment il est produit, ce qui vit dans `MediaKit`, et
+    /// `CineShelfCore` ne peut pas en dépendre (`docs/04` §1). `byteSize` attrape la
+    /// troncature, qui est le mode de corruption réaliste d'une copie de dossier.
+    private func restoreBytes(
+        of record: MediaAssetRecord,
+        into model: MediaAsset,
+        from mediaSource: URL?,
+        _ reader: ArchiveReader,
+        _ state: RestoreState
+    ) {
+        guard let mediaSource,
+            let bytes = reader.mediaData(forAssetID: record.id, in: mediaSource)
+        else {
+            state.report.missingMediaAssetIDs.append(record.id)
+            return
+        }
+        guard record.byteSize == 0 || bytes.count == record.byteSize else {
+            state.report.truncatedMediaAssetIDs.append(record.id)
+            return
+        }
+        model.data = bytes
     }
 }

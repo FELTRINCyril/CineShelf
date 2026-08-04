@@ -22,7 +22,7 @@ public struct ArchiveWriter {
     public func snapshot() throws -> ArchiveDocument {
         var document = ArchiveDocument(
             manifest: ArchiveManifest(
-                schemaVersion: schemaVersionText,
+                schemaVersion: Self.schemaVersionText,
                 createdAt: .now,
                 counts: [:],
                 mediaFileCount: 0
@@ -239,7 +239,11 @@ public struct ArchiveWriter {
         (genres ?? []).map(\.id).sorted { $0.uuidString < $1.uuidString }
     }
 
-    private var schemaVersionText: String {
+    /// La version du schéma courant, sous la forme écrite au manifeste.
+    ///
+    /// `static` parce que `ArchiveReader` s'en sert pour refuser une archive venue d'un
+    /// schéma plus récent, et qu'il n'a pas de `ModelContext` à fournir.
+    static var schemaVersionText: String {
         let version = CineShelfSchemaV1.versionIdentifier
         return "\(version.major).\(version.minor).\(version.patch)"
     }

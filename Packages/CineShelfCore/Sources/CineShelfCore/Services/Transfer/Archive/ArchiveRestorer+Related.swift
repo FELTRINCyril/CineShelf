@@ -19,7 +19,7 @@ extension ArchiveRestorer {
         _ document: ArchiveDocument, into state: RestoreState
     ) throws {
         for record in document.credits {
-            if exists(Credit.self, record.id) {
+            if try exists(Credit.self, record.id) {
                 state.report.note(skipped: .credits)
                 continue
             }
@@ -32,12 +32,24 @@ extension ArchiveRestorer {
             model.title = state.title(record.titleID)
             model.person = state.person(record.personID)
             context.insert(model)
+            // **Le titre doit être rafraîchi, même s'il n'a pas été créé ici.**
+            //
+            // `Title.refreshDerived()` compose `filterKeys` depuis `credits` : un crédit
+            // rendu à un titre déjà en base entre dans le magasin sans que l'index qui le
+            // rend interrogeable ne bouge. Mesuré par la revue — la relation existe, la
+            // fiche affiche la personne, et « filtrer par cette personne » rend **0 titre
+            // au lieu de 1**, sans qu'aucun compteur du bilan ne bouge.
+            //
+            // C'est la classe de défaut de `L1` et de la grille vide : le titre s'affiche
+            // parfaitement et n'existe pour aucun critère. Le rafraîchissement est donc
+            // demandé pour tout titre touché, créé ou non.
+            state.needsRefresh(titleID: record.titleID)
             state.report.note(created: .credits)
             try checkpoint(state)
         }
 
         for record in document.socialHandles {
-            if exists(SocialHandle.self, record.id) {
+            if try exists(SocialHandle.self, record.id) {
                 state.report.note(skipped: .socialHandles)
                 continue
             }
@@ -58,7 +70,7 @@ extension ArchiveRestorer {
         _ document: ArchiveDocument, into state: RestoreState
     ) throws {
         for record in document.mediaCrops {
-            if exists(MediaCrop.self, record.id) {
+            if try exists(MediaCrop.self, record.id) {
                 state.report.note(skipped: .mediaCrops)
                 continue
             }
@@ -76,7 +88,7 @@ extension ArchiveRestorer {
         }
 
         for record in document.mediaAttachments {
-            if exists(MediaAttachment.self, record.id) {
+            if try exists(MediaAttachment.self, record.id) {
                 state.report.note(skipped: .mediaAttachments)
                 continue
             }
@@ -98,7 +110,7 @@ extension ArchiveRestorer {
 
     private func restoreLinks(_ document: ArchiveDocument, into state: RestoreState) throws {
         for record in document.resourceLinks {
-            if exists(ResourceLink.self, record.id) {
+            if try exists(ResourceLink.self, record.id) {
                 state.report.note(skipped: .resourceLinks)
                 continue
             }
@@ -121,7 +133,7 @@ extension ArchiveRestorer {
         }
 
         for record in document.savedLinks {
-            if exists(SavedLink.self, record.id) {
+            if try exists(SavedLink.self, record.id) {
                 state.report.note(skipped: .savedLinks)
                 continue
             }
@@ -152,7 +164,7 @@ extension ArchiveRestorer {
 
     private func restoreFlags(_ document: ArchiveDocument, into state: RestoreState) throws {
         for record in document.titleFlags {
-            if exists(TitleFlag.self, record.id) {
+            if try exists(TitleFlag.self, record.id) {
                 state.report.note(skipped: .titleFlags)
                 continue
             }
@@ -172,7 +184,7 @@ extension ArchiveRestorer {
         }
 
         for record in document.personFlags {
-            if exists(PersonFlag.self, record.id) {
+            if try exists(PersonFlag.self, record.id) {
                 state.report.note(skipped: .personFlags)
                 continue
             }
@@ -188,7 +200,7 @@ extension ArchiveRestorer {
         }
 
         for record in document.mediaFlags {
-            if exists(MediaFlag.self, record.id) {
+            if try exists(MediaFlag.self, record.id) {
                 state.report.note(skipped: .mediaFlags)
                 continue
             }
@@ -206,7 +218,7 @@ extension ArchiveRestorer {
 
     private func restoreJournals(_ document: ArchiveDocument, into state: RestoreState) throws {
         for record in document.activityEntries {
-            if exists(ActivityEntry.self, record.id) {
+            if try exists(ActivityEntry.self, record.id) {
                 state.report.note(skipped: .activityEntries)
                 continue
             }
@@ -225,7 +237,7 @@ extension ArchiveRestorer {
         }
 
         for record in document.importMappings {
-            if exists(ImportMapping.self, record.id) {
+            if try exists(ImportMapping.self, record.id) {
                 state.report.note(skipped: .importMappings)
                 continue
             }
@@ -244,7 +256,7 @@ extension ArchiveRestorer {
         }
 
         for record in document.legacyRecords {
-            if exists(LegacyRecord.self, record.id) {
+            if try exists(LegacyRecord.self, record.id) {
                 state.report.note(skipped: .legacyRecords)
                 continue
             }
@@ -304,6 +316,23 @@ extension ArchiveRestorer {
         }
         for record in document.profiles where state.createdIDs.contains(record.id) {
             state.profiles[record.id]?.library = state.library(record.libraryID)
+        }
+
+        refreshTouchedTitles(in: state)
+    }
+
+    /// Les titres qui **existaient déjà** et qu'une relation vient de toucher.
+    ///
+    /// Leur `updatedAt` est celui de la **base**, pas celui de l'archive : la fiche
+    /// appartient à l'utilisateur, seul son index dérivé était périmé. C'est la différence
+    /// avec les titres créés, dont la date vient de la sauvegarde.
+    private func refreshTouchedTitles(in state: RestoreState) {
+        for id in state.titlesNeedingRefresh {
+            guard let model = state.titles[id] else { continue }
+            let stamp = model.updatedAt
+            model.refreshDerived()
+            model.updatedAt = stamp
+            state.report.refreshedDerivedCount += 1
         }
     }
 }

@@ -164,7 +164,7 @@ struct ArchiveIntegrityTests {
                 "media/\(UUID().uuidString).\(ArchiveLayout.mediaFileExtension)"))
 
         let document = try ArchiveReader().read(from: url)
-        #expect(ArchiveReader().orphanedMediaFileCount(in: url, for: document) == 1)
+        #expect(try ArchiveReader().orphanedMediaFileCount(in: url, for: document) == 1)
     }
 
     @Test("Une référence vers un identifiant inconnu est comptée, pas avalée")

@@ -26,8 +26,22 @@ public struct ArchiveRestoreReport: Sendable, Equatable {
     /// Rattachements qui violent `hasExactlyOneOwner`. Comptés, pas corrigés : l'archive
     /// restitue ce qu'elle a trouvé, et `L16` est la tâche qui nettoie.
     public var invalidAttachmentCount = 0
+    /// Assets dont le fichier de `media/` existe mais ne fait pas la taille annoncée.
+    ///
+    /// Les octets ne sont **pas** posés : une image tronquée ne s'affiche pas, et l'écrire
+    /// remplacerait une absence honnête par une corruption silencieuse. `byteSize` sert de
+    /// garde — le mode de corruption réaliste d'une copie de dossier est la troncature.
+    public var truncatedMediaAssetIDs: [UUID] = []
     /// Fichiers de `media/` que nul asset ne réclame.
     public var orphanedMediaFileCount = 0
+    /// Fichiers de `entities/` que le format courant ne connaît pas — relevés du document.
+    public var unknownEntityFiles: [String] = []
+    /// Écart entre les fichiers d'octets attendus par le manifeste et ceux trouvés dans
+    /// `media/`. Négatif : des images ont été perdues avant même la restauration.
+    public var mediaFileDelta = 0
+    /// Titres déjà en base dont un dérivé a dû être recalculé parce qu'une relation les a
+    /// touchés. Utile pour savoir que la fusion a bien fait ce travail invisible.
+    public var refreshedDerivedCount = 0
 
     public var totalCreated: Int { created.values.reduce(0, +) }
     public var totalSkipped: Int { skipped.values.reduce(0, +) }
@@ -58,6 +72,16 @@ final class RestoreState {
     /// vieillirait une fiche que l'utilisateur a modifiée depuis la sauvegarde.
     var createdIDs: Set<UUID> = []
 
+    /// Titres dont un dérivé est périmé parce qu'une relation les a touchés, **sans** qu'ils
+    /// aient été créés par cette restauration.
+    ///
+    /// Le cas est un `Credit` rendu à un titre déjà en base : `filterKeys` en dérive, donc
+    /// ne pas le recalculer laisse le titre introuvable par le filtre correspondant, alors
+    /// que sa fiche l'affiche. Distinct de `createdIDs` parce que ces titres ne doivent
+    /// **pas** voir leur `updatedAt` remplacé par celui de l'archive : ils appartiennent à
+    /// l'utilisateur, pas à la sauvegarde.
+    var titlesNeedingRefresh: Set<UUID> = []
+
     var libraries: [UUID: Library] = [:]
     var profiles: [UUID: Profile] = [:]
     var titles: [UUID: Title] = [:]
@@ -72,6 +96,15 @@ final class RestoreState {
     func shouldSave() -> Bool {
         pending += 1
         return pending.isMultiple(of: ArchiveRestorer.batchSize)
+    }
+
+    /// Marque un titre comme ayant un dérivé à recalculer.
+    ///
+    /// Les titres créés par cette restauration sont ignorés : la passe des dérivés les
+    /// traite déjà, et avec leur `updatedAt` d'archive.
+    func needsRefresh(titleID: UUID?) {
+        guard let titleID, !createdIDs.contains(titleID) else { return }
+        titlesNeedingRefresh.insert(titleID)
     }
 
     // MARK: - Résolution des références

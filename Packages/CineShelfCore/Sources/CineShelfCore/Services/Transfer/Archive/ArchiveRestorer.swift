@@ -52,8 +52,10 @@ public struct ArchiveRestorer {
         try restoreRelated(document, into: state)
         restoreDerived(document, into: state)
 
+        state.report.unknownEntityFiles = document.unknownEntityFiles
+        state.report.mediaFileDelta = document.mediaFileDelta
         if let mediaSource {
-            state.report.orphanedMediaFileCount = ArchiveReader()
+            state.report.orphanedMediaFileCount = try ArchiveReader()
                 .orphanedMediaFileCount(in: mediaSource, for: document)
         }
         if context.hasChanges { try context.save() }
@@ -77,9 +79,14 @@ public struct ArchiveRestorer {
     /// coûte 0,14 ms à vide et 0,36 ms sur 5 000 titres — négligeable devant le `save()`,
     /// qui est le vrai coût. Le prédicat passe par le magasin, donc sa traduction SQL est
     /// réellement exercée (règle de `CLAUDE.md`).
-    func exists<Model: PersistentModel & Identified>(_ type: Model.Type, _ id: UUID) -> Bool {
+    /// - Throws: propage l'erreur du `fetch`. **Ne pas l'avaler** : un `try?` faisait lire
+    ///   « n'existe pas » à une erreur de lecture, et la restauration insérait alors un
+    ///   doublon d'identifiant — dans une base sans `@Attribute(.unique)`, rien ne l'aurait
+    ///   arrêté, et le dédoublonnage applicatif ne regarde pas ces tables. Une erreur de
+    ///   magasin doit interrompre, pas se transformer en écriture.
+    func exists<Model: PersistentModel & Identified>(_ type: Model.Type, _ id: UUID) throws -> Bool {
         var descriptor = FetchDescriptor<Model>(predicate: #Predicate { $0.id == id })
         descriptor.fetchLimit = 1
-        return (try? context.fetch(descriptor))?.isEmpty == false
+        return try !context.fetch(descriptor).isEmpty
     }
 }

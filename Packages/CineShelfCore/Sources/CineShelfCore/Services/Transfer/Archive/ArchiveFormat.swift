@@ -136,16 +136,27 @@ public enum ArchiveError: Error, Equatable, Sendable {
     /// L'archive a été écrite dans un format qu'on ne sait pas relire. Refuser
     /// explicitement plutôt que de deviner, comme `BulkEditDiff.decoded(from:)`.
     case unsupportedFormatVersion(Int)
+    /// L'archive vient d'un **schéma** plus récent que celui de l'app.
+    ///
+    /// Distinct de la version de format : une archive de schéma V2 a le même format, donc
+    /// se relisait sans un mot en perdant les champs que V2 a ajoutés. Le schéma étant
+    /// fermé, c'est le chemin de la prochaine version de l'app.
+    case unsupportedSchemaVersion(String)
     /// Le manifeste est absent : ce dossier n'est pas une archive.
     case missingManifest
     /// Un fichier d'entité annoncé par le manifeste est absent.
     case missingEntityFile(String)
+    /// Le fichier est là mais ne se lit pas : disque, permission, volume démonté.
+    ///
+    /// Distinct de `missingEntityFile` exprès. Les confondre donne un refus nommé et un
+    /// diagnostic faux, donc on cherche le mauvais coupable.
+    case unreadableEntityFile(String)
     /// Le fichier existe mais ne se décode pas.
     case malformedEntityFile(String)
     case malformedDate(String)
-    /// Le manifeste annonce un compte que le fichier ne tient pas. L'écart est chiffré
+    /// Le manifeste annonce un compte que le contenu ne tient pas. L'écart est chiffré
     /// des deux côtés : c'est la seule forme utile quand on cherche ce qui manque.
+    ///
+    /// `entity` vaut un `ArchiveEntityFile.rawValue`, ou `media` pour les octets.
     case countMismatch(entity: String, announced: Int, found: Int)
-    /// Un `MediaAsset` référence des octets qui ne sont pas dans `media/`.
-    case missingMediaFile(assetID: UUID)
 }

@@ -2128,3 +2128,36 @@ jetons se ressemblent, leur traitement est opposé.
 sur les quatre du handoff, deux se déduisent sans aucune valeur nouvelle, un est une
 décision déjà prise qu'il faut seulement écrire, et un seul - la couleur
 d'avertissement - ne se déduit pas et demande un arbitrage.
+
+**Les manques du système de couleur, tranchés avant `I1`**
+
+Bilan de l'inventaire : **zéro couleur à inventer.** Deux des quatre manques du §10 se
+déduisent sans valeur nouvelle (le trait d'état est une combinaison de jetons existants,
+le designer l'écrit lui-même ; la piste de progression est un alias de `bg.fill`), un est
+une décision déjà prise qu'il fallait seulement inscrire (aucune teinte de remplissage
+d'état), et un seul demandait un arbitrage.
+
+Cet arbitrage - la couleur d'avertissement - est tranché sans nouveau jeton : un jaune
+tomberait vers la teinte 95, trop près de l'accent ambre (66) pour que la règle « l'ambre
+ne sert qu'à trois choses » reste lisible. **Et le détournement de `danger` n'était pas
+seulement provisoire, il était faux** : le §6 du handoff écrit qu'une colonne non
+reconnue « n'est pas une erreur », et le prototype la rendait en rouge. Elle passe en
+`text.tertiary`.
+
+Constat qui vaut d'être retenu : **le détournement signalé par le handoff vivait dans les
+écrans, pas dans les jetons.** Il n'y avait donc rien à graver dans le catalogue
+d'assets, contrairement à ce que la crainte de départ supposait. Mais il y avait bien un
+trou, ailleurs, que personne n'avait vu - `bg.inset`, trois apparences sur quatre
+manquantes - et c'est l'arbitrage sur l'apparence claire qui l'a fait sortir.
+
+**Deux hexadécimaux faux dans le handoff**, trouvés en calculant ces valeurs et corrigés
+dans `design/README.md` §4.1 : `bg.inset` livré à `#1f1f1f`, qui est la valeur de
+`bg.raised` et se situe *au-dessus* de `bg.surface` ; `bg.viewer` livré à `#0f0f0f`, qui
+est *plus clair* que `bg.canvas`. Chacun contredit le rôle écrit de son propre jeton, et
+tous deux pour la même raison : ce sont les deux jetons ajoutés tardivement, légitimés
+comme écarts dans la planche 8, dont l'hexadécimal n'a jamais été recalculé depuis
+l'`oklch` canonique. Les bonnes valeurs sont `#080808` et `#010101`.
+
+C'est la démonstration de ce que l'intégration devait éviter : ce n'est pas le
+détournement qui aurait été gravé, ce sont deux valeurs simplement fausses, dans le
+tableau qui sert de source au catalogue d'assets.

@@ -52,11 +52,11 @@ Colonnes : Sombre (défaut) · Sombre contraste élevé · Clair · Clair contra
 | Token | Rôle | Sombre | Sombre HC | Clair | Clair HC |
 |---|---|---|---|---|---|
 | `bg.canvas` | fond de tous les écrans | `#040404` | `#000000` | `#fafafa` | `#ffffff` |
-| `bg.inset` | zone de travail dense (console, panneaux) | `#1f1f1f`* | — | — | — |
+| `bg.inset` | zone de travail dense (console, panneaux) | `#080808`* | `#000000`** | `#f6f6f6`** | `#f8f8f8`** |
 | `bg.surface` | listes denses, panneaux, lignes | `#131313` | `#0a0a0a` | `#f0f0f0` | `#ebebeb` |
 | `bg.raised` | feuilles, popovers, dialogues | `#1f1f1f` | `#171717` | `#ffffff` | `#ffffff` |
 | `bg.fill` | champs, jetons, boutons secondaires | `#2b2b2b` | `#353535` | `#dedede` | `#d1d1d1` |
-| `bg.viewer` | visionneuse et mode immersif | `#0f0f0f` | `#000000` | `#0f0f0f` | `#000000` |
+| `bg.viewer` | visionneuse et mode immersif | `#010101`* | `#000000` | `#010101` | `#000000` |
 | `text.primary` | titres, valeurs, corps | `#f5f5f5` | `#ffffff` | `#161616` | `#060606` |
 | `text.secondary` | sous-titres, métadonnées | `#a4a4a4` | `#cacaca` | `#525252` | `#2e2e2e` |
 | `text.tertiary` | libellés, aides, compteurs | `#7f7f7f` | `#9e9e9e` | `#6c6c6c` | `#4d4d4d` |
@@ -68,6 +68,26 @@ Colonnes : Sombre (défaut) · Sombre contraste élevé · Clair · Clair contra
 | `private.mask` | contenu privé verrouillé | `#0e0e0e` | `#030303` | `#dedede` | `#cacaca` |
 
 \* `bg.inset` = `oklch(0.135 0 0)`. Un cran entre `bg.canvas` et `bg.surface`, pour que les lignes de tableau se détachent sans trait. `bg.viewer` = `oklch(0.07 0 0)` : reste sombre dans les quatre apparences, comme une vue plein écran de Photos ou d'Aperçu.
+
+> **Hexadécimaux corrigés le 2026-08-04.** Le handoff livrait `#1f1f1f` pour `bg.inset`
+> et `#0f0f0f` pour `bg.viewer`. Les deux étaient faux, et de la même façon : ce sont les
+> deux jetons ajoutés tardivement (légitimés comme écarts dans la planche 8), et leur
+> hexadécimal n'avait pas été recalculé depuis la valeur `oklch` canonique. Les deux
+> contredisaient le rôle écrit du jeton — `#1f1f1f` est la valeur de `bg.raised` et se
+> situe **au-dessus** de `bg.surface`, donc pas « un cran entre `bg.canvas` et
+> `bg.surface` » ; `#0f0f0f` est **plus clair** que `bg.canvas`, donc pas « plus sombre
+> que tout le reste ». L'`oklch` fait foi (§4), et le §12 dit que la planche 8 gagne.
+>
+> \*\* **Les trois apparences manquantes de `bg.inset` sont déduites**, pas inventées :
+> elles reprennent le rapport que le designer a choisi en sombre, soit 35,4 % du chemin
+> de `bg.canvas` vers `bg.surface`. En sombre contraste élevé la valeur retombe sur le
+> noir du canvas, et c'est correct : la séparation avec `bg.surface` passe de 0,052 à
+> 0,145 en clarté, donc le contraste élevé est mieux servi, pas moins.
+>
+> **Pourquoi elles manquaient** : le handoff ne donnait que la valeur sombre, la console
+> n'étant pensée qu'en sombre. L'arbitrage du 2026-08-04 sur la portée de l'apparence
+> claire — les surfaces de gestion suivent l'apparence système — a rendu les trois autres
+> nécessaires. Voir « Arbitrages tranchés » dans `../PROMPTS.md`.
 
 Voiles et translucidité — **uniquement posés sur une image**, jamais sur une surface opaque, jamais de matériau système ni de flou d'interface :
 

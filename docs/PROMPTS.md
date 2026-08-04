@@ -139,15 +139,15 @@ de découpage sur sa fiche.
 >
 > | Question | Pourquoi elle bloque |
 > |---|---|
-> | **Quatre valeurs manquent au système de couleur** | Teinte de remplissage d'état, couleur d'avertissement, trait d'état, piste de progression. Le designer n'en a inventé aucune, et deux jetons sont détournés en attendant (`danger` pour les colonnes non reconnues, `accent` pour les correspondances déduites). **Bloque `I1`** et pas seulement les tâches `V` : intégrer les tokens en l'état graverait le détournement dans le catalogue d'assets |
 > | **`Genre.colorToken`** | Des pastilles de genre colorées ont-elles un sens sous une direction à un seul accent ambre ? Addition postérieure à la v1, jamais une fonctionnalité reprise. Détail à l'écart correspondant |
 > | **Trois décisions sur l'icône** | Variante de dessin sous 32 px, fond sur écran d'accueil sombre, ton assourdi de la tranche |
 >
 > Aucune n'empêche les tâches `L` d'avancer. Toutes empêchent les tâches `V`.
 >
-> **Deux questions de cette liste sont tranchées** et ont quitté le tableau : la portée
-> de l'apparence claire et la passe sur les réglages. Voir « Arbitrages tranchés », en
-> tête de la bascule de direction artistique.
+> **Trois questions de cette liste sont tranchées** et ont quitté le tableau : la portée
+> de l'apparence claire, la passe sur les réglages, et les quatre valeurs manquantes du
+> système de couleur. Voir « Arbitrages tranchés », en tête de la bascule de direction
+> artistique. Aucune ne bloque plus `I1`.
 
 **Écarts connus, à reprendre plus tard** (tenus à jour au fil des sessions) :
 
@@ -278,6 +278,33 @@ plutôt que « créer » quand la frappe correspond à un `nameKey` connu. C'est
 prompts CloudKit** (21 et 22) : la synchronisation, la corbeille et l'espace occupé
 ajoutent des réglages qu'on ne sait pas encore énumérer. Dessiner l'écran maintenant
 reviendrait à le redessiner ensuite.
+
+**4. Les manques du système de couleur - tranchés le 2026-08-04, avant `I1`.**
+
+Le §10 du handoff en listait quatre. Deux se déduisent sans aucune valeur nouvelle, un
+est une décision déjà prise, et un seul demandait un arbitrage. Un cinquième manque,
+que le handoff ne listait pas, est apparu en relisant l'arbitrage 1.
+
+| Manque | Décision |
+|---|---|
+| **Teinte de remplissage d'état** | **Aucun jeton.** Ce n'était pas un oubli : l'addendum écrit « aucun fond coloré, et je n'en ai pas créé ». La règle est conservée telle quelle - l'état passe par le libellé, le trait, le symbole et le message. Si une teinte devient nécessaire un jour, la forme compatible avec « zéro translucidité sur surface opaque » est un **aplat opaque pré-composé**, procédé de `bg.inset`, jamais un `danger` à 12 % |
+| **Couleur d'avertissement** | **Aucun jeton.** Un jaune d'avertissement tomberait vers la teinte 95, trop près de l'accent ambre (teinte 66) pour que « l'ambre ne sert qu'à trois choses » reste lisible. **Et le détournement de `danger` était faux, pas seulement provisoire** : le §6 écrit qu'une colonne non reconnue « n'est pas une erreur », et elle était rendue en rouge. Elle passe en **`text.tertiary`** ; la correspondance déduite garde `accent`. L'avertissement est porté par `exclamationmark.triangle`, ce que le système fait déjà |
+| **Trait d'état** | **Aucune couleur nouvelle** - le designer le dit lui-même : « une combinaison de deux tokens existants ». L'épaisseur se découple de la couleur, et `stroke.emphasis` 2 pt rejoint `stroke.hairline` 1 pt pour le récapitulatif de refus |
+| **Piste de progression** | **Aucune couleur nouvelle.** `progress.track` est un alias de `bg.fill` ; les segments restent `success`, `danger`, `text.tertiary`. C'est déjà ce que le prototype utilise |
+| **`bg.inset`, trois apparences sur quatre** (hors handoff) | **Déduites**, en reprenant le rapport choisi par le designer en sombre - 35,4 % du chemin `bg.canvas` vers `bg.surface`. `#080808` sombre (canonique), `#000000` sombre HC, `#f6f6f6` clair, `#f8f8f8` clair HC. C'est l'arbitrage 1 qui l'a rendu nécessaire : `bg.inset` est le fond de la console, et les surfaces de gestion suivent désormais l'apparence système. À ne pas confondre avec `bg.viewer`, identique dans les quatre apparences et **volontairement** |
+
+**Deux hexadécimaux du handoff étaient faux**, corrigés dans `design/README.md` §4.1 :
+`bg.inset` donné à `#1f1f1f` (la valeur de `bg.raised`, *au-dessus* de `bg.surface`) et
+`bg.viewer` à `#0f0f0f` (*plus clair* que `bg.canvas`). Les deux contredisaient le rôle
+écrit du jeton, et pour la même raison : ce sont les deux jetons ajoutés tardivement,
+dont l'hexadécimal n'avait pas été recalculé depuis l'`oklch`. Les valeurs `oklch` de la
+planche 8 font foi, et c'est `#080808` et `#010101`.
+
+**Ce que ça change pour `I1`** : plus rien ne bloque. Le total est de **zéro couleur
+nouvelle à inventer** et trois valeurs déduites d'une échelle existante. Le détournement
+que le handoff signalait vivait dans les **écrans** d'import, pas dans les jetons : il
+n'y avait donc rien à graver dans le catalogue d'assets - mais il y avait bien un trou à
+combler, `bg.inset`, que personne n'avait vu.
 
 ---
 

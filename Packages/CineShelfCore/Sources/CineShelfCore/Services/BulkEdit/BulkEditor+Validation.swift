@@ -42,8 +42,14 @@ extension BulkEditor {
             return []
 
         case .setRuntime(let minutes):
-            guard minutes >= Bounds.minimumRuntime else {
-                return [outOfRange(field: "La durée", expected: "au moins 1 minute")]
+            // **Bornée des deux côtés depuis le 2026-08-04.** Ne vérifier qu'un minimum
+            // laissait `BulkEditor` accepter 500 000 minutes que l'import refuse — soit
+            // exactement la divergence que l'extraction de `CatalogBounds` existe pour
+            // fermer, et dans le fichier qui la cite.
+            let runtime = CatalogBounds.runtimeMinutes
+            guard runtime.contains(minutes) else {
+                let expected = "entre \(runtime.lowerBound) et \(runtime.upperBound) minutes"
+                return [outOfRange(field: "La durée", expected: expected)]
             }
             return []
 

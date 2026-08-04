@@ -30,9 +30,31 @@ public struct ImportMappingRepository {
         try mapping(signature: ColumnMapping.headerSignature(for: header), in: library)
     }
 
+    /// La correspondance à appliquer pour cette signature.
+    ///
+    /// **Le personnel passe devant l'intégré par règle, et non par chance.** La première
+    /// version triait sur `updatedAt` seul, en affirmant qu'une correspondance personnelle
+    /// « masque l'intégrée à la lecture ». Elle ne la masquait que si elle était plus
+    /// récente — or un `isBuiltIn` arrive par une mise à jour de l'app ou par une fusion
+    /// CloudKit, donc **plus tard**. Mesuré : l'utilisateur mémorisait « Le mien », un
+    /// intégré de même signature arrivait, et la lecture rendait l'intégré. Le tri porte
+    /// donc d'abord sur `isBuiltIn`.
+    /// Le tri final se fait **en Swift et non en SQL** : `SortDescriptor` exige un `Bool`
+    /// comparable, ce qu'il n'est pas. Sans coût réel — le prédicat rend une signature dans
+    /// une bibliothèque, donc au plus une correspondance personnelle et une intégrée.
     public func mapping(signature: String, in library: Library) throws -> ImportMapping? {
+        let candidates = try context.fetch(
+            FetchDescriptor<ImportMapping>(
+                predicate: ImportMappingQuery.matching(signature: signature, inLibrary: library.id),
+                sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
+            ))
+        return candidates.first { !$0.isBuiltIn } ?? candidates.first
+    }
+
+    /// La correspondance personnelle de cette signature, s'il en existe une.
+    private func personalMapping(signature: String, in library: Library) throws -> ImportMapping? {
         var descriptor = FetchDescriptor<ImportMapping>(
-            predicate: ImportMappingQuery.matching(signature: signature, inLibrary: library.id),
+            predicate: ImportMappingQuery.personal(signature: signature, inLibrary: library.id),
             sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
         )
         descriptor.fetchLimit = 1
@@ -57,8 +79,14 @@ public struct ImportMappingRepository {
     /// c'est ici que l'unicité se tient, comme pour `Genre.nameKey`.
     ///
     /// Une correspondance intégrée n'est jamais écrasée : elle est livrée avec l'app, donc
-    /// une correspondance personnelle de même en-tête est un enregistrement distinct qui la
-    /// masque à la lecture — ce qui est le comportement voulu, l'utilisateur passe devant.
+    /// une correspondance personnelle de même en-tête est un enregistrement distinct, que la
+    /// lecture fait passer devant (voir `mapping(signature:in:)`).
+    ///
+    /// - Throws: `ColumnMappingError.duplicateColumnNames` si l'en-tête porte deux colonnes
+    ///   de même nom. La correspondance est mémorisée **par nom** — c'est ce qui la rend
+    ///   indépendante de l'ordre des colonnes — donc deux homonymes en perdraient une, et
+    ///   c'était le champ requis qui disparaissait dans le cas mesuré. Un refus nommé plutôt
+    ///   qu'un arbitrage muet.
     @discardableResult
     public func save(
         _ mapping: ColumnMapping,
@@ -66,11 +94,15 @@ public struct ImportMappingRepository {
         forHeader header: [String],
         in library: Library
     ) throws -> ImportMapping {
-        let signature = ColumnMapping.headerSignature(for: header)
-        // `self.` explicite : le paramètre `mapping` masque la méthode de même nom.
-        let existing = try self.mapping(signature: signature, in: library)
+        let duplicates = ColumnMapping.duplicateColumnNames(in: header)
+        guard duplicates.isEmpty else {
+            throw ColumnMappingError.duplicateColumnNames(duplicates)
+        }
 
-        if let existing, !existing.isBuiltIn {
+        let signature = ColumnMapping.headerSignature(for: header)
+        // La correspondance **personnelle**, et non « la plus récente » : sinon un intégré
+        // plus récent faisait insérer un second enregistrement personnel à chaque appel.
+        if let existing = try personalMapping(signature: signature, in: library) {
             existing.name = name
             existing.columnMapData = try mapping.encoded()
             existing.updatedAt = .now
@@ -94,7 +126,14 @@ public struct ImportMappingRepository {
         return try ColumnMapping.decoded(from: data)
     }
 
-    public func rename(_ record: ImportMapping, to name: String) {
+    /// Renomme une correspondance personnelle.
+    ///
+    /// **Refuse une intégrée, comme `delete`.** Le nom d'une correspondance livrée revient à
+    /// la prochaine mise à jour, donc le renommage ne tient pas ; et il bougeait `updatedAt`,
+    /// ce qui la faisait passer devant une correspondance personnelle avant que la lecture ne
+    /// trie sur `isBuiltIn`.
+    public func rename(_ record: ImportMapping, to name: String) throws {
+        guard !record.isBuiltIn else { throw ImportMappingError.builtInCannotBeRenamed }
         record.name = name
         record.updatedAt = .now
     }
@@ -117,4 +156,6 @@ public struct ImportMappingRepository {
 public enum ImportMappingError: Error, Sendable, Hashable {
     /// Une correspondance livrée avec l'app ne se supprime pas.
     case builtInCannotBeDeleted
+    /// Ni ne se renomme : le nom reviendrait à la prochaine mise à jour.
+    case builtInCannotBeRenamed
 }

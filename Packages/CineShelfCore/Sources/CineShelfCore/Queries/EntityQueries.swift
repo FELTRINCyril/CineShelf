@@ -307,6 +307,18 @@ public enum ImportMappingQuery {
         }
     }
 
+    /// La correspondance **personnelle** d'un en-tête, à l'exclusion des intégrées.
+    ///
+    /// C'est celle que `save` doit retrouver pour la mettre à jour. Chercher « la plus
+    /// récente de même signature » y créait un doublon : si l'intégrée était la plus récente
+    /// — et elle l'est, puisqu'elle arrive par une mise à jour de l'app ou par une fusion
+    /// CloudKit — `save` insérait un second enregistrement personnel à chaque appel.
+    public static func personal(signature: String, inLibrary libraryID: UUID) -> Predicate<ImportMapping> {
+        #Predicate<ImportMapping> {
+            $0.headerSignature == signature && $0.library?.id == libraryID && $0.isBuiltIn == false
+        }
+    }
+
     public static func inLibrary(_ libraryID: UUID) -> Predicate<ImportMapping> {
         #Predicate<ImportMapping> { $0.library?.id == libraryID }
     }

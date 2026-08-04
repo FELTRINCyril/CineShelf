@@ -232,7 +232,7 @@ struct ImportMappingRepositoryTests {
             named: "Avant", forHeader: ["title"], in: library)
         try context.save()
 
-        repository.rename(record, to: "Après")
+        try repository.rename(record, to: "Après")
         try context.save()
 
         #expect(record.name == "Après")
@@ -241,5 +241,124 @@ struct ImportMappingRepositoryTests {
         // `JournalPolicy` reste le sujet de `L11b`, où c'est l'import lui-même qui écrit une
         // entrée **pour le lot** — pas une par titre, et pas une par mappage.
         #expect(try activityCount(in: context) == 0)
+    }
+}
+
+// Les défauts du repository trouvés par la revue du 2026-08-04.
+@MainActor
+struct ImportMappingRepositoryRegressionTests {
+
+    /// Même montage que la suite principale : magasin volatil, contexte, bibliothèque.
+    private struct Fixture {
+        let container: ModelContainer
+        let context: ModelContext
+        let library: Library
+
+        func freshContext() -> ModelContext { ModelContext(container) }
+    }
+
+    private func makeFixture() throws -> Fixture {
+        let container = try makeTestContainer()
+        let context = ModelContext(container)
+        let library = Library(name: "Principal", isDefault: true)
+        context.insert(library)
+        try context.save()
+        return Fixture(container: container, context: context, library: library)
+    }
+
+    @Test("Un intégré plus récent ne prend pas le pas sur la correspondance personnelle")
+    func personalMappingWinsOverNewerBuiltIn() throws {
+        // **Le masquage annoncé ne reposait sur rien.** La lecture triait sur `updatedAt`
+        // seul, donc une correspondance personnelle ne passait devant que si elle était plus
+        // récente — or un `isBuiltIn` arrive par une mise à jour de l'app ou par une fusion
+        // CloudKit, donc **plus tard**. Le personnel passe maintenant devant par règle.
+        let fixture = try makeFixture()
+        let (context, library) = (fixture.context, fixture.library)
+        let header = ["title", "year"]
+        let repository = ImportMappingRepository(context: context)
+
+        try repository.save(
+            ColumnMapping(entity: .title, columnToField: ["title": "title"]),
+            named: "Le mien", forHeader: header, in: library)
+        try context.save()
+
+        let builtIn = ImportMapping(
+            name: "Movix", headerSignature: ColumnMapping.headerSignature(for: header))
+        builtIn.isBuiltIn = true
+        builtIn.library = library
+        builtIn.updatedAt = Date(timeIntervalSinceNow: 3600)
+        context.insert(builtIn)
+        try context.save()
+
+        let fresh = fixture.freshContext()
+        let freshLibrary = try #require(try fresh.fetch(FetchDescriptor<Library>()).first)
+        let found = try ImportMappingRepository(context: fresh)
+            .mapping(forHeader: header, in: freshLibrary)
+
+        #expect(found?.name == "Le mien")
+    }
+
+    @Test("Mémoriser deux fois face à un intégré ne crée pas deux correspondances")
+    func savingBesideABuiltInDoesNotDuplicate() throws {
+        // Mesuré avant correction : trois enregistrements pour une seule signature, dont deux
+        // personnels — le doublon silencieux de `Genre.nameKey`, transposé. `save` cherchait
+        // « la plus récente » et, la trouvant intégrée, insérait un nouvel enregistrement à
+        // chaque appel.
+        let fixture = try makeFixture()
+        let (context, library) = (fixture.context, fixture.library)
+        let header = ["title", "year"]
+        let repository = ImportMappingRepository(context: context)
+
+        let builtIn = ImportMapping(
+            name: "Movix", headerSignature: ColumnMapping.headerSignature(for: header))
+        builtIn.isBuiltIn = true
+        builtIn.library = library
+        builtIn.updatedAt = Date(timeIntervalSinceNow: 3600)
+        context.insert(builtIn)
+
+        for name in ["Le mien", "Le mien v2", "Le mien v3"] {
+            try repository.save(
+                ColumnMapping(entity: .title, columnToField: ["title": "title"]),
+                named: name, forHeader: header, in: library)
+            try context.save()
+        }
+
+        let fresh = fixture.freshContext()
+        let all = try fresh.fetch(FetchDescriptor<ImportMapping>())
+        #expect(all.count == 2, "un intégré et un seul personnel")
+        #expect(all.filter { !$0.isBuiltIn }.map(\.name) == ["Le mien v3"])
+    }
+
+    @Test("Un en-tête à colonnes homonymes refuse d'être mémorisé")
+    func duplicateColumnNamesAreRefused() throws {
+        // La correspondance est mémorisée par nom, donc deux homonymes en perdraient une — et
+        // c'était le champ requis qui disparaissait dans le cas mesuré. Un refus nommé plutôt
+        // qu'un arbitrage muet.
+        let fixture = try makeFixture()
+        let (context, library) = (fixture.context, fixture.library)
+
+        #expect(throws: ColumnMappingError.duplicateColumnNames(["Titre"])) {
+            try ImportMappingRepository(context: context).save(
+                ColumnMapping(entity: .title, columnToField: ["Titre": "title"]),
+                named: "Bancal", forHeader: ["Titre", "Titre"], in: library)
+        }
+        #expect(try context.fetch(FetchDescriptor<ImportMapping>()).isEmpty)
+    }
+
+    @Test("Une correspondance intégrée refuse aussi d'être renommée")
+    func builtInCannotBeRenamed() throws {
+        // `delete` le refusait, `rename` non — et il bougeait `updatedAt`, ce qui faisait
+        // passer l'intégré devant le personnel avant que la lecture ne trie sur `isBuiltIn`.
+        let fixture = try makeFixture()
+        let (context, library) = (fixture.context, fixture.library)
+        let builtIn = ImportMapping(name: "Movix", headerSignature: "x")
+        builtIn.isBuiltIn = true
+        builtIn.library = library
+        context.insert(builtIn)
+
+        #expect(throws: ImportMappingError.builtInCannotBeRenamed) {
+            try ImportMappingRepository(context: context).rename(builtIn, to: "Le mien")
+        }
+        #expect(builtIn.name == "Movix")
     }
 }

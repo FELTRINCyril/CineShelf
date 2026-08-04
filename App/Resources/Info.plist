@@ -22,6 +22,78 @@
 	<string>CineShelf a besoin d'accéder à tes photos pour ajouter des images à ton catalogue.</string>
 
 	<!--
+	Le type de fichier des archives (L12).
+
+	UTTypeConformsTo porte com.apple.package et NON public.data : le paquet est un
+	dossier, et c'est cette conformité qui fait que le Finder l'affiche comme un
+	fichier unique, qu'un double-clic ne l'ouvre pas en dossier, et qu'AirDrop
+	l'envoie d'un bloc.
+
+	Déclaré dans les DEUX sections. Exported dit « cette app produit ce type »,
+	Imported dit « elle sait le lire » : sans la seconde, une archive reçue par
+	AirDrop depuis un autre appareil n'aurait pas CineShelf comme destination
+	possible, et le partage ne servirait qu'à sortir des données, jamais à les
+	faire revenir.
+	-->
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>fr.feltrin.cineshelf.archive</string>
+			<key>UTTypeDescription</key>
+			<string>Archive CineShelf</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>com.apple.package</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>cineshelfarchive</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>fr.feltrin.cineshelf.archive</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>com.apple.package</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>cineshelfarchive</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Archive CineShelf</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>fr.feltrin.cineshelf.archive</string>
+			</array>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSTypeIsPackage</key>
+			<true/>
+		</dict>
+	</array>
+
+	<!--
 	Pas de UIAppFonts, et ce n'est pas un oubli.
 
 	Archivo est embarquée dans le bundle de ressources du package DesignSystem

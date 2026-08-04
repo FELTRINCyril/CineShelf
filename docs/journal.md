@@ -4110,3 +4110,64 @@ Aucune ligne « non lancée » cette fois : `V0` touche `App/`, donc tout est co
 
 **Suite : `V0 bis`** — les titres : grille, fiche, éditeur. L'éditeur attend `I7`–`I9` ; la
 grille et la fiche non.
+
+---
+
+## 2026-08-04 (8) — La grille des titres, et trois choses que le prototype ne tranche pas
+
+`V0 bis`, **partiel** : la grille. La fiche et l'éditeur ne sont pas faits, donc la tâche
+n'est pas cochée — elle porte un 🔶 et la liste de ce qui reste.
+
+**Ce que le banc d'essai perd, et ce n'est pas rien.** La grille du prompt 11 posait sous
+chaque carte un titre, une ligne de méta et trois pastilles d'action au survol. La direction
+retenue n'a **rien** sous les affiches au repos — c'est arrêté au §10 — donc `CatalogGrid`,
+`PosterCard` et `DisplayMenu` cessent d'être lus par cet écran, et les gestes passent au menu
+contextuel. Ce n'est pas une simplification : c'est la différence entre une grille de
+productivité et une grille où l'image parle seule.
+
+**Une correction reçue et vérifiée avant d'écrire.** La consigne disait « la barre d'outils
+d'écran existe depuis `V0`, la grille doit s'y brancher ». Elle n'existait pas : `V0` avait
+livré `ScreenHeader` avec le titre seul, et documenté qu'il laissait l'emplacement d'actions
+vide parce qu'un menu « Trier » posé par le chrome trierait quoi. L'intention était juste —
+ne pas faire de seconde barre — mais le point de départ non. `V0 bis` **ouvre** cet
+emplacement, et déplace le *placement* de l'en-tête du chrome vers l'écran : le poser au
+niveau du chrome aurait donné deux en-têtes à tout écran ayant des actions.
+
+**Trois choses que les planches ne tranchent pas, inscrites au lieu d'être devinées.**
+
+- Le bloc `4a` montre **deux survols différents dans la même grille** : ses cartes en
+  `sc-for` portent `scale(1.06)`, la règle du §7, mais la première y est dessinée à 1,1 avec
+  titre, méta et actions — un `PosterTileDetail`. J'ai implémenté le survol **arrêté**, parce
+  que c'est la règle écrite ; l'échange vers la carte détaillée serait un comportement
+  qu'aucune phrase ne décrit. Conséquence à assumer : `PosterTileDetail`, livré par `I2`, n'a
+  aujourd'hui **aucun appelant**.
+- La rangée de filtres actifs est en **lecture seule** : les jetons cliquables à croix du
+  bloc `4a` sont le composant de `I5`, palier 3. En écrire une version ici l'aurait fait
+  exister en double le jour où `I5` arrive.
+- L'état vide utilise encore `StateView`, du banc d'essai. La vue vide paramétrée est `I10`.
+
+**Le store d'affichage change de type et de clé.** `CardDisplaySetting` cède la place à
+`PosterSetting` — le couple `disposition × taille` de la matrice. Le préfixe de clé passe de
+`display.` à `poster.` : sans ça, un ancien instantané se décoderait de travers, et un défaut
+de contexte vaut mieux qu'une conversion approximative.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **67 tests**, 9 suites |
+| `xcodebuild test -scheme CineShelfUITests -destination iOS Simulator` | ✅ **1 test**, 32,7 s |
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **450 · 63 · 38** |
+| `xcodebuild test -scheme DesignSystemCatalog -destination macOS` | ✅ **64 tests** |
+| `xcodebuild build -scheme CineShelf -destination macOS` | ✅ `BUILD SUCCEEDED` |
+| `xcodebuild build -scheme CineShelf -destination iOS Simulator` | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 246 fichiers, **liste d'exclusion réduite de deux de plus** |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| Lancement réel sur Mac | ✅ processus `CineShelf` vivant après `open` |
+
+**Aucun test neuf.** La grille est une composition de composants déjà couverts, et son seul
+calcul — le compte de colonnes — est testé dans `GridMetricsTests`. Le dire plutôt que de
+laisser croire qu'un écran réécrit s'accompagne toujours de tests.
+
+**Suite : `V0 bis`, la suite** — la fiche titre (hero, affiche, métadonnées, casting,
+galerie, liens). L'éditeur attend `I7`–`I9`.

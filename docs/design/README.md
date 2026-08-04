@@ -120,7 +120,23 @@ Familles : **Bebas Neue** (titrage), **Archivo** et **Archivo Narrow** (interfac
 
 Règles : tout chiffre aligné en colonne est en IBM Plex Mono tabulaire. Deux niveaux de capitales seulement — `label` nomme un champ, `action` se clique. Les capitales ne servent jamais à un titre de contenu.
 
-**Basculement accessible.** Jusqu'à `.xxLarge`, Bebas grandit normalement. À partir de `.accessibilityMedium`, les trois styles de titrage (`display`, `title.1`, `title.2`) passent en **Archivo Narrow 700** et la densité bascule en ample, y compris sur Mac. Conséquences validées : les formulaires en regard passent en libellé-au-dessus, les grilles perdent une à deux colonnes, et le mot CINESHELF perd son allure de logotype (à transformer en image si nécessaire). Rendus : planche 8, bloc 10l.
+**Basculement accessible.** Jusqu'à `.xxLarge`, Bebas grandit normalement. À partir de `.accessibilityMedium`, les trois styles de titrage (`display`, `title.1`, `title.2`) passent en **Archivo Narrow 700** et la densité bascule en ample, y compris sur Mac.
+
+> **Le cran réel est `DynamicTypeSize.accessibility1`.** `.accessibilityMedium` n'est
+> **pas** une casse valide de `DynamicTypeSize` — c'est le nom de cette taille dans
+> `ContentSizeCategory`, l'énumération dépréciée. Écrire
+> `DynamicTypeSize.accessibilityMedium` ne compile pas. Ne pas « corriger » le code
+> vers le nom de ce document.
+>
+> La correspondance a été mesurée, pas supposée : les deux énumérations ont douze cas
+> dans le même ordre, et `accessibilityMedium` comme `accessibility1` occupent le rang
+> 7. C'est aussi la première taille pour laquelle `isAccessibilitySize` est vrai, et
+> c'est cette propriété que `DynamicTypeSize.usesAccessibleTitling` utilise — plus
+> lisible qu'une comparaison, et insensible à un renommage futur des crans.
+>
+> Conséquence à connaître : le document ne dit rien de `.xxxLarge`, qui se situe entre
+> « jusqu'à `.xxLarge` » et le seuil. Il **reste en Bebas Neue**, puisqu'il n'est pas
+> une taille d'accessibilité. Verrouillé par test. Conséquences validées : les formulaires en regard passent en libellé-au-dessus, les grilles perdent une à deux colonnes, et le mot CINESHELF perd son allure de logotype (à transformer en image si nécessaire). Rendus : planche 8, bloc 10l.
 
 Dynamic Type est suivi dès le premier lancement sur iOS et iPadOS. Sur macOS la typographie est fixe ; seule la densité varie.
 
@@ -352,7 +368,7 @@ La densité est la seule valeur dynamique, posée une fois par plateforme dans l
 
 ## 10. Décisions arrêtées et points ouverts
 
-**Arrêté** — ratio 2:3 verrouillé avec recadrage · aucune métadonnée sous les affiches au repos · hero à 100 % · coupe au bord droit comme seul signal de défilement · zéro translucidité d'interface · zéro ombre · densité iPad ample par défaut et dense au pointeur · Dynamic Type suivi sur iOS, fixe sur Mac · ambre foncé `#ab4700` en apparence claire · basculement Bebas → Archivo Narrow à `.accessibilityMedium` · contenu privé **au niveau de l'entité** (corrigé — voir §7) · traits de tableau à 3,0:1 acceptés.
+**Arrêté** — ratio 2:3 verrouillé avec recadrage · aucune métadonnée sous les affiches au repos · hero à 100 % · coupe au bord droit comme seul signal de défilement · zéro translucidité d'interface · zéro ombre · densité iPad ample par défaut et dense au pointeur · Dynamic Type suivi sur iOS, fixe sur Mac · ambre foncé `#ab4700` en apparence claire · basculement Bebas → Archivo Narrow à `.accessibilityMedium`, soit `DynamicTypeSize.accessibility1` — voir la note du §4.2, le nom du handoff n'est pas une casse valide de l'API · contenu privé **au niveau de l'entité** (corrigé — voir §7) · traits de tableau à 3,0:1 acceptés.
 
 **Ouvert, à trancher avant de coder les écrans concernés :**
 

@@ -2292,3 +2292,77 @@ réellement, et les familles de police sont vérifiées par mesure de rendu.
 Les composants sont l'étape suivante du design, pas de `I1` : ils appartiennent aux
 étapes 1 à 10 de la méthode du `06 §6`, avant `V1`. Côté logique, `L10` reste la tâche
 suivante du chemin critique.
+
+---
+
+## 2026-08-04 (3) — Deux épinglages : le seuil du basculement, et les collisions de noms
+
+**Le seuil, écrit là où le handoff le nomme**
+
+Le cran réel est **`DynamicTypeSize.accessibility1`**. `.accessibilityMedium` n'est pas
+une casse valide de `DynamicTypeSize` : c'est le nom de cette taille dans
+`ContentSizeCategory`, l'énumération dépréciée. La note est posée dans
+`design/README.md` §4.2 et rappelée au §10, précisément pour que personne ne « corrige »
+le code vers le nom du document — ça ne compilerait pas.
+
+Correspondance **mesurée**, pas supposée : les deux énumérations ont douze cas dans le
+même ordre, et `accessibilityMedium` comme `accessibility1` occupent le rang 7. C'est
+aussi la première taille pour laquelle `isAccessibilitySize` est vrai, et c'est cette
+propriété que le code utilise — plus lisible qu'une comparaison, et insensible à un
+renommage futur des crans.
+
+Effet de bord noté au passage : le handoff ne dit rien de `.xxxLarge`, qui tombe entre
+« jusqu'à `.xxLarge` » et le seuil. Il reste en Bebas Neue, et un test le verrouille.
+
+**Les collisions de noms, traitées en classe et non au cas par cas**
+
+`ShapeStyle.separator` n'était pas un cas isolé mais un exemplaire. Les vingt statiques
+que SwiftUI expose en position `ShapeStyle` implicite ont été **relevées par
+compilation**, une par une : pour chaque nom candidat, compiler
+`Text("x").foregroundStyle(.<nom>)` avec le seul `import SwiftUI`. Un nom absent échoue
+sur `type 'ShapeStyle' has no member '<nom>'`, ce qui donne le contrôle négatif de la
+sonde. Relevé sur le SDK macOS 15 :
+
+```
+primary secondary tertiary quaternary quinary
+background foreground selection link placeholder fill tint separator windowBackground
+regularMaterial thinMaterial ultraThinMaterial thickMaterial ultraThickMaterial bar
+```
+
+**Aucun des 19 accesseurs actuels n'en heurte une** — vérifié aussi par une sonde qui
+les utilise tous les 19 en position implicite. `accent`, `danger` et `success` sont
+libres, contrairement à ce qu'on pouvait craindre.
+
+`ShapeStyleCollisionTests` garde la porte fermée, sur deux niveaux :
+
+1. **À l'exécution** : `ColorTokens.accessorNames` — désormais généré, donc toujours à
+   jour et tenant compte des désambiguïsations — est confronté à la liste native. Le
+   message d'échec dit quoi faire : ajouter une entrée à `ACCESSOR_OVERRIDES`, sans
+   toucher au nom du token dans le JSON. Les jeux legacy sont couverts aussi : ils sont
+   encore lus par le banc d'essai, une collision y produirait la même prise de couleur
+   système.
+2. **À la compilation** : une vue privée utilise les 19 accesseurs en position
+   implicite. Une ambiguïté future rend la suite non constructible — volontairement une
+   erreur de compilation et non un test rouge, parce qu'une ambiguïté n'est pas
+   rattrapable à l'exécution.
+
+**Preuve d'échec, en deux temps parce que la première ne prouvait pas la bonne chose**
+
+Retirer l'override a bien cassé la suite, mais par « symbole absent » : la compilation
+échouait avant d'atteindre le test. Ça démontrait la détection, pas la garde.
+
+La bonne démonstration ajoute au JSON un token nommé `fill`, dont l'accesseur dérivé
+heurte `ShapeStyle.fill`. La suite compile alors, et **quatre tests mordent** sous des
+angles différents, dont `colliding → ["fill"]` avec le message d'aide. Token retiré, 51
+tests verts, aucun résidu dans le catalogue d'assets.
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| `swift test` DesignSystem | **51 tests** (46 avant) |
+| `swiftlint --strict` | 0 violation / 167 fichiers |
+| `xcrun swift-format lint` | 0 avertissement |
+| Preuve d'échec — token nommé `fill` | 4 tests au rouge, message d'aide correct |
+| Sonde des statiques natives | 20 relevées, contrôle négatif concluant |
+| CI du commit `I1` | verte |

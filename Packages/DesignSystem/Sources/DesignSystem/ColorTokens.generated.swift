@@ -36,6 +36,33 @@ public enum ColorTokens {
     /// Les 19 Color Sets de la direction courante.
     public static let all: [String] = semantics
 
+    /// Le nom d'accesseur Swift de chaque jeu, dans le meme ordre que `semantics`.
+    ///
+    /// Genere plutot que re-derive dans les tests : c'est ce qui permet a
+    /// `ShapeStyleCollisionTests` de verifier les noms **reellement declares**,
+    /// y compris ceux desambiguises par `ACCESSOR_OVERRIDES`.
+    public static let accessorNames: [String] = [
+        "bgCanvas",
+        "bgInset",
+        "bgSurface",
+        "bgRaised",
+        "bgFill",
+        "bgViewer",
+        "textPrimary",
+        "textSecondary",
+        "textTertiary",
+        "accent",
+        "accentOnAccent",
+        "danger",
+        "success",
+        "separatorLine",
+        "privateMask",
+        "scrimModal",
+        "scrimCrop",
+        "fillOnImage",
+        "chipOnImage"
+    ]
+
     /// La couleur d'un token, par son nom. Sert au catalogue, qui parcourt la
     /// liste ci-dessus ; le code d'application passe par les accesseurs types.
     public static func color(for token: String) -> Color {

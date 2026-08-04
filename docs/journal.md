@@ -2936,3 +2936,112 @@ localement la ferait revenir au prochain lancement. Les dix tests relisent depui
 | Preuve — court-circuit de malformation retiré | 4 refus au lieu d'1 (après réfection de la fixture) |
 | Preuve — complètement des lignes courtes retiré | 2 assertions mordent |
 | Preuve — `headerSignature` en `locale: .current` | 5 tests **passent** -> la règle de lint mord |
+
+---
+
+## 2026-08-04 — La revue de `L11a`, et les huit défauts qu'elle a trouvés
+
+Sous-agent de revue lancé sur `L11a` complète, comme prévu. Il a fait la seule chose qui
+pouvait trouver ces bugs : **construire un paquet sonde hors dépôt** qui lie `CineShelfCore`,
+et exercer des entrées que la suite n'atteignait pas. J'ai reproduit chaque grief sur ma
+propre sonde avant de corriger — un rapport de revue n'est pas une vérité — et les huit se
+sont confirmés. Deux étaient même pires que décrits.
+
+**Le lecteur d'octets était la pièce fragile, et c'était bien là.**
+
+Trois défauts, tous **muets**, tous sur le chemin le plus banal :
+
+| Entrée | Avant | Après |
+|---|---|---|
+| 15 lignes, dont `Le mur de 6" de haut` | 7 lignes, 8 avalées | 15 lignes, 0 fautive |
+| 10 lignes, dont un synopsis de 12 lignes **correctement quoté** | 3 saines, 4 fautives, 3 évaporées | 10 saines |
+| Fichier à fins de ligne `CR` seules | en-tête de 4 colonnes, 0 ligne | en-tête juste, 2 lignes |
+
+Le premier vient de ce qu'un guillemet ouvrait un champ **n'importe où** dans la cellule. RFC
+4180 ne le compte qu'en début de champ. Un pouce, une taille d'écran, une citation dans un
+titre : huit titres valides disparaissaient, et le rapport annonçait « 7 analysées » sur 15.
+
+Le second est plus vicieux : après la refermeture forcée, la lecture reprenait **au milieu du
+champ**, donc le guillemet fermant était relu comme *ouvrant* et avalait la suite du fichier.
+Les paragraphes du synopsis remontaient en fausses lignes de données.
+
+**Le compromis du seuil n'était pas le bon compromis.** Un budget de lignes oppose deux
+besoins qu'il ne sait pas distinguer : un synopsis de douze lignes est légitime, un guillemet
+oublié doit coûter le moins possible. J'ai d'abord relevé le seuil de 8 à 32 — ce qui a fait
+passer le pire cas de 8 lignes perdues à 24. Mesuré, donc abandonné.
+
+La sortie est de **regarder au lieu de parier** : au premier saut de ligne dans un champ
+quoté, chercher en avant un guillemet fermant. S'il n'y en a pas, le champ ne se refermera
+jamais — ce n'est plus une hypothèse — et la ligne est close sans rien absorber. Un guillemet
+oublié coûte désormais **une** ligne. Le budget ne sert plus que de garde-fou au cas tordu où
+un guillemet parasite trouve un fermant appartenant à une autre cellule.
+
+**Et j'ai écrit un bug dans le correctif lui-même** : la fin du fichier et le plafond de
+recherche rendaient tous deux `true`, donc le cas même qu'on cherche à détecter se lisait
+« champ légitime ». 25 lignes utilisables au lieu de 49, sur un fichier contenant **un seul**
+guillemet. Attrapé par le test que je venais de resserrer — voir plus bas.
+
+**Deux tests à moi étaient faux, et c'est le motif de `CLAUDE.md` qui se répète**
+
+- « Les quatorze colonnes de la planche 11d se répartissent en trois qualités » appelait
+  `analyze(header:)` **sans lignes**. La passe de déduction par le contenu ne jouait donc
+  jamais, et l'assertion décrivait un classement que le fichier réel ne produit pas. Le test
+  était crédible et verrouillait une intention fausse. Remplacé par deux tests, dont un avec
+  les trois lignes de données du mock — celui-là échouait avant correction.
+- Le test fondateur du lecteur assenait `usable.count >= 40` sur 50 lignes. Il tolérait neuf
+  disparitions sans le dire, et la revue a mesuré 41 derrière ce vert. C'est un compte exact
+  désormais, et c'est lui qui a attrapé mon bug de regard en avant.
+
+**Le bug le plus coûteux : les corrections de masse ne repartaient pas**
+
+`settingCell` mettait à jour `cells` et laissait `rawFields`, dont le rapport redéposable est
+construit. Corriger 214 années, exporter les écartées pour finir les durées au tableur,
+redéposer : les 214 corrections avaient disparu. Le fichier était redéposable au sens du
+format, pas au sens du travail.
+
+**La correspondance devinait une date d'achat en date de sortie**
+
+La règle d'abstention — « une forme, un seul champ disponible » — ne protégeait que par
+accident : dès qu'un alias avait réclamé `added_at`, `release_date` devenait le seul champ
+`.date` restant, et `bought_at` le prenait. Seules les formes à contrainte **discriminante**
+se déduisent désormais du contenu : année, booléen, multivaleur. Une date ou un entier, jamais.
+
+**Le repository créait un doublon silencieux**
+
+Le doublon de `Genre.nameKey`, transposé. La lecture triait sur `updatedAt` seul, donc une
+correspondance personnelle ne masquait l'intégrée que si elle était plus récente — or un
+`isBuiltIn` arrive par mise à jour ou par fusion CloudKit, donc **plus tard**. Et `save`,
+trouvant l'intégrée, insérait un nouvel enregistrement à chaque appel : trois enregistrements
+pour une signature, dont deux personnels.
+
+**Deux trous de contrat comblés**
+
+- Rien ne **rejouait** un mappage relu : `ColumnMapping` s'écrivait, se relisait, se
+  versionnait, et aucune fonction n'en faisait une `ColumnAnalysis`. La promesse de la fiche
+  n'était pas exécutable depuis Core sans mettre la logique de reprise dans une vue.
+- La malformation de la ligne d'**en-tête** était jetée : le rapport accusait une colonne
+  manquante au lieu d'un guillemet non fermé.
+
+**Ce que la revue n'a pas trouvé**, et que je note parce que ça vaut autant : aucune
+dépendance à la locale dans le code neuf, aucun tri instable, aucune assertion adossée à un
+document de design pour une règle de modèle, et la frontière de la coupe `L11a` / `L11b`
+intacte — `grep` sur `ModelContext` dans `Services/Transfer/` ne rend qu'un `Set.insert`.
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| `swift test` CineShelfCore | **349 tests** (320 avant) |
+| `xcodebuild test` macOS | **67 tests**, `TEST SUCCEEDED` |
+| `swiftlint --strict` | 0 violation / 199 fichiers |
+| `xcrun swift-format lint` | 0 avertissement |
+| Preuve — le guillemet ouvre à nouveau n'importe où | 2 assertions mordent |
+| Preuve — fin de fichier confondue avec le plafond | 3 tests mordent |
+| Preuve — la correction ne repart plus dans le rapport | 1 test mord |
+| Preuve — la déduction reprend les dates | 3 assertions mordent |
+| Preuve — l'intégré repasse devant le personnel | 1 test mord |
+
+Les cinq preuves ont vérifié que l'injection était **réellement présente** avant de conclure,
+comme la règle ajoutée à `CLAUDE.md` ce matin l'exige. Sans elle, la preuve n° 3 de la passe
+précédente m'avait déjà menti une fois.

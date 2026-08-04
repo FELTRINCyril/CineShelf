@@ -4171,3 +4171,76 @@ laisser croire qu'un écran réécrit s'accompagne toujours de tests.
 
 **Suite : `V0 bis`, la suite** — la fiche titre (hero, affiche, métadonnées, casting,
 galerie, liens). L'éditeur attend `I7`–`I9`.
+
+---
+
+## 2026-08-04 (9) — La fiche titre, un composant supprimé et un autre corrigé
+
+`V0 bis` avance : la fiche est faite. **L'éditeur ne l'est pas, et il est bloqué** — ses
+champs sont ceux de `I7`–`I9`, palier 3, et le plan le disait déjà. Ce n'est pas un
+renoncement, c'est la dépendance qui était inscrite.
+
+**`PosterTileDetail` est supprimé.** La consigne était nette : soit il a un foyer, soit il
+part. Recherche faite dans les onze planches — Recherche (`5b`), Ma liste (`5c`) et Signets
+(`5d`) montrent des affiches **nues** ; le Fil (`5e`) et la console utilisent des **lignes**
+de 38 pt, qui sont `I5` ; le seul rendu d'une carte « affiche + métadonnées » est dans le
+bloc **`2b`**, direction abandonnée. Il n'avait donc pas de foyer. Le coût est réel — `I2`
+l'avait livré deux jours plus tôt — mais un composant orphelin « au cas où » finit branché
+par quelqu'un qui croit corriger un oubli, et sa reprise depuis `8262878` coûte moins cher
+que ce faux branchement.
+
+**`PersonTile` était fausse, et c'est un défaut de `I2` trouvé par la fiche.** Elle rendait
+un rectangle 2:3, comme une affiche. Les **quatre** rendus de personne de la direction
+retenue sont des **cercles en 1:1** : casting du bloc `4b` (96 pt), grille `4c`
+(`aspect-ratio:1` + `border-radius:50%`), portrait `4d` (230 pt) et son rail « Souvent
+avec » (84 pt).
+
+Ça oblige à préciser une règle que j'avais énoncée trop largement à `I3` : « la direction
+`2a` n'a aucun rayon, nulle part » est **faux**. Ce qui n'a jamais de coin arrondi, c'est ce
+qui est **photographique et rectangulaire** — affiches, jaquettes, images. Une personne n'est
+pas une affiche. Et l'avatar de **profil** du bloc `7f` reste carré non pas malgré la règle
+mais **parce qu'il n'est pas un portrait** : c'est une pastille de couleur avec une
+initiale, qui désigne un compte. Mon raisonnement d'`I3` arrivait à la bonne conclusion par
+un motif trop large ; il aurait donné une réponse fausse ici.
+
+**Un écart connu se referme.** « Sans média `backdrop`, la fiche n'affiche aucun hero » —
+en réserve depuis le prompt 11. Le design tranche : le bloc `4b` pose la **même source** en
+fond flouté et en affiche nette, et le §11 dit qu'aucune image large n'existe encore. La
+fiche prend donc `backdrop` s'il existe, la jaquette sinon.
+
+**Ce que le recadrage fait réellement, mesuré et pas supposé.** `DemoCatalog` ne crée que des
+pièces jointes `.primary` et **aucune** ligne `MediaCrop`. Le hero emprunte donc le repli —
+jaquette 600 × 900 (2:3 exact), contexte `.card`, recadrage `.neutral` — et `MediaFill` la
+fait remplir une bande 16:9, ce qui lui coûte le haut et le bas. Sous un flou de 22 pt et un
+agrandissement de 1,28, ça ne se voit pas. **Mais le chemin `CropContext.hero` reste non
+exercé en pratique** : il le sera à `V2`, quand on pourra attacher une vraie image large.
+C'est exactement la nuance que la question posait, et la réponse honnête n'est pas
+« ça marche » mais « ça marche par le chemin de repli, l'autre n'est pas emprunté ».
+
+**La lacune de `I6` est traitée là où elle coûtait.** La ligne de métadonnées de la fiche
+porte la note **en chiffres** à côté de la barre : 8,4 et 8,0 donnent quatre étoiles et
+seraient indistinguables. Le nombre est la forme que le design utilise lui-même ailleurs
+(« ★ 4,5 », bloc `4a`), donc rien n'est inventé — seulement remis là où son absence coûtait
+une décimale.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **67 tests**, 9 suites |
+| `xcodebuild test -scheme CineShelfUITests -destination iOS Simulator` | ✅ **1 test**, 56,5 s |
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **450 · 63 · 38** |
+| `xcodebuild test -scheme DesignSystemCatalog -destination macOS` | ✅ **64 tests** |
+| `xcodebuild build -scheme CineShelf -destination macOS` | ✅ `BUILD SUCCEEDED` |
+| `xcodebuild build -scheme CineShelf -destination iOS Simulator` | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 245 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| Lancement réel sur Mac | ✅ processus `CineShelf` vivant après `open` |
+
+**Aucun test neuf**, et le dire vaut mieux que le laisser croire : la fiche est une
+composition de composants déjà couverts, et les deux corrections de composants
+(`PersonTile` en cercle, `MediaFill` publique) sont des changements de **forme**, que la
+suite existante ne peut pas distinguer — c'est la planche du catalogue qui les juge.
+
+**Suite : `I7`** — champ texte, zone de texte, champ nombre. C'est ce qui débloque
+l'éditeur, donc ce qui reste de `V0 bis`.

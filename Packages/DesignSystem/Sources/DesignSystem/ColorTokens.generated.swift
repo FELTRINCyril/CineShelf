@@ -6,79 +6,38 @@ import SwiftUI
 
 public enum ColorTokens {
 
-    /// Les 36 primitives. Aucune vue de l'app ne doit les lire :
-    /// elles ne sont exposees que pour le catalogue et les tests.
-    public static let primitives: [String] = [
-        "Graphite/0",
-        "Graphite/50",
-        "Graphite/100",
-        "Graphite/200",
-        "Graphite/300",
-        "Graphite/400",
-        "Graphite/500",
-        "Graphite/600",
-        "Graphite/700",
-        "Graphite/800",
-        "Graphite/850",
-        "Graphite/900",
-        "Graphite/950",
-        "Graphite/1000",
-        "Ember/50",
-        "Ember/100",
-        "Ember/200",
-        "Ember/300",
-        "Ember/400",
-        "Ember/500",
-        "Ember/600",
-        "Ember/700",
-        "Ember/800",
-        "Ember/900",
-        "Jade/400",
-        "Jade/500",
-        "Jade/600",
-        "Amber/400",
-        "Amber/500",
-        "Amber/600",
-        "Crimson/400",
-        "Crimson/500",
-        "Crimson/600",
-        "Azure/400",
-        "Azure/500",
-        "Azure/600"
-    ]
-
-    /// Les 23 jeux semantiques — le seul niveau que les vues lisent.
+    /// Les 19 roles de la direction « 2a Plein cadre » — le seul
+    /// niveau qu'une vue lit, et le seul que du code neuf a le droit de lire.
+    ///
+    /// Il n'y a pas de niveau « primitives » : la planche 8 ne fournit aucune
+    /// rampe, elle pose directement ces roles avec leurs quatre apparences.
     public static let semantics: [String] = [
         "bg/canvas",
-        "bg/surface",
-        "bg/surfaceRaised",
         "bg/inset",
-        "bg/selected",
+        "bg/surface",
+        "bg/raised",
+        "bg/fill",
+        "bg/viewer",
         "text/primary",
         "text/secondary",
         "text/tertiary",
-        "text/onAccent",
-        "border/subtle",
-        "border/default",
-        "border/strong",
-        "accent/text",
-        "accent/solid",
-        "accent/soft",
-        "status/success",
-        "status/warning",
-        "status/danger",
-        "status/info",
-        "media/placeholder",
-        "media/ring",
-        "state/private",
-        "state/archived"
+        "accent",
+        "accent/onAccent",
+        "danger",
+        "success",
+        "separator",
+        "private/mask",
+        "scrim/modal",
+        "scrim/crop",
+        "fill/onImage",
+        "chip/onImage"
     ]
 
-    /// Les 59 Color Sets du catalogue.
-    public static let all: [String] = primitives + semantics
+    /// Les 19 Color Sets de la direction courante.
+    public static let all: [String] = semantics
 
-    /// La couleur d'un token, par son nom. Sert au catalogue, qui parcourt les
-    /// listes ci-dessus ; le code d'application passe par les accesseurs types.
+    /// La couleur d'un token, par son nom. Sert au catalogue, qui parcourt la
+    /// liste ci-dessus ; le code d'application passe par les accesseurs types.
     public static func color(for token: String) -> Color {
         Color(token, bundle: .designSystem)
     }
@@ -94,28 +53,24 @@ public enum ColorTokens {
     public static func typedAccessor(for token: String) -> Color? {
         switch token {
         case "bg/canvas": Color.bgCanvas
-        case "bg/surface": Color.bgSurface
-        case "bg/surfaceRaised": Color.bgSurfaceRaised
         case "bg/inset": Color.bgInset
-        case "bg/selected": Color.bgSelected
+        case "bg/surface": Color.bgSurface
+        case "bg/raised": Color.bgRaised
+        case "bg/fill": Color.bgFill
+        case "bg/viewer": Color.bgViewer
         case "text/primary": Color.textPrimary
         case "text/secondary": Color.textSecondary
         case "text/tertiary": Color.textTertiary
-        case "text/onAccent": Color.textOnAccent
-        case "border/subtle": Color.borderSubtle
-        case "border/default": Color.borderDefault
-        case "border/strong": Color.borderStrong
-        case "accent/text": Color.accentText
-        case "accent/solid": Color.accentSolid
-        case "accent/soft": Color.accentSoft
-        case "status/success": Color.statusSuccess
-        case "status/warning": Color.statusWarning
-        case "status/danger": Color.statusDanger
-        case "status/info": Color.statusInfo
-        case "media/placeholder": Color.mediaPlaceholder
-        case "media/ring": Color.mediaRing
-        case "state/private": Color.statePrivate
-        case "state/archived": Color.stateArchived
+        case "accent": Color.accent
+        case "accent/onAccent": Color.accentOnAccent
+        case "danger": Color.danger
+        case "success": Color.success
+        case "separator": Color.separatorLine
+        case "private/mask": Color.privateMask
+        case "scrim/modal": Color.scrimModal
+        case "scrim/crop": Color.scrimCrop
+        case "fill/onImage": Color.fillOnImage
+        case "chip/onImage": Color.chipOnImage
         default: nil
         }
     }
@@ -127,40 +82,35 @@ public enum ColorTokens {
 //
 // La chaine d'un token n'apparait qu'ici, une seule fois. Les deux extensions
 // publiques ci-dessous s'y referent : c'est ce qui rend impossible la faute de
-// frappe qui existait quand les 23 tokens etaient ecrits a la main deux fois.
+// frappe qui existait quand les tokens etaient ecrits a la main deux fois.
 
 extension ColorTokens {
-    static var bgCanvas: Color { color(for: "bg/canvas") }
-    static var bgSurface: Color { color(for: "bg/surface") }
-    static var bgSurfaceRaised: Color { color(for: "bg/surfaceRaised") }
-    static var bgInset: Color { color(for: "bg/inset") }
-    static var bgSelected: Color { color(for: "bg/selected") }
-    static var textPrimary: Color { color(for: "text/primary") }
-    static var textSecondary: Color { color(for: "text/secondary") }
-    static var textTertiary: Color { color(for: "text/tertiary") }
-    static var textOnAccent: Color { color(for: "text/onAccent") }
-    static var borderSubtle: Color { color(for: "border/subtle") }
-    static var borderDefault: Color { color(for: "border/default") }
-    static var borderStrong: Color { color(for: "border/strong") }
-    static var accentText: Color { color(for: "accent/text") }
-    static var accentSolid: Color { color(for: "accent/solid") }
-    static var accentSoft: Color { color(for: "accent/soft") }
-    static var statusSuccess: Color { color(for: "status/success") }
-    static var statusWarning: Color { color(for: "status/warning") }
-    static var statusDanger: Color { color(for: "status/danger") }
-    static var statusInfo: Color { color(for: "status/info") }
-    static var mediaPlaceholder: Color { color(for: "media/placeholder") }
-    static var mediaRing: Color { color(for: "media/ring") }
-    static var statePrivate: Color { color(for: "state/private") }
-    static var stateArchived: Color { color(for: "state/archived") }
+    static var bgCanvas: Color { ColorTokens.color(for: "bg/canvas") }
+    static var bgInset: Color { ColorTokens.color(for: "bg/inset") }
+    static var bgSurface: Color { ColorTokens.color(for: "bg/surface") }
+    static var bgRaised: Color { ColorTokens.color(for: "bg/raised") }
+    static var bgFill: Color { ColorTokens.color(for: "bg/fill") }
+    static var bgViewer: Color { ColorTokens.color(for: "bg/viewer") }
+    static var textPrimary: Color { ColorTokens.color(for: "text/primary") }
+    static var textSecondary: Color { ColorTokens.color(for: "text/secondary") }
+    static var textTertiary: Color { ColorTokens.color(for: "text/tertiary") }
+    static var accent: Color { ColorTokens.color(for: "accent") }
+    static var accentOnAccent: Color { ColorTokens.color(for: "accent/onAccent") }
+    static var danger: Color { ColorTokens.color(for: "danger") }
+    static var success: Color { ColorTokens.color(for: "success") }
+    static var separatorLine: Color { ColorTokens.color(for: "separator") }
+    static var privateMask: Color { ColorTokens.color(for: "private/mask") }
+    static var scrimModal: Color { ColorTokens.color(for: "scrim/modal") }
+    static var scrimCrop: Color { ColorTokens.color(for: "scrim/crop") }
+    static var fillOnImage: Color { ColorTokens.color(for: "fill/onImage") }
+    static var chipOnImage: Color { ColorTokens.color(for: "chip/onImage") }
 }
 
 // MARK: - Acces typé aux jeux semantiques
 //
-// Niveau 2 uniquement : aucune vue ne reference une primitive (Graphite/900…),
-// et aucune couleur litterale n'existe hors du package.
-// Clair / sombre / contraste eleve sont resolus par les apparences du catalogue,
-// jamais par du code conditionnel.
+// Aucune couleur litterale n'existe hors de ce package. Clair, sombre et
+// contraste eleve sont resolus par les apparences du catalogue d'assets, jamais
+// par du code conditionnel.
 //
 // Deux extensions, parce que les deux chemins d'appel existent et doivent tous
 // deux rester ergonomiques :
@@ -177,52 +127,44 @@ extension ColorTokens {
 
 extension ShapeStyle where Self == Color {
     public static var bgCanvas: Color { ColorTokens.bgCanvas }
-    public static var bgSurface: Color { ColorTokens.bgSurface }
-    public static var bgSurfaceRaised: Color { ColorTokens.bgSurfaceRaised }
     public static var bgInset: Color { ColorTokens.bgInset }
-    public static var bgSelected: Color { ColorTokens.bgSelected }
+    public static var bgSurface: Color { ColorTokens.bgSurface }
+    public static var bgRaised: Color { ColorTokens.bgRaised }
+    public static var bgFill: Color { ColorTokens.bgFill }
+    public static var bgViewer: Color { ColorTokens.bgViewer }
     public static var textPrimary: Color { ColorTokens.textPrimary }
     public static var textSecondary: Color { ColorTokens.textSecondary }
     public static var textTertiary: Color { ColorTokens.textTertiary }
-    public static var textOnAccent: Color { ColorTokens.textOnAccent }
-    public static var borderSubtle: Color { ColorTokens.borderSubtle }
-    public static var borderDefault: Color { ColorTokens.borderDefault }
-    public static var borderStrong: Color { ColorTokens.borderStrong }
-    public static var accentText: Color { ColorTokens.accentText }
-    public static var accentSolid: Color { ColorTokens.accentSolid }
-    public static var accentSoft: Color { ColorTokens.accentSoft }
-    public static var statusSuccess: Color { ColorTokens.statusSuccess }
-    public static var statusWarning: Color { ColorTokens.statusWarning }
-    public static var statusDanger: Color { ColorTokens.statusDanger }
-    public static var statusInfo: Color { ColorTokens.statusInfo }
-    public static var mediaPlaceholder: Color { ColorTokens.mediaPlaceholder }
-    public static var mediaRing: Color { ColorTokens.mediaRing }
-    public static var statePrivate: Color { ColorTokens.statePrivate }
-    public static var stateArchived: Color { ColorTokens.stateArchived }
+    public static var accent: Color { ColorTokens.accent }
+    public static var accentOnAccent: Color { ColorTokens.accentOnAccent }
+    public static var danger: Color { ColorTokens.danger }
+    public static var success: Color { ColorTokens.success }
+    public static var separatorLine: Color { ColorTokens.separatorLine }
+    public static var privateMask: Color { ColorTokens.privateMask }
+    public static var scrimModal: Color { ColorTokens.scrimModal }
+    public static var scrimCrop: Color { ColorTokens.scrimCrop }
+    public static var fillOnImage: Color { ColorTokens.fillOnImage }
+    public static var chipOnImage: Color { ColorTokens.chipOnImage }
 }
 
 extension Color {
     public static var bgCanvas: Color { ColorTokens.bgCanvas }
-    public static var bgSurface: Color { ColorTokens.bgSurface }
-    public static var bgSurfaceRaised: Color { ColorTokens.bgSurfaceRaised }
     public static var bgInset: Color { ColorTokens.bgInset }
-    public static var bgSelected: Color { ColorTokens.bgSelected }
+    public static var bgSurface: Color { ColorTokens.bgSurface }
+    public static var bgRaised: Color { ColorTokens.bgRaised }
+    public static var bgFill: Color { ColorTokens.bgFill }
+    public static var bgViewer: Color { ColorTokens.bgViewer }
     public static var textPrimary: Color { ColorTokens.textPrimary }
     public static var textSecondary: Color { ColorTokens.textSecondary }
     public static var textTertiary: Color { ColorTokens.textTertiary }
-    public static var textOnAccent: Color { ColorTokens.textOnAccent }
-    public static var borderSubtle: Color { ColorTokens.borderSubtle }
-    public static var borderDefault: Color { ColorTokens.borderDefault }
-    public static var borderStrong: Color { ColorTokens.borderStrong }
-    public static var accentText: Color { ColorTokens.accentText }
-    public static var accentSolid: Color { ColorTokens.accentSolid }
-    public static var accentSoft: Color { ColorTokens.accentSoft }
-    public static var statusSuccess: Color { ColorTokens.statusSuccess }
-    public static var statusWarning: Color { ColorTokens.statusWarning }
-    public static var statusDanger: Color { ColorTokens.statusDanger }
-    public static var statusInfo: Color { ColorTokens.statusInfo }
-    public static var mediaPlaceholder: Color { ColorTokens.mediaPlaceholder }
-    public static var mediaRing: Color { ColorTokens.mediaRing }
-    public static var statePrivate: Color { ColorTokens.statePrivate }
-    public static var stateArchived: Color { ColorTokens.stateArchived }
+    public static var accent: Color { ColorTokens.accent }
+    public static var accentOnAccent: Color { ColorTokens.accentOnAccent }
+    public static var danger: Color { ColorTokens.danger }
+    public static var success: Color { ColorTokens.success }
+    public static var separatorLine: Color { ColorTokens.separatorLine }
+    public static var privateMask: Color { ColorTokens.privateMask }
+    public static var scrimModal: Color { ColorTokens.scrimModal }
+    public static var scrimCrop: Color { ColorTokens.scrimCrop }
+    public static var fillOnImage: Color { ColorTokens.fillOnImage }
+    public static var chipOnImage: Color { ColorTokens.chipOnImage }
 }

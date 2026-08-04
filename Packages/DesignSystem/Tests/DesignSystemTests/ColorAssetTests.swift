@@ -44,14 +44,29 @@ enum AssetCatalog {
 }
 
 @Test(
-    "Les 59 Color Sets sont presents dans le catalogue compile",
+    "Les 19 Color Sets de la direction courante sont presents dans le catalogue compile",
     .enabled(if: AssetCatalog.isCompiled, AssetCatalog.skipReason)
 )
 func everyColorTokenResolves() {
-    #expect(ColorTokens.all.count == 59)
+    #expect(ColorTokens.all.count == 19)
 
     let missing = ColorTokens.all.filter { !AssetCatalog.contains($0) }
     #expect(missing.isEmpty, "Color Sets absents du .xcassets : \(missing.joined(separator: ", "))")
+}
+
+@Test(
+    "Les jeux legacy resolvent aussi, sinon le banc d'essai rend du transparent",
+    .enabled(if: AssetCatalog.isCompiled, AssetCatalog.skipReason)
+)
+func legacyColorTokensStillResolve() {
+    // L'ancienne direction est en sursis, pas retiree : l'interface des prompts 10
+    // et 11 la lit encore. Un jeu manquant ne casserait pas la compilation, il
+    // rendrait du transparent — exactement la defaillance silencieuse que ce
+    // fichier existe pour attraper. Voir Sources/DesignSystem/Legacy/README.md.
+    #expect(LegacyColorTokens.semantics.count == 17)
+
+    let missing = LegacyColorTokens.semantics.filter { !AssetCatalog.contains($0) }
+    #expect(missing.isEmpty, "Jeux legacy absents du .xcassets : \(missing.joined(separator: ", "))")
 }
 
 @Test(
@@ -159,8 +174,9 @@ func semanticColorsDoNotFallBackToADefault(token: String) throws {
     )
     let rendered = try #require(components(of: accessor), "Conversion indisponible pour \(token)")
 
-    // Premier filet : un jeu introuvable rend transparent. Aucune semantique du
-    // catalogue n'est translucide, donc alpha nul == resolution ratee.
+    // Premier filet : un jeu introuvable rend transparent. Quatre semantiques ont
+    // un alpha inferieur a 1 — les deux voiles, `fill/onImage` et `chip/onImage` —
+    // mais aucune n'a un alpha **nul**, donc alpha nul == resolution ratee.
     #expect(
         rendered.isTransparent == false,
         """
@@ -205,28 +221,24 @@ private let shapeStyleAccessors = Dictionary(
 
 private let shapeStylePairs: [(String, Color?)] = [
     ("bg/canvas", viaShapeStyle(.bgCanvas)),
-    ("bg/surface", viaShapeStyle(.bgSurface)),
-    ("bg/surfaceRaised", viaShapeStyle(.bgSurfaceRaised)),
     ("bg/inset", viaShapeStyle(.bgInset)),
-    ("bg/selected", viaShapeStyle(.bgSelected)),
+    ("bg/surface", viaShapeStyle(.bgSurface)),
+    ("bg/raised", viaShapeStyle(.bgRaised)),
+    ("bg/fill", viaShapeStyle(.bgFill)),
+    ("bg/viewer", viaShapeStyle(.bgViewer)),
     ("text/primary", viaShapeStyle(.textPrimary)),
     ("text/secondary", viaShapeStyle(.textSecondary)),
     ("text/tertiary", viaShapeStyle(.textTertiary)),
-    ("text/onAccent", viaShapeStyle(.textOnAccent)),
-    ("border/subtle", viaShapeStyle(.borderSubtle)),
-    ("border/default", viaShapeStyle(.borderDefault)),
-    ("border/strong", viaShapeStyle(.borderStrong)),
-    ("accent/text", viaShapeStyle(.accentText)),
-    ("accent/solid", viaShapeStyle(.accentSolid)),
-    ("accent/soft", viaShapeStyle(.accentSoft)),
-    ("status/success", viaShapeStyle(.statusSuccess)),
-    ("status/warning", viaShapeStyle(.statusWarning)),
-    ("status/danger", viaShapeStyle(.statusDanger)),
-    ("status/info", viaShapeStyle(.statusInfo)),
-    ("media/placeholder", viaShapeStyle(.mediaPlaceholder)),
-    ("media/ring", viaShapeStyle(.mediaRing)),
-    ("state/private", viaShapeStyle(.statePrivate)),
-    ("state/archived", viaShapeStyle(.stateArchived))
+    ("accent", viaShapeStyle(.accent)),
+    ("accent/onAccent", viaShapeStyle(.accentOnAccent)),
+    ("danger", viaShapeStyle(.danger)),
+    ("success", viaShapeStyle(.success)),
+    ("separator", viaShapeStyle(.separatorLine)),
+    ("private/mask", viaShapeStyle(.privateMask)),
+    ("scrim/modal", viaShapeStyle(.scrimModal)),
+    ("scrim/crop", viaShapeStyle(.scrimCrop)),
+    ("fill/onImage", viaShapeStyle(.fillOnImage)),
+    ("chip/onImage", viaShapeStyle(.chipOnImage))
 ]
 
 @Test("La liste ShapeStyle du test couvre toutes les semantiques")
@@ -277,12 +289,21 @@ func alphaProbeDetectsAMissingColorSet() throws {
 
 // Ces deux-la ne touchent pas au catalogue compile : ils tournent partout.
 
-@Test("Le decoupage primitives / semantiques est celui attendu")
+@Test("Les 19 roles de la direction courante, et rien d'autre")
 func tokenListsHaveExpectedShape() {
-    #expect(ColorTokens.primitives.count == 36)
-    #expect(ColorTokens.semantics.count == 23)
-    #expect(Set(ColorTokens.primitives).isDisjoint(with: Set(ColorTokens.semantics)))
+    // Il n'y a plus de niveau « primitives » : la planche 8 ne fournit aucune
+    // rampe, elle pose directement ces roles avec leurs quatre apparences.
+    #expect(ColorTokens.semantics.count == 19)
+    #expect(ColorTokens.all == ColorTokens.semantics)
     #expect(Set(ColorTokens.all).count == ColorTokens.all.count, "Nom de token en double")
+}
+
+@Test("Aucun jeu legacy n'a le nom d'un jeu courant")
+func legacyTokensDoNotShadowCurrentOnes() {
+    // Un nom present des deux cotes produirait deux .colorset sur le meme chemin
+    // et deux accesseurs Swift homonymes. Le generateur laisse gagner le nouveau ;
+    // ce test verifie qu'il l'a bien fait.
+    #expect(Set(LegacyColorTokens.semantics).isDisjoint(with: Set(ColorTokens.semantics)))
 }
 
 @Test("Chaque semantique a un accesseur type", arguments: ColorTokens.semantics)

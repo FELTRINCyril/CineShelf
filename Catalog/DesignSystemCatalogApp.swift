@@ -22,9 +22,14 @@ struct DesignSystemCatalogApp: App {
 }
 
 enum CatalogSection: String, CaseIterable, Identifiable {
+    // Les tokens de la direction courante.
     case palette = "Couleurs"
     case typography = "Typographie"
-    case metrics = "Rayons · Espacements · Élévations"
+    case metrics = "Espacement · Densité · Rayons · Mouvement"
+    case posters = "Affiches · Matrice"
+    case icons = "Symboles"
+    // Les sept composants du banc d'essai, ancienne direction. Ils partent avec
+    // Legacy/ à V12 ; on ne les investit plus.
     case stateView = "StateView"
     case fieldRow = "FieldRow"
     case filterBar = "FilterBar · DisplayMenu"
@@ -115,6 +120,8 @@ struct CatalogRootView: View {
         case .palette: PaletteSheet()
         case .typography: TypographySheet()
         case .metrics: MetricsSheet()
+        case .posters: PosterSheet()
+        case .icons: IconSheet()
         case .stateView: StateViewSheet()
         case .fieldRow: FieldRowSheet()
         case .filterBar: FilterBarSheet()

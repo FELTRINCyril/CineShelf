@@ -2161,3 +2161,134 @@ l'`oklch` canonique. Les bonnes valeurs sont `#080808` et `#010101`.
 C'est la démonstration de ce que l'intégration devait éviter : ce n'est pas le
 détournement qui aurait été gravé, ce sont deux valeurs simplement fausses, dans le
 tableau qui sert de source au catalogue d'assets.
+
+---
+
+## 2026-08-04 (2) — `I1` : les tokens de la nouvelle direction
+
+Les tokens seuls, aucun composant. L'ancienne direction est isolée, pas complétée.
+
+**Ce qui entre**
+
+| Volet | Contenu |
+|---|---|
+| Couleur | 19 rôles × 4 apparences, `colors.tokens.json` réécrit depuis la planche 8 |
+| Typographie | 11 rôles, 5 familles embarquées, bascule du titrage à la première taille d'accessibilité |
+| Métriques | 8 espacements, densité à 2 crans (7 mesures), 5 rayons + `sheet`, 2 traits, 6 durées, 7 plans, 6 points de rupture |
+| Affiches | 6 crans (32 à 280) et la matrice complète : 8 contextes × 2 dispositions × 3 tailles |
+| Symboles | les 37 SF Symbols de la section 8 |
+| Catalogue | 5 planches, dont deux nouvelles (Affiches, Symboles) |
+
+**Le JSON ne porte plus les composantes Display P3**
+
+Elles étaient recopiées à la main à côté de chaque hex, et rien ne vérifiait qu'elles
+correspondaient. `generate-colors.py` fait maintenant la conversion sRGB vers Display P3
+lui-même, et le JSON ne contient que les hex de la planche 8 — donc il se relit contre
+le handoff sans calcul. La conversion a été validée avant d'être adoptée : elle
+reproduit les **128 composantes** de l'ancien fichier, calculées séparément, à 0,0002
+près. Zéro écart.
+
+**Deux hexadécimaux du handoff étaient faux, et c'est ça que l'intégration a évité**
+
+Ce n'est pas le détournement de jeton qui aurait été gravé dans le catalogue d'assets —
+il vivait dans les écrans d'import, pas dans les tokens. Ce sont deux valeurs
+simplement fausses, dans le tableau qui sert de source :
+
+| Jeton | Handoff | Réel | Pourquoi c'est faux |
+|---|---|---|---|
+| `bg.inset` | `#1f1f1f` | `#080808` | C'est la valeur de `bg.raised`, et elle est *au-dessus* de `bg.surface` — donc pas « un cran entre `bg.canvas` et `bg.surface` », qui est la raison d'être du jeton |
+| `bg.viewer` | `#0f0f0f` | `#010101` | *Plus clair* que `bg.canvas` — donc pas « plus sombre que tout le reste pour que l'image porte seule » |
+
+Même cause pour les deux : ce sont les deux jetons ajoutés tardivement, légitimés comme
+écarts dans la planche 8, dont l'hexadécimal n'a jamais été recalculé depuis l'`oklch`
+canonique. Corrigés dans `design/README.md` §4.1, avec la note qui l'explique.
+
+**Trois pièges qui n'auraient rien cassé à la compilation**
+
+1. **`IBMPlexMono-Medm`.** Le nom PostScript relevé sur les fichiers réels : le Regular
+   s'appelle `IBMPlexMono` **sans** `-Regular`, et le Medium est abrégé en `-Medm`.
+   Écrits « comme on les attend », `Font.custom` serait retombé sur Helvetica en
+   silence. Un test paramétré verrouille les deux, et le commentaire de `Face` qui
+   annonçait « nom PostScript et nom de fichier sont distincts, ne pas fusionner »
+   trouve enfin son cas réel.
+2. **`ShapeStyle.separator` existe déjà dans SwiftUI.** Déclarer le nôtre sous le même
+   nom ne casse pas la compilation : ça rend `.separator` **ambigu**, et une vue peut
+   prendre la couleur système d'Apple au lieu du token. C'est `ColorAssetTests` qui l'a
+   attrapé. Le token garde son nom, l'accesseur devient `separatorLine`.
+3. **`DynamicTypeSize.accessibilityMedium` n'existe pas.** La planche 8 écrit
+   `.accessibilityMedium`, qui est le nom `ContentSizeCategory` de cette taille ;
+   `DynamicTypeSize` l'appelle `.accessibility1`. La bascule passe par
+   `isAccessibilitySize`, ce qui évite de traduire entre les deux échelles.
+
+**Un interblocage, et ce n'était pas mon code**
+
+La suite du package s'est mise à ne plus rendre la main : dix minutes à 0 % de
+processeur. `sample` a montré la pile entière en attente dans `XTypeXPCClient run:`.
+
+Cause : `fallbackFamilyName()` demandait à CoreText un nom de police inconnu, ce qui
+déclenche une résolution par XPC vers `libFontRegistry` et son gestionnaire
+d'auto-activation. Le test est paramétré **par fonte**, swift-testing exécute les cas en
+parallèle : à quatre fontes ça passait, à onze les appels XPC concurrents se bloquent
+mutuellement. Les deux sondes sont désormais des `let` globales, calculées une fois par
+exécution. La suite passe en 0,12 s.
+
+**Ce qui n'entre pas, et pourquoi**
+
+Pas de niveau « primitives ». La planche 8 ne fournit aucune rampe : elle pose
+directement 19 rôles avec leurs quatre apparences. En inventer une couche serait
+inventer du design. Les 36 primitives de l'ancienne direction sont abandonnées — aucune
+vue ne les lisait, seul le catalogue les affichait par nom, et l'écart correspondant se
+ferme du même coup.
+
+**L'ancienne direction : isolée, datée, et sous garde de lint**
+
+`Packages/DesignSystem/Sources/DesignSystem/Legacy/` porte les 17 jeux de couleur, les
+12 rôles typo, les ombres, les bordures, `CardMetrics` et les proportions 3:2 et 4:5.
+Elle n'est pas là pour être reprise : elle est là parce que la retirer ne casserait pas
+la compilation — **ça rendrait du transparent**, et c'est la défaillance silencieuse que
+`ColorAssetTests` existe pour attraper.
+
+Là où un nom existe des deux côtés, **le nouveau gagne** : les six jeux communs,
+`Typo.body`, `Radius.xs` (2 pt au lieu de 4), `Motion.base` et `Motion.sheet`. Le banc
+d'essai s'en trouve très légèrement différent, ce qui est exactement son rôle.
+`no_legacy_design_system` interdit à tout fichier neuf de rattraper un concept supprimé,
+avec une liste d'exclusions figée. La procédure de suppression, en sept points, est dans
+`Legacy/README.md`.
+
+**Aucun écran de `App/` n'a bougé.** Les deux builds passent sans qu'une ligne y ait été
+touchée — c'était la condition du découpage.
+
+**Deux règles de lint corrigées au passage**
+
+`no_corner_radius` mordait sur sa propre documentation : la règle n'excluait pas les
+commentaires, donc la docstring de `dsClip` qui explique *pourquoi ne pas* utiliser
+`.cornerRadius()` la déclenchait. Et `identifier_name` refusait `s`, `m`, `l` — les noms
+des crans de l'échelle d'affiche de la planche 8, qu'il aurait fallu renommer pour
+diverger du handoff.
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| Build `DesignSystemCatalog` macOS | `** BUILD SUCCEEDED **` |
+| Tests `CineShelf` (macOS) | `** TEST SUCCEEDED **` |
+| Tests `DesignSystemCatalog` macOS / iOS | `** TEST SUCCEEDED **` |
+| `swift test` Core / DesignSystem / MediaKit | 159 / **46** / 38 (24 avant pour DesignSystem) |
+| `swiftlint --strict` | 0 violation / 166 fichiers |
+| `xcrun swift-format lint` | 0 avertissement |
+| Conversion sRGB vers P3 | 128 composantes de l'ancien fichier reproduites, 0 écart |
+| Les 8 fontes de la direction courante | résolues sur leur vraie famille, mesuré hors test |
+| Catalogue lancé | tourne, cinq planches |
+
+**Non vérifié : le rendu à l'écran.** `screencapture` est refusé dans cet environnement
+(pas d'autorisation d'enregistrement d'écran), donc je n'ai pas pu regarder les planches
+moi-même. Ce qui est mesuré à la place est plus solide pour ce qui compte : les tests du
+catalogue tournent avec le `Colors.xcassets` **compilé**, donc les 36 jeux résolvent
+réellement, et les familles de police sont vérifiées par mesure de rendu.
+
+**Suite**
+
+Les composants sont l'étape suivante du design, pas de `I1` : ils appartiennent aux
+étapes 1 à 10 de la méthode du `06 §6`, avant `V1`. Côté logique, `L10` reste la tâche
+suivante du chemin critique.

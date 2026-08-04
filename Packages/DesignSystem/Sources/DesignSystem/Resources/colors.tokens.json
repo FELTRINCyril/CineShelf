@@ -1,1390 +1,224 @@
 {
-  "$schema": "cineshelf.designsystem.colors/1",
+  "$schema": "cineshelf.designsystem.colors/2",
   "target": "DesignSystem/Resources/Colors.xcassets",
   "colorSpace": "display-p3",
+  "source": "docs/design/CineShelf - Planche 8 - Tokens.dc.html, section couleur",
   "notes": [
-    "Chaque entrée `primitives[]` est un Color Set universel (une seule apparence Any).",
-    "Chaque entrée `semantics[]` est un Color Set à 4 apparences : any (clair), dark, anyHighContrast, darkHighContrast.",
-    "Les composantes `displayP3` sont la conversion colorimétrique exacte des hex sRGB de référence : à écrire telles quelles dans le .xcassets (color-space \"display-p3\", input \"components\", float).",
-    "Le `/` dans le nom = dossier avec \"Provides Namespace\" coché. Ex. bg/canvas -> Colors.xcassets/bg/canvas.colorset.",
-    "Les primitives ne sont jamais lues par une vue (niveau 1)."
-  ],
-  "primitives": [
-    {
-      "name": "Graphite/0",
-      "universal": {
-        "hex": "#FFFFFF",
-        "alpha": 1,
-        "displayP3": [
-          1,
-          1,
-          1
-        ]
-      }
-    },
-    {
-      "name": "Graphite/50",
-      "universal": {
-        "hex": "#F7F8F9",
-        "alpha": 1,
-        "displayP3": [
-          0.9693,
-          0.9724,
-          0.9761
-        ]
-      }
-    },
-    {
-      "name": "Graphite/100",
-      "universal": {
-        "hex": "#EDEFF2",
-        "alpha": 1,
-        "displayP3": [
-          0.9308,
-          0.937,
-          0.9478
-        ]
-      }
-    },
-    {
-      "name": "Graphite/200",
-      "universal": {
-        "hex": "#DCDFE4",
-        "alpha": 1,
-        "displayP3": [
-          0.8648,
-          0.8741,
-          0.8922
-        ]
-      }
-    },
-    {
-      "name": "Graphite/300",
-      "universal": {
-        "hex": "#BFC4CC",
-        "alpha": 1,
-        "displayP3": [
-          0.7525,
-          0.768,
-          0.7969
-        ]
-      }
-    },
-    {
-      "name": "Graphite/400",
-      "universal": {
-        "hex": "#949BA5",
-        "alpha": 1,
-        "displayP3": [
-          0.5854,
-          0.607,
-          0.6433
-        ]
-      }
-    },
-    {
-      "name": "Graphite/500",
-      "universal": {
-        "hex": "#6E757F",
-        "alpha": 1,
-        "displayP3": [
-          0.4364,
-          0.4579,
-          0.4943
-        ]
-      }
-    },
-    {
-      "name": "Graphite/600",
-      "universal": {
-        "hex": "#515861",
-        "alpha": 1,
-        "displayP3": [
-          0.3227,
-          0.3442,
-          0.377
-        ]
-      }
-    },
-    {
-      "name": "Graphite/700",
-      "universal": {
-        "hex": "#3A4048",
-        "alpha": 1,
-        "displayP3": [
-          0.2318,
-          0.2502,
-          0.2794
-        ]
-      }
-    },
-    {
-      "name": "Graphite/800",
-      "universal": {
-        "hex": "#262B31",
-        "alpha": 1,
-        "displayP3": [
-          0.1527,
-          0.168,
-          0.1899
-        ]
-      }
-    },
-    {
-      "name": "Graphite/850",
-      "universal": {
-        "hex": "#1C2026",
-        "alpha": 1,
-        "displayP3": [
-          0.1127,
-          0.125,
-          0.1469
-        ]
-      }
-    },
-    {
-      "name": "Graphite/900",
-      "universal": {
-        "hex": "#14171B",
-        "alpha": 1,
-        "displayP3": [
-          0.0806,
-          0.0898,
-          0.1044
-        ]
-      }
-    },
-    {
-      "name": "Graphite/950",
-      "universal": {
-        "hex": "#0D0F12",
-        "alpha": 1,
-        "displayP3": [
-          0.0524,
-          0.0586,
-          0.0695
-        ]
-      }
-    },
-    {
-      "name": "Graphite/1000",
-      "universal": {
-        "hex": "#07080A",
-        "alpha": 1,
-        "displayP3": [
-          0.0281,
-          0.0312,
-          0.0384
-        ]
-      }
-    },
-    {
-      "name": "Ember/50",
-      "universal": {
-        "hex": "#FFF1F3",
-        "alpha": 1,
-        "displayP3": [
-          0.9905,
-          0.947,
-          0.9532
-        ]
-      }
-    },
-    {
-      "name": "Ember/100",
-      "universal": {
-        "hex": "#FFE0E5",
-        "alpha": 1,
-        "displayP3": [
-          0.9799,
-          0.8828,
-          0.8985
-        ]
-      }
-    },
-    {
-      "name": "Ember/200",
-      "universal": {
-        "hex": "#FFC5CE",
-        "alpha": 1,
-        "displayP3": [
-          0.9647,
-          0.7815,
-          0.8092
-        ]
-      }
-    },
-    {
-      "name": "Ember/300",
-      "universal": {
-        "hex": "#FF9BAB",
-        "alpha": 1,
-        "displayP3": [
-          0.9456,
-          0.6263,
-          0.6738
-        ]
-      }
-    },
-    {
-      "name": "Ember/400",
-      "universal": {
-        "hex": "#F76A84",
-        "alpha": 1,
-        "displayP3": [
-          0.9016,
-          0.4495,
-          0.5235
-        ]
-      }
-    },
-    {
-      "name": "Ember/500",
-      "universal": {
-        "hex": "#E8395B",
-        "alpha": 1,
-        "displayP3": [
-          0.8384,
-          0.2857,
-          0.3687
-        ]
-      }
-    },
-    {
-      "name": "Ember/600",
-      "universal": {
-        "hex": "#CE2148",
-        "alpha": 1,
-        "displayP3": [
-          0.7421,
-          0.2066,
-          0.2947
-        ]
-      }
-    },
-    {
-      "name": "Ember/700",
-      "universal": {
-        "hex": "#A9173A",
-        "alpha": 1,
-        "displayP3": [
-          0.6079,
-          0.1578,
-          0.2373
-        ]
-      }
-    },
-    {
-      "name": "Ember/800",
-      "universal": {
-        "hex": "#7E1330",
-        "alpha": 1,
-        "displayP3": [
-          0.4526,
-          0.119,
-          0.1929
-        ]
-      }
-    },
-    {
-      "name": "Ember/900",
-      "universal": {
-        "hex": "#4E0C1E",
-        "alpha": 1,
-        "displayP3": [
-          0.2791,
-          0.0709,
-          0.1199
-        ]
-      }
-    },
-    {
-      "name": "Jade/400",
-      "universal": {
-        "hex": "#4FD99A",
-        "alpha": 1,
-        "displayP3": [
-          0.4702,
-          0.8398,
-          0.6228
-        ]
-      }
-    },
-    {
-      "name": "Jade/500",
-      "universal": {
-        "hex": "#34C97E",
-        "alpha": 1,
-        "displayP3": [
-          0.3987,
-          0.7772,
-          0.5198
-        ]
-      }
-    },
-    {
-      "name": "Jade/600",
-      "universal": {
-        "hex": "#22A566",
-        "alpha": 1,
-        "displayP3": [
-          0.3132,
-          0.6377,
-          0.4216
-        ]
-      }
-    },
-    {
-      "name": "Amber/400",
-      "universal": {
-        "hex": "#F0B849",
-        "alpha": 1,
-        "displayP3": [
-          0.9072,
-          0.7303,
-          0.366
-        ]
-      }
-    },
-    {
-      "name": "Amber/500",
-      "universal": {
-        "hex": "#E0A32E",
-        "alpha": 1,
-        "displayP3": [
-          0.8423,
-          0.6491,
-          0.2809
-        ]
-      }
-    },
-    {
-      "name": "Amber/600",
-      "universal": {
-        "hex": "#BF861A",
-        "alpha": 1,
-        "displayP3": [
-          0.7158,
-          0.5349,
-          0.2077
-        ]
-      }
-    },
-    {
-      "name": "Crimson/400",
-      "universal": {
-        "hex": "#FF8A73",
-        "alpha": 1,
-        "displayP3": [
-          0.9394,
-          0.5647,
-          0.4749
-        ]
-      }
-    },
-    {
-      "name": "Crimson/500",
-      "universal": {
-        "hex": "#F4664B",
-        "alpha": 1,
-        "displayP3": [
-          0.8899,
-          0.4347,
-          0.3303
-        ]
-      }
-    },
-    {
-      "name": "Crimson/600",
-      "universal": {
-        "hex": "#D6462C",
-        "alpha": 1,
-        "displayP3": [
-          0.776,
-          0.3162,
-          0.2176
-        ]
-      }
-    },
-    {
-      "name": "Azure/400",
-      "universal": {
-        "hex": "#6FB0EE",
-        "alpha": 1,
-        "displayP3": [
-          0.4932,
-          0.6836,
-          0.9126
-        ]
-      }
-    },
-    {
-      "name": "Azure/500",
-      "universal": {
-        "hex": "#4E9BE8",
-        "alpha": 1,
-        "displayP3": [
-          0.3824,
-          0.6008,
-          0.8859
-        ]
-      }
-    },
-    {
-      "name": "Azure/600",
-      "universal": {
-        "hex": "#2F7BC9",
-        "alpha": 1,
-        "displayP3": [
-          0.2684,
-          0.4759,
-          0.7653
-        ]
-      }
-    }
+    "Direction « 2a Plein cadre » : noir uniforme, un seul accent ambre, aucune bordure, aucune ombre, aucune translucidite d'interface.",
+    "Chaque entree `semantics[]` est un Color Set a 4 apparences : any (clair), dark, anyHighContrast, darkHighContrast.",
+    "Les hex sont les valeurs sRGB de reference de la planche 8. La conversion vers Display P3 est faite par scripts/generate-colors.py : ne pas ecrire de composantes a la main, c'est ce qui permet de relire ce fichier contre la planche 8 sans calcul.",
+    "En cas de desaccord entre une valeur d'ici et un ecran de prototype, la planche 8 gagne (handoff section 12).",
+    "Pas de niveau `primitives` : la planche 8 ne fournit aucune rampe, elle pose directement 19 roles avec leurs 4 apparences. Inventer des primitives serait inventer du design. Les 36 primitives de l'ancienne direction vivent dans colors.legacy.tokens.json.",
+    "Le `/` dans le nom = dossier avec « Provides Namespace ». Ex. bg/canvas -> Colors.xcassets/bg/canvas.colorset.",
+    "Aucun token d'ombre : `shadow: none` est une regle du systeme. Une vue qui semble en avoir besoin est un ecran hors-systeme, pas un token manquant."
   ],
   "semantics": [
     {
       "name": "bg/canvas",
+      "role": "fond de tous les ecrans",
       "appearances": {
-        "any": {
-          "hex": "#F7F8F9",
-          "alpha": 1,
-          "displayP3": [
-            0.9693,
-            0.9724,
-            0.9761
-          ]
-        },
-        "dark": {
-          "hex": "#0D0F12",
-          "alpha": 1,
-          "displayP3": [
-            0.0524,
-            0.0586,
-            0.0695
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#F7F8F9",
-          "alpha": 1,
-          "displayP3": [
-            0.9693,
-            0.9724,
-            0.9761
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#0D0F12",
-          "alpha": 1,
-          "displayP3": [
-            0.0524,
-            0.0586,
-            0.0695
-          ]
-        }
-      }
-    },
-    {
-      "name": "bg/surface",
-      "appearances": {
-        "any": {
-          "hex": "#FFFFFF",
-          "alpha": 1,
-          "displayP3": [
-            1,
-            1,
-            1
-          ]
-        },
-        "dark": {
-          "hex": "#14171B",
-          "alpha": 1,
-          "displayP3": [
-            0.0806,
-            0.0898,
-            0.1044
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#FFFFFF",
-          "alpha": 1,
-          "displayP3": [
-            1,
-            1,
-            1
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#14171B",
-          "alpha": 1,
-          "displayP3": [
-            0.0806,
-            0.0898,
-            0.1044
-          ]
-        }
-      }
-    },
-    {
-      "name": "bg/surfaceRaised",
-      "appearances": {
-        "any": {
-          "hex": "#FFFFFF",
-          "alpha": 1,
-          "displayP3": [
-            1,
-            1,
-            1
-          ]
-        },
-        "dark": {
-          "hex": "#1C2026",
-          "alpha": 1,
-          "displayP3": [
-            0.1127,
-            0.125,
-            0.1469
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#FFFFFF",
-          "alpha": 1,
-          "displayP3": [
-            1,
-            1,
-            1
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#1C2026",
-          "alpha": 1,
-          "displayP3": [
-            0.1127,
-            0.125,
-            0.1469
-          ]
-        }
+        "any": { "hex": "#FAFAFA" },
+        "dark": { "hex": "#040404" },
+        "anyHighContrast": { "hex": "#FFFFFF" },
+        "darkHighContrast": { "hex": "#000000" }
       }
     },
     {
       "name": "bg/inset",
+      "role": "zone de travail dense : console et panneaux de gestion",
+      "comment": "Un cran entre bg/canvas et bg/surface, pour qu'une ligne de tableau se detache de sa zone sans trait. Sombre = oklch(0.135 0 0) de la planche 8. Les trois autres apparences sont deduites du meme rapport (35,4 % du chemin canvas -> surface) : le handoff ne donnait que la valeur sombre, et l'arbitrage du 2026-08-04 sur l'apparence claire les a rendues necessaires, la console suivant l'apparence systeme.",
       "appearances": {
-        "any": {
-          "hex": "#F7F8F9",
-          "alpha": 1,
-          "displayP3": [
-            0.9693,
-            0.9724,
-            0.9761
-          ]
-        },
-        "dark": {
-          "hex": "#262B31",
-          "alpha": 1,
-          "displayP3": [
-            0.1527,
-            0.168,
-            0.1899
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#F7F8F9",
-          "alpha": 1,
-          "displayP3": [
-            0.9693,
-            0.9724,
-            0.9761
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#262B31",
-          "alpha": 1,
-          "displayP3": [
-            0.1527,
-            0.168,
-            0.1899
-          ]
-        }
+        "any": { "hex": "#F6F6F6" },
+        "dark": { "hex": "#080808" },
+        "anyHighContrast": { "hex": "#F8F8F8" },
+        "darkHighContrast": { "hex": "#000000" }
       }
     },
     {
-      "name": "bg/selected",
+      "name": "bg/surface",
+      "role": "listes denses, panneaux, lignes",
       "appearances": {
-        "any": {
-          "hex": "#CE2148",
-          "alpha": 0.1,
-          "displayP3": [
-            0.7421,
-            0.2066,
-            0.2947
-          ]
-        },
-        "dark": {
-          "hex": "#E8395B",
-          "alpha": 0.12,
-          "displayP3": [
-            0.8384,
-            0.2857,
-            0.3687
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#CE2148",
-          "alpha": 0.16,
-          "displayP3": [
-            0.7421,
-            0.2066,
-            0.2947
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#E8395B",
-          "alpha": 0.2,
-          "displayP3": [
-            0.8384,
-            0.2857,
-            0.3687
-          ]
-        }
+        "any": { "hex": "#F0F0F0" },
+        "dark": { "hex": "#131313" },
+        "anyHighContrast": { "hex": "#EBEBEB" },
+        "darkHighContrast": { "hex": "#0A0A0A" }
+      }
+    },
+    {
+      "name": "bg/raised",
+      "role": "feuilles, popovers, dialogues",
+      "appearances": {
+        "any": { "hex": "#FFFFFF" },
+        "dark": { "hex": "#1F1F1F" },
+        "anyHighContrast": { "hex": "#FFFFFF" },
+        "darkHighContrast": { "hex": "#171717" }
+      }
+    },
+    {
+      "name": "bg/fill",
+      "role": "champs, jetons, boutons secondaires",
+      "appearances": {
+        "any": { "hex": "#DEDEDE" },
+        "dark": { "hex": "#2B2B2B" },
+        "anyHighContrast": { "hex": "#D1D1D1" },
+        "darkHighContrast": { "hex": "#353535" }
+      }
+    },
+    {
+      "name": "bg/viewer",
+      "role": "visionneuse et mode immersif",
+      "comment": "Identique en clair et en sombre, et c'est voulu : une surface de visionnage reste sombre en apparence claire, comme la vue plein ecran d'Apercu ou de Photos. Ne pas confondre avec bg/inset, qui suit l'apparence. Valeur canonique oklch(0.07 0 0) ; le handoff livrait #0f0f0f, plus clair que bg/canvas, donc contraire au role du token.",
+      "appearances": {
+        "any": { "hex": "#010101" },
+        "dark": { "hex": "#010101" },
+        "anyHighContrast": { "hex": "#000000" },
+        "darkHighContrast": { "hex": "#000000" }
       }
     },
     {
       "name": "text/primary",
+      "role": "titres, valeurs, corps",
+      "contrast": ["17,3:1", "18,5:1", "19,4:1", "21,0:1"],
       "appearances": {
-        "any": {
-          "hex": "#0D0F12",
-          "alpha": 1,
-          "displayP3": [
-            0.0524,
-            0.0586,
-            0.0695
-          ]
-        },
-        "dark": {
-          "hex": "#EDEFF2",
-          "alpha": 1,
-          "displayP3": [
-            0.9308,
-            0.937,
-            0.9478
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#07080A",
-          "alpha": 1,
-          "displayP3": [
-            0.0281,
-            0.0312,
-            0.0384
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#FFFFFF",
-          "alpha": 1,
-          "displayP3": [
-            1,
-            1,
-            1
-          ]
-        }
+        "any": { "hex": "#161616" },
+        "dark": { "hex": "#F5F5F5" },
+        "anyHighContrast": { "hex": "#060606" },
+        "darkHighContrast": { "hex": "#FFFFFF" }
       }
     },
     {
       "name": "text/secondary",
+      "role": "sous-titres, metadonnees",
+      "contrast": ["7,4:1", "8,2:1", "13,1:1", "12,9:1"],
       "appearances": {
-        "any": {
-          "hex": "#515861",
-          "alpha": 1,
-          "displayP3": [
-            0.3227,
-            0.3442,
-            0.377
-          ]
-        },
-        "dark": {
-          "hex": "#BFC4CC",
-          "alpha": 1,
-          "displayP3": [
-            0.7525,
-            0.768,
-            0.7969
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#3A4048",
-          "alpha": 1,
-          "displayP3": [
-            0.2318,
-            0.2502,
-            0.2794
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#DCDFE4",
-          "alpha": 1,
-          "displayP3": [
-            0.8648,
-            0.8741,
-            0.8922
-          ]
-        }
+        "any": { "hex": "#525252" },
+        "dark": { "hex": "#A4A4A4" },
+        "anyHighContrast": { "hex": "#2E2E2E" },
+        "darkHighContrast": { "hex": "#CACACA" }
       }
     },
     {
       "name": "text/tertiary",
+      "role": "libelles, aides, compteurs",
+      "contrast": ["5,1:1", "5,0:1", "8,1:1", "7,9:1"],
       "appearances": {
-        "any": {
-          "hex": "#6E757F",
-          "alpha": 1,
-          "displayP3": [
-            0.4364,
-            0.4579,
-            0.4943
-          ]
-        },
-        "dark": {
-          "hex": "#949BA5",
-          "alpha": 1,
-          "displayP3": [
-            0.5854,
-            0.607,
-            0.6433
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#515861",
-          "alpha": 1,
-          "displayP3": [
-            0.3227,
-            0.3442,
-            0.377
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#BFC4CC",
-          "alpha": 1,
-          "displayP3": [
-            0.7525,
-            0.768,
-            0.7969
-          ]
-        }
+        "any": { "hex": "#6C6C6C" },
+        "dark": { "hex": "#7F7F7F" },
+        "anyHighContrast": { "hex": "#4D4D4D" },
+        "darkHighContrast": { "hex": "#9E9E9E" }
       }
     },
     {
-      "name": "text/onAccent",
+      "name": "accent",
+      "role": "selection, liens, actif, marque — aussi l'AccentColor du projet",
+      "comment": "L'ambre ne sert qu'a trois choses : ce qui est selectionne, ce qui est cliquable en texte, et le mot CINESHELF. Jamais pour decorer un titre, jamais deux teintes d'accent sur un meme ecran. En contraste eleve on ne le monte que d'un cran.",
+      "contrast": ["5,6:1", "11,7:1", "6,0:1", "13,7:1"],
       "appearances": {
-        "any": {
-          "hex": "#FFFFFF",
-          "alpha": 1,
-          "displayP3": [
-            1,
-            1,
-            1
-          ]
-        },
-        "dark": {
-          "hex": "#FFFFFF",
-          "alpha": 1,
-          "displayP3": [
-            1,
-            1,
-            1
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#FFFFFF",
-          "alpha": 1,
-          "displayP3": [
-            1,
-            1,
-            1
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#FFFFFF",
-          "alpha": 1,
-          "displayP3": [
-            1,
-            1,
-            1
-          ]
-        }
+        "any": { "hex": "#AB4700" },
+        "dark": { "hex": "#FFB75F" },
+        "anyHighContrast": { "hex": "#A14400" },
+        "darkHighContrast": { "hex": "#FFC774" }
       }
     },
     {
-      "name": "border/subtle",
+      "name": "accent/onAccent",
+      "role": "texte pose sur l'accent",
+      "contrast": ["5,8:1", "11,9:1", "6,3:1", "13,7:1"],
       "appearances": {
-        "any": {
-          "hex": "#000000",
-          "alpha": 0.08,
-          "displayP3": [
-            0,
-            0,
-            0
-          ]
-        },
-        "dark": {
-          "hex": "#FFFFFF",
-          "alpha": 0.08,
-          "displayP3": [
-            1,
-            1,
-            1
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#515861",
-          "alpha": 1,
-          "displayP3": [
-            0.3227,
-            0.3442,
-            0.377
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#515861",
-          "alpha": 1,
-          "displayP3": [
-            0.3227,
-            0.3442,
-            0.377
-          ]
-        }
+        "any": { "hex": "#FFFFFF" },
+        "dark": { "hex": "#040404" },
+        "anyHighContrast": { "hex": "#FFFFFF" },
+        "darkHighContrast": { "hex": "#000000" }
       }
     },
     {
-      "name": "border/default",
+      "name": "danger",
+      "role": "suppression, echec",
+      "comment": "Une colonne non reconnue a l'import n'est PAS une erreur : elle se rend en text/tertiary, pas ici. Arbitrage du 2026-08-04, voir PROMPTS.md.",
+      "contrast": ["5,9:1", "6,4:1", "7,3:1", "8,6:1"],
       "appearances": {
-        "any": {
-          "hex": "#DCDFE4",
-          "alpha": 1,
-          "displayP3": [
-            0.8648,
-            0.8741,
-            0.8922
-          ]
-        },
-        "dark": {
-          "hex": "#3A4048",
-          "alpha": 1,
-          "displayP3": [
-            0.2318,
-            0.2502,
-            0.2794
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#BFC4CC",
-          "alpha": 1,
-          "displayP3": [
-            0.7525,
-            0.768,
-            0.7969
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#515861",
-          "alpha": 1,
-          "displayP3": [
-            0.3227,
-            0.3442,
-            0.377
-          ]
-        }
+        "any": { "hex": "#C21725" },
+        "dark": { "hex": "#F75D59" },
+        "anyHighContrast": { "hex": "#A90015" },
+        "darkHighContrast": { "hex": "#FF7D76" }
       }
     },
     {
-      "name": "border/strong",
+      "name": "success",
+      "role": "sync terminee, ligne validee",
+      "contrast": ["5,4:1", "10,7:1", "6,9:1", "13,0:1"],
       "appearances": {
-        "any": {
-          "hex": "#BFC4CC",
-          "alpha": 1,
-          "displayP3": [
-            0.7525,
-            0.768,
-            0.7969
-          ]
-        },
-        "dark": {
-          "hex": "#515861",
-          "alpha": 1,
-          "displayP3": [
-            0.3227,
-            0.3442,
-            0.377
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#949BA5",
-          "alpha": 1,
-          "displayP3": [
-            0.5854,
-            0.607,
-            0.6433
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#6E757F",
-          "alpha": 1,
-          "displayP3": [
-            0.4364,
-            0.4579,
-            0.4943
-          ]
-        }
+        "any": { "hex": "#137738" },
+        "dark": { "hex": "#67D283" },
+        "anyHighContrast": { "hex": "#00642A" },
+        "darkHighContrast": { "hex": "#84E79C" }
       }
     },
     {
-      "name": "accent/text",
+      "name": "separator",
+      "role": "traits de tableau, 1 pt — le seul trait autorise",
+      "comment": "3,0:1 en sombre normal : conforme pour un element non textuel, accepte explicitement. Le contraste eleve le porte a 5:1, ce qui rend les tableaux denses lisibles.",
+      "contrast": ["3,1:1", "3,0:1", "5,0:1", "5,5:1"],
       "appearances": {
-        "any": {
-          "hex": "#A9173A",
-          "alpha": 1,
-          "displayP3": [
-            0.6079,
-            0.1578,
-            0.2373
-          ]
-        },
-        "dark": {
-          "hex": "#E8395B",
-          "alpha": 1,
-          "displayP3": [
-            0.8384,
-            0.2857,
-            0.3687
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#7E1330",
-          "alpha": 1,
-          "displayP3": [
-            0.4526,
-            0.119,
-            0.1929
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#F76A84",
-          "alpha": 1,
-          "displayP3": [
-            0.9016,
-            0.4495,
-            0.5235
-          ]
-        }
+        "any": { "hex": "#D9D9D9" },
+        "dark": { "hex": "#171717" },
+        "anyHighContrast": { "hex": "#B3B3B3" },
+        "darkHighContrast": { "hex": "#2E2E2E" }
       }
     },
     {
-      "name": "accent/solid",
+      "name": "private/mask",
+      "role": "contenu prive verrouille",
+      "comment": "Aplat pose a la geometrie exacte de l'affiche, avec eye.slash. isPrivate est porte par l'entite, jamais par le profil.",
       "appearances": {
-        "any": {
-          "hex": "#CE2148",
-          "alpha": 1,
-          "displayP3": [
-            0.7421,
-            0.2066,
-            0.2947
-          ]
-        },
-        "dark": {
-          "hex": "#CE2148",
-          "alpha": 1,
-          "displayP3": [
-            0.7421,
-            0.2066,
-            0.2947
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#CE2148",
-          "alpha": 1,
-          "displayP3": [
-            0.7421,
-            0.2066,
-            0.2947
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#CE2148",
-          "alpha": 1,
-          "displayP3": [
-            0.7421,
-            0.2066,
-            0.2947
-          ]
-        }
+        "any": { "hex": "#DEDEDE" },
+        "dark": { "hex": "#0E0E0E" },
+        "anyHighContrast": { "hex": "#CACACA" },
+        "darkHighContrast": { "hex": "#030303" }
       }
     },
     {
-      "name": "accent/soft",
+      "name": "scrim/modal",
+      "role": "voile sous une feuille modale",
+      "comment": "Les voiles ne se posent que sur une image, jamais sur une surface opaque, et jamais de materiau systeme.",
       "appearances": {
-        "any": {
-          "hex": "#CE2148",
-          "alpha": 0.1,
-          "displayP3": [
-            0.7421,
-            0.2066,
-            0.2947
-          ]
-        },
-        "dark": {
-          "hex": "#E8395B",
-          "alpha": 0.14,
-          "displayP3": [
-            0.8384,
-            0.2857,
-            0.3687
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#CE2148",
-          "alpha": 0.16,
-          "displayP3": [
-            0.7421,
-            0.2066,
-            0.2947
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#E8395B",
-          "alpha": 0.22,
-          "displayP3": [
-            0.8384,
-            0.2857,
-            0.3687
-          ]
-        }
+        "any": { "hex": "#000000", "alpha": 0.34 },
+        "dark": { "hex": "#000000", "alpha": 0.62 },
+        "anyHighContrast": { "hex": "#000000", "alpha": 0.5 },
+        "darkHighContrast": { "hex": "#000000", "alpha": 0.78 }
       }
     },
     {
-      "name": "status/success",
+      "name": "scrim/crop",
+      "role": "masque de l'editeur de recadrage",
+      "comment": "oklch(0.09 0 0 / 0.68), identique dans les quatre apparences : l'editeur travaille toujours sur une image.",
       "appearances": {
-        "any": {
-          "hex": "#22A566",
-          "alpha": 1,
-          "displayP3": [
-            0.3132,
-            0.6377,
-            0.4216
-          ]
-        },
-        "dark": {
-          "hex": "#4FD99A",
-          "alpha": 1,
-          "displayP3": [
-            0.4702,
-            0.8398,
-            0.6228
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#22A566",
-          "alpha": 1,
-          "displayP3": [
-            0.3132,
-            0.6377,
-            0.4216
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#4FD99A",
-          "alpha": 1,
-          "displayP3": [
-            0.4702,
-            0.8398,
-            0.6228
-          ]
-        }
+        "any": { "hex": "#020202", "alpha": 0.68 },
+        "dark": { "hex": "#020202", "alpha": 0.68 },
+        "anyHighContrast": { "hex": "#020202", "alpha": 0.68 },
+        "darkHighContrast": { "hex": "#020202", "alpha": 0.68 }
       }
     },
     {
-      "name": "status/warning",
+      "name": "fill/onImage",
+      "role": "boutons secondaires poses sur un hero",
+      "comment": "oklch(1 0 0 / 0.14), identique dans les quatre apparences : le fond est l'image, pas la surface de l'app.",
       "appearances": {
-        "any": {
-          "hex": "#BF861A",
-          "alpha": 1,
-          "displayP3": [
-            0.7158,
-            0.5349,
-            0.2077
-          ]
-        },
-        "dark": {
-          "hex": "#F0B849",
-          "alpha": 1,
-          "displayP3": [
-            0.9072,
-            0.7303,
-            0.366
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#BF861A",
-          "alpha": 1,
-          "displayP3": [
-            0.7158,
-            0.5349,
-            0.2077
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#F0B849",
-          "alpha": 1,
-          "displayP3": [
-            0.9072,
-            0.7303,
-            0.366
-          ]
-        }
+        "any": { "hex": "#FFFFFF", "alpha": 0.14 },
+        "dark": { "hex": "#FFFFFF", "alpha": 0.14 },
+        "anyHighContrast": { "hex": "#FFFFFF", "alpha": 0.14 },
+        "darkHighContrast": { "hex": "#FFFFFF", "alpha": 0.14 }
       }
     },
     {
-      "name": "status/danger",
+      "name": "chip/onImage",
+      "role": "pastille d'etat posee sur une affiche",
+      "comment": "bg/canvas de l'apparence courante a 82 %.",
       "appearances": {
-        "any": {
-          "hex": "#D6462C",
-          "alpha": 1,
-          "displayP3": [
-            0.776,
-            0.3162,
-            0.2176
-          ]
-        },
-        "dark": {
-          "hex": "#FF8A73",
-          "alpha": 1,
-          "displayP3": [
-            0.9394,
-            0.5647,
-            0.4749
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#D6462C",
-          "alpha": 1,
-          "displayP3": [
-            0.776,
-            0.3162,
-            0.2176
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#FF8A73",
-          "alpha": 1,
-          "displayP3": [
-            0.9394,
-            0.5647,
-            0.4749
-          ]
-        }
-      }
-    },
-    {
-      "name": "status/info",
-      "appearances": {
-        "any": {
-          "hex": "#2F7BC9",
-          "alpha": 1,
-          "displayP3": [
-            0.2684,
-            0.4759,
-            0.7653
-          ]
-        },
-        "dark": {
-          "hex": "#6FB0EE",
-          "alpha": 1,
-          "displayP3": [
-            0.4932,
-            0.6836,
-            0.9126
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#2F7BC9",
-          "alpha": 1,
-          "displayP3": [
-            0.2684,
-            0.4759,
-            0.7653
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#6FB0EE",
-          "alpha": 1,
-          "displayP3": [
-            0.4932,
-            0.6836,
-            0.9126
-          ]
-        }
-      }
-    },
-    {
-      "name": "media/placeholder",
-      "appearances": {
-        "any": {
-          "hex": "#DCDFE4",
-          "alpha": 1,
-          "displayP3": [
-            0.8648,
-            0.8741,
-            0.8922
-          ]
-        },
-        "dark": {
-          "hex": "#262B31",
-          "alpha": 1,
-          "displayP3": [
-            0.1527,
-            0.168,
-            0.1899
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#DCDFE4",
-          "alpha": 1,
-          "displayP3": [
-            0.8648,
-            0.8741,
-            0.8922
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#262B31",
-          "alpha": 1,
-          "displayP3": [
-            0.1527,
-            0.168,
-            0.1899
-          ]
-        }
-      }
-    },
-    {
-      "name": "media/ring",
-      "appearances": {
-        "any": {
-          "hex": "#000000",
-          "alpha": 0.1,
-          "displayP3": [
-            0,
-            0,
-            0
-          ]
-        },
-        "dark": {
-          "hex": "#FFFFFF",
-          "alpha": 0.08,
-          "displayP3": [
-            1,
-            1,
-            1
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#515861",
-          "alpha": 1,
-          "displayP3": [
-            0.3227,
-            0.3442,
-            0.377
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#515861",
-          "alpha": 1,
-          "displayP3": [
-            0.3227,
-            0.3442,
-            0.377
-          ]
-        }
-      }
-    },
-    {
-      "name": "state/private",
-      "appearances": {
-        "any": {
-          "hex": "#BF861A",
-          "alpha": 1,
-          "displayP3": [
-            0.7158,
-            0.5349,
-            0.2077
-          ]
-        },
-        "dark": {
-          "hex": "#F0B849",
-          "alpha": 1,
-          "displayP3": [
-            0.9072,
-            0.7303,
-            0.366
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#BF861A",
-          "alpha": 1,
-          "displayP3": [
-            0.7158,
-            0.5349,
-            0.2077
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#F0B849",
-          "alpha": 1,
-          "displayP3": [
-            0.9072,
-            0.7303,
-            0.366
-          ]
-        }
-      }
-    },
-    {
-      "name": "state/archived",
-      "appearances": {
-        "any": {
-          "hex": "#6E757F",
-          "alpha": 1,
-          "displayP3": [
-            0.4364,
-            0.4579,
-            0.4943
-          ]
-        },
-        "dark": {
-          "hex": "#949BA5",
-          "alpha": 1,
-          "displayP3": [
-            0.5854,
-            0.607,
-            0.6433
-          ]
-        },
-        "anyHighContrast": {
-          "hex": "#6E757F",
-          "alpha": 1,
-          "displayP3": [
-            0.4364,
-            0.4579,
-            0.4943
-          ]
-        },
-        "darkHighContrast": {
-          "hex": "#949BA5",
-          "alpha": 1,
-          "displayP3": [
-            0.5854,
-            0.607,
-            0.6433
-          ]
-        }
+        "any": { "hex": "#FAFAFA", "alpha": 0.82 },
+        "dark": { "hex": "#040404", "alpha": 0.82 },
+        "anyHighContrast": { "hex": "#FFFFFF", "alpha": 0.82 },
+        "darkHighContrast": { "hex": "#000000", "alpha": 0.82 }
       }
     }
   ]

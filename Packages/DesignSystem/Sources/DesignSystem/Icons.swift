@@ -1,70 +1,113 @@
 import SwiftUI
 
-// MARK: - SF Symbols
+// MARK: - Icônes
 //
-// Constantes typées : aucune chaîne de symbole dispersée dans les vues.
-// Rendu hiérarchique par défaut ; `.palette` pour les états à deux couleurs.
+// SF Symbols uniquement, correspondance de la section 8 du handoff. Aucune icône
+// d'interface n'a été dessinée : partout où un prototype montre une pastille
+// carrée ou un caractère typographique, c'est le symbole d'ici qu'il faut.
+//
+// Rendu : `.regular` partout, `hierarchical` quand le symbole accompagne du
+// texte, `monochrome` dans les barres. **Un seul symbole prend l'ambre : celui de
+// l'élément actif.** Deux exceptions nommées par le handoff — `delete` est toujours
+// en `danger`, et `error` n'est jamais en ambre.
+//
+// Tout est en `String` ici, comme la table du handoff. Les états pleins (`.fill`)
+// sont l'affaire du composant qui les rend, pas du token : c'est pour ça que
+// `SymbolPair` n'appartient plus à ce niveau et vit avec l'ancienne direction.
 
 public enum Icon {
 
-    // Navigation / entités
+    // Navigation
+    public static let home = "house"
     public static let titles = "film.stack"
-    public static let series = "tv"
+    /// Jamais `person.crop.circle`, qui est réservé aux profils.
     public static let people = "person.2"
-    public static let collections = "square.stack"
-    public static let genres = "tag"
+    public static let collections = "rectangle.stack"
     public static let gallery = "photo.on.rectangle.angled"
-    public static let bookmarks = "bookmark"
     public static let search = "magnifyingglass"
-    public static let library = "books.vertical"
-    public static let settings = "gearshape"
+    /// Plein quand le titre y est.
+    public static let myList = "heart"
+    /// Plein quand marqué.
+    public static let bookmarks = "bookmark"
+    /// Un journal daté, pas un flux social.
+    public static let feed = "clock.arrow.circlepath"
 
     // Actions
-    public static let crop = "crop"
+    /// Jamais `plus.circle` dans une barre.
+    public static let addTitle = "plus"
+    public static let edit = "pencil"
+    /// Toujours rendu en `danger`.
+    public static let delete = "trash"
     public static let importItem = "square.and.arrow.down"
     public static let exportItem = "square.and.arrow.up"
     public static let merge = "arrow.triangle.merge"
-    public static let sort = "arrow.up.arrow.down"
-    public static let filter = "line.3.horizontal.decrease.circle"
-    public static let sync = "arrow.triangle.2.circlepath"
+    public static let crop = "crop"
+    public static let replaceImage = "arrow.2.squarepath"
 
     // Affichage
-    public static let layoutGrid = "square.grid.2x2"
-    public static let layoutList = "rectangle.grid.1x2"
+    public static let sort = "arrow.up.arrow.down"
+    /// Ambre si un filtre est actif.
+    public static let filter = "line.3.horizontal.decrease"
+    /// Sélecteur de la matrice.
+    public static let layoutPortrait = "rectangle.portrait"
+    /// Sélecteur de la matrice.
+    public static let layoutLandscape = "rectangle"
+    /// Menu compact / medium / large.
+    public static let thumbnailSize = "square.grid.2x2"
 
-    // États d'élément
-    public static let isPrivate = "lock"
-    public static let archived = "archivebox"
+    // États d'une fiche
+    //
+    // Nommés `…Star` et `…Mark` parce que `rating` et `watched` désignent encore
+    // les `SymbolPair` de l'ancienne direction, que le banc d'essai lit. Les deux
+    // noms courts redeviendront libres quand `Legacy/` partira, avec `V12`.
 
-    // Paires état inactif / actif
-    public static let favorite = SymbolPair("heart", "heart.fill")
-    public static let watchlist = SymbolPair("bookmark.circle", "bookmark.circle.fill")
-    public static let watched = SymbolPair("checkmark.circle", "checkmark.circle.fill")
-    public static let rating = SymbolPair("star", "star.fill", partial: "star.leadinghalf.filled")
-}
+    /// Plein pour les crans remplis.
+    public static let ratingStar = "star"
+    /// Jamais `eye`.
+    public static let watchedMark = "checkmark"
+    /// Sur la vignette masquée.
+    public static let isPrivate = "eye.slash"
 
-/// Symbole à deux (ou trois) états, pour piloter `.contentTransition(.symbolEffect(.replace))`.
-public struct SymbolPair: Sendable, Hashable {
-    public let off: String
-    public let on: String
-    public let partial: String?
+    // Profils et système
+    /// `lockFallback` en secours si Face ID n'est pas disponible.
+    public static let lockedProfile = "faceid"
+    public static let lockFallback = "lock.fill"
+    public static let settings = "gearshape"
+    /// Unique usage de `person.crop.circle`.
+    public static let profiles = "person.crop.circle"
 
-    public init(_ off: String, _ on: String, partial: String? = nil) {
-        self.off = off
-        self.on = on
-        self.partial = partial
-    }
+    // Bandeaux d'interruption
+    public static let offline = "wifi.slash"
+    /// En rotation pendant la tâche.
+    public static let sync = "arrow.triangle.2.circlepath"
+    public static let diskSpace = "externaldrive"
+    /// Jamais en ambre.
+    public static let error = "exclamationmark.triangle"
 
-    public func name(isOn: Bool) -> String { isOn ? on : off }
+    // Chrome
+    /// Dialogues et visionneuse.
+    public static let close = "xmark"
+    public static let moreActions = "ellipsis"
+    /// Lignes de liste.
+    public static let navigateForward = "chevron.right"
+    /// Visionneuse.
+    public static let fullScreen = "arrow.up.left.and.arrow.down.right"
 
-    /// Pour une note : plein, à moitié, vide.
-    public func name(fill: Double) -> String {
-        switch fill {
-        case ..<0.25: off
-        case ..<0.75: partial ?? on
-        default: on
-        }
-    }
+    /// Tous les symboles de la correspondance, pour le catalogue et les tests.
+    ///
+    /// Écrit à la main plutôt que par réflexion : Swift n'énumère pas les membres
+    /// statiques d'un `enum` sans cas. `IconTests` échoue si l'un d'eux n'existe
+    /// pas dans SF Symbols sur la plateforme courante — un nom de symbole faux ne
+    /// casse pas la compilation, il rend un carré vide.
+    public static let all: [String] = [
+        home, titles, people, collections, gallery, search, myList, bookmarks, feed,
+        addTitle, edit, delete, importItem, exportItem, merge, crop, replaceImage,
+        sort, filter, layoutPortrait, layoutLandscape, thumbnailSize,
+        ratingStar, watchedMark, isPrivate,
+        lockedProfile, lockFallback, settings, profiles,
+        offline, sync, diskSpace, error,
+        close, moreActions, navigateForward, fullScreen
+    ]
 }
 
 // MARK: - Confort
@@ -80,6 +123,6 @@ extension View {
     /// Remplacement animé d'un symbole d'état, sous réserve de Reduce Motion.
     public func dsSymbolReplace<V: Equatable>(value: V) -> some View {
         contentTransition(.symbolEffect(.replace))
-            .dsAnimation(Motion.quick, value: value)
+            .dsAnimation(Motion.fast, value: value)
     }
 }

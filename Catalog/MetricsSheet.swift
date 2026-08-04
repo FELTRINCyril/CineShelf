@@ -1,40 +1,109 @@
 import DesignSystem
 import SwiftUI
 
-// Rayons, espacements, élévations. Les trois échelles se lisent mieux dessinées
-// que listées : chaque valeur est rendue à sa taille réelle, avec son nom.
+// Espacements, densité, rayons, traits, mouvement, plans et points de rupture, à
+// taille réelle. Tout ce que la planche 8 chiffre et qu'aucune capture ne prouve.
 
 struct MetricsSheet: View {
+    @Environment(\.density) private var density
+
     var body: some View {
         Sheet(
-            "Rayons · Espacements · Élévations",
-            note: "Chaque valeur est dessinée à sa taille réelle."
+            "Espacement · Densité · Rayons · Mouvement",
+            note: """
+                Valeurs dessinées à l'échelle. La densité est la seule valeur dynamique \
+                du système : elle est posée une fois par plateforme dans l'environnement.
+                """
         ) {
-            VStack(alignment: .leading, spacing: Space.section) {
+            VStack(alignment: .leading, spacing: Space.s6) {
+                spacing
+                densities
                 radii
-                spacings
-                elevations
-                ratios
+                strokes
+                motion
+                layers
+                breakpoints
             }
+        }
+    }
+
+    // MARK: Espacement
+
+    private static let spaces: [(String, CGFloat)] = [
+        ("s1", Space.s1), ("s2", Space.s2), ("s3", Space.s3), ("s4", Space.s4),
+        ("s5", Space.s5), ("s6", Space.s6), ("s7", Space.s7), ("s8", Space.s8)
+    ]
+
+    private var spacing: some View {
+        section("Espacement", note: "Base 4 pt. Un cran se désigne par son rang.") {
+            VStack(alignment: .leading, spacing: Space.s2) {
+                ForEach(Self.spaces, id: \.0) { name, value in
+                    HStack(spacing: Space.s3) {
+                        Text(name).metaStyle().frame(width: 28, alignment: .leading)
+                        Rectangle().fill(.accent).frame(width: value, height: 12)
+                        caption(number(value))
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: Densité
+
+    private var densities: some View {
+        section(
+            "Densité — deux crans",
+            note: "Courant : \(density == .dense ? "dense" : "ample"). Dense sur macOS, ample sur iOS."
+        ) {
+            HStack(alignment: .top, spacing: Space.s5) {
+                ForEach(Density.allCases) { cran in
+                    VStack(alignment: .leading, spacing: Space.s2) {
+                        Text(cran == .dense ? "Dense" : "Ample").labelStyle()
+                        measure("ligne de tableau", cran.rowHeight)
+                        measure("barre d'outils", cran.toolbarHeight)
+                        measure("marge d'écran", cran.screenMargin)
+                        measure("espacement de formulaire", cran.formSpacing)
+                        measure("hauteur de champ", cran.fieldHeight)
+                        measure("gouttière de grille", cran.gridGutter)
+                        caption("interlignage du corps · \(number(cran.bodyLeading))")
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(Space.s3)
+                    .background(.bgInset)
+                }
+            }
+        }
+    }
+
+    private func measure(_ name: String, _ value: CGFloat) -> some View {
+        HStack(spacing: Space.s2) {
+            Rectangle().fill(.bgFill).frame(width: 44, height: value)
+            caption("\(name) · \(number(value))")
         }
     }
 
     // MARK: Rayons
 
     private static let radii: [(String, CGFloat)] = [
-        ("xs", Radius.xs), ("sm", Radius.sm), ("md", Radius.md),
-        ("lg", Radius.lg), ("xl", Radius.xl)
+        ("none", Radius.none), ("xs", Radius.xs), ("s", Radius.s),
+        ("m", Radius.m), ("l", Radius.l), ("sheet", Radius.sheet)
     ]
 
     private var radii: some View {
-        section("Rayons", note: "Toujours continus : Radius.shape(_:) ou .dsClip(_:).") {
-            HStack(alignment: .top, spacing: Space.lg) {
+        section(
+            "Rayons",
+            note: """
+                Toujours continus, par .dsClip(_:). `none` sur tout ce qui est \
+                photographique : une affiche n'a ni cadre, ni coin arrondi, ni ombre.
+                """
+        ) {
+            HStack(alignment: .top, spacing: Space.s4) {
                 ForEach(Self.radii, id: \.0) { name, value in
-                    VStack(spacing: Space.sm) {
-                        RoundedRectangle(cornerRadius: value, style: .continuous)
-                            .fill(.bgSurfaceRaised)
-                            .dsBorder(.borderDefault, radius: value)
+                    VStack(spacing: Space.s2) {
+                        Rectangle()
+                            .fill(.bgFill)
                             .frame(width: 80, height: 80)
+                            .dsClip(value)
                         caption("\(name) · \(number(value))")
                     }
                 }
@@ -42,86 +111,91 @@ struct MetricsSheet: View {
         }
     }
 
-    // MARK: Espacements
+    // MARK: Trait
 
-    private static let spacings: [(String, CGFloat)] = [
-        ("xxs", Space.xxs), ("xs", Space.xs), ("sm", Space.sm), ("md", Space.md),
-        ("lg", Space.lg), ("xl", Space.xl), ("xxl", Space.xxl), ("xxxl", Space.xxxl)
-    ]
-
-    private static let roles: [(String, CGFloat)] = [
-        ("inlineTight", Space.inlineTight), ("inline", Space.inline),
-        ("stackTight", Space.stackTight), ("stack", Space.stack),
-        ("section", Space.section), ("cardPadding", Space.cardPadding),
-        ("panelPadding", Space.panelPadding), ("minHitTarget", Space.minHitTarget)
-    ]
-
-    private var spacings: some View {
-        section("Espacements", note: "L'échelle, puis les rôles qui s'y rattachent.") {
-            VStack(alignment: .leading, spacing: Space.lg) {
-                ForEach(Self.spacings, id: \.0) { name, value in
-                    bar(name: name, value: value)
-                }
-                Divider().overlay(.borderSubtle)
-                ForEach(Self.roles, id: \.0) { name, value in
-                    bar(name: name, value: value)
+    private var strokes: some View {
+        section("Trait", note: "Le seul trait autorisé, dans la seule couleur autorisée.") {
+            VStack(alignment: .leading, spacing: Space.s3) {
+                ForEach(
+                    [("hairline", Stroke.hairline), ("emphasis", Stroke.emphasis)], id: \.0
+                ) { name, width in
+                    VStack(alignment: .leading, spacing: Space.s1) {
+                        Rectangle().fill(.separatorLine).frame(height: width)
+                        caption("\(name) · \(number(width)) pt")
+                    }
                 }
             }
         }
     }
 
-    private func bar(name: String, value: CGFloat) -> some View {
-        HStack(spacing: Space.md) {
-            caption(name).frame(width: 120, alignment: .leading)
-            RoundedRectangle(cornerRadius: Radius.xs, style: .continuous)
-                .fill(.accentSolid)
-                .frame(width: value, height: 16)
-            caption(number(value)).foregroundStyle(.textTertiary)
+    // MARK: Mouvement
+
+    @State private var animated = false
+
+    private static let durations: [(String, String)] = [
+        ("instant", "0 ms — sélection dans un tableau dense"),
+        ("fast", "120 ms easeOut — survol, focus, bascule d'état"),
+        ("base", "220 ms easeInOut — panneau, bandeau, densité"),
+        ("sheet", "320 ms spring — feuille, changement de palier"),
+        ("zoom", "380 ms spring — affiche vers visionneuse"),
+        ("slow", "600 ms easeInOut — fondu du hero")
+    ]
+
+    private var motion: some View {
+        section("Mouvement", note: "Toutes les animations passent par .dsAnimation, qui respecte Reduce Motion.") {
+            VStack(alignment: .leading, spacing: Space.s2) {
+                ForEach(Self.durations, id: \.0) { name, detail in
+                    caption("\(name) — \(detail)")
+                }
+                Button("Jouer") { animated.toggle() }
+                    .actionStyle()
+                    .frame(minHeight: Space.minHitTarget)
+                Rectangle()
+                    .fill(.accent)
+                    .frame(width: 44, height: 44)
+                    .offset(x: animated ? 160 : 0)
+                    .dsAnimation(Motion.base, value: animated)
+            }
         }
     }
 
-    // MARK: Élévations
+    // MARK: Plans
 
-    private var elevations: some View {
+    private static let layers: [(String, Double)] = [
+        ("content", Layer.content), ("sticky", Layer.sticky), ("menu", Layer.menu),
+        ("scrim", Layer.scrim), ("modal", Layer.modal), ("viewer", Layer.viewer),
+        ("notification", Layer.notification)
+    ]
+
+    private var layers: some View {
         section(
-            "Élévations",
-            note: "Au-delà du niveau 1, la profondeur vient d'un matériau, pas d'une ombre."
+            "Plans",
+            note: """
+                Un seul plan modal à la fois — une feuille remplace un dialogue, elle ne \
+                s'ouvre pas au-dessus. La notification passe au-dessus de tout.
+                """
         ) {
-            HStack(alignment: .top, spacing: Space.lg) {
-                ForEach(Elevation.Level.allCases, id: \.rawValue) { level in
-                    VStack(spacing: Space.sm) {
-                        Text("\(level.rawValue)")
-                            .font(Typo.dataValue)
-                            .foregroundStyle(.textPrimary)
-                            .frame(width: 110, height: 80)
-                            .dsElevation(level)
-                        caption(String(describing: level))
-                    }
+            VStack(alignment: .leading, spacing: Space.s1) {
+                ForEach(Self.layers, id: \.0) { name, value in
+                    caption("\(name) · \(Int(value))")
                 }
             }
-            .padding(Space.md)
-            .background(.bgInset, in: .rect(cornerRadius: Radius.lg, style: .continuous))
         }
     }
 
-    // MARK: Proportions
+    // MARK: Points de rupture
 
-    private static let ratios: [(String, CGFloat)] = [
-        ("poster", Ratio.poster), ("backdrop", Ratio.backdrop),
-        ("landscape", Ratio.landscape), ("avatar", Ratio.avatar), ("tile", Ratio.tile)
-    ]
-
-    private var ratios: some View {
-        section("Proportions", note: nil) {
-            HStack(alignment: .bottom, spacing: Space.lg) {
-                ForEach(Self.ratios, id: \.0) { name, value in
-                    VStack(spacing: Space.sm) {
-                        RoundedRectangle(cornerRadius: Radius.sm, style: .continuous)
-                            .fill(.mediaPlaceholder)
-                            .aspectRatio(value, contentMode: .fit)
-                            .frame(height: 96)
-                        caption(name)
-                    }
+    private var breakpoints: some View {
+        section("Points de rupture", note: "Sur largeur de fenêtre, pas sur classe de taille.") {
+            VStack(alignment: .leading, spacing: Space.s2) {
+                ForEach(Breakpoint.allCases) { cran in
+                    caption(
+                        """
+                        \(cran.rawValue) · ≥ \(number(cran.minWidth)) pt · \
+                        \(cran.columns) colonnes · marge \(number(cran.screenMargin)) · \
+                        inspecteur \(cran.showsInspectorAsColumn ? "en colonne" : "en feuille")
+                        """
+                    )
                 }
             }
         }
@@ -132,15 +206,15 @@ struct MetricsSheet: View {
     private func section(
         _ title: String, note: String?, @ViewBuilder content: () -> some View
     ) -> some View {
-        VStack(alignment: .leading, spacing: Space.md) {
-            Text(title).railLabelStyle()
-            if let note { Text(note).font(Typo.caption).foregroundStyle(.textTertiary) }
+        VStack(alignment: .leading, spacing: Space.s3) {
+            Text(title).labelStyle()
+            if let note { Text(note).microStyle().foregroundStyle(.textTertiary) }
             content()
         }
     }
 
     private func caption(_ text: String) -> some View {
-        Text(text).font(Typo.cardMeta).foregroundStyle(.textSecondary)
+        Text(text).metaStyle().foregroundStyle(.textSecondary)
     }
 
     private func number(_ value: CGFloat) -> String {

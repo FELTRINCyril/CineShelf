@@ -72,7 +72,9 @@ function_body_length:
 
 identifier_name:
   min_length: 2
-  excluded: [id, ok, x, y, z]
+  # s / m / l sont les noms des crans de l'echelle d'affiche de la planche 8
+  # (poster.xs a poster.xxl). Les renommer ferait diverger le code du handoff.
+  excluded: [id, ok, x, y, z, s, m, l]
 
 nesting:
   type_level: 2
@@ -101,6 +103,12 @@ custom_rules:
     name: "cornerRadius déprécié"
     message: "Utilise .clipShape(.rect(cornerRadius:style: .continuous))."
     regex: '\.cornerRadius\('
+    # Sans ca, la regle mord sur tout commentaire qui la cite — y compris la
+    # docstring de `dsClip`, qui explique justement pourquoi ne pas l'utiliser.
+    excluded_match_kinds:
+      - comment
+      - doccomment
+      - string
     severity: error
 
   # Depuis L1, `refreshDerived()` compose `filterKeys` à partir des relations :
@@ -159,6 +167,54 @@ custom_rules:
     regex: '#Predicate'
     excluded:
       - ".*/Packages/CineShelfCore/.*"
+    excluded_match_kinds:
+      - comment
+      - doccomment
+      - string
+    severity: error
+
+  # L'ancienne direction artistique vit dans
+  # `Packages/DesignSystem/Sources/DesignSystem/Legacy/`, en sursis jusqu'a `V12`.
+  # Elle n'est pas la pour etre reutilisee : elle est la pour que l'interface des
+  # prompts 10 et 11 continue de s'afficher pendant qu'on exerce la logique.
+  #
+  # Cette regle empeche un fichier neuf de rattraper un concept que la direction
+  # courante a **supprime**, pas renomme :
+  #   - les ombres (`shadow: none` est une regle du systeme) ;
+  #   - les bordures (« aucune affiche n'a de bordure, d'ombre, ni de coin
+  #     arrondi ») ;
+  #   - les jetons de couleur retires : `border/*`, `accent/soft`, `accent/solid`,
+  #     `accent/text`, `status/info`, `status/warning`, `media/*`, `state/*`,
+  #     `bg/selected` ;
+  #   - `CardMetrics`, remplace par les six crans de `PosterScale`.
+  #
+  # Exclusions, toutes datees et toutes destinees a disparaitre avec `Legacy/` :
+  #   - `Legacy/` lui-meme, qui declare ces symboles ;
+  #   - `Components/`, les sept composants du banc d'essai, reecrits aux taches `V` ;
+  #   - les huit fichiers de `App/` qui composaient les ecrans des prompts 10 et 11.
+  #     La liste est **figee** : un fichier neuf ne s'y ajoute pas, il utilise le
+  #     nouveau systeme.
+  no_legacy_design_system:
+    name: "Ancienne direction artistique"
+    message: >-
+      Ce symbole appartient a la direction abandonnee (Legacy/, en sursis jusqu'a V12).
+      La direction courante n'a ni ombre ni bordure : utilise ColorTokens, Space, Radius,
+      Stroke, Layer, Density et PosterScale. Voir DesignSystem/Legacy/README.md.
+    regex: 'dsBorder|dsShadow|dsElevation|ShadowSpec|Elevation\.|CardMetrics|\.(borderSubtle|borderDefault|borderStrong|accentSoft|accentSolid|accentText|bgSelected|bgSurfaceRaised|statusWarning|statusInfo|mediaRing|mediaPlaceholder|stateArchived|statePrivate|textOnAccent)\b'
+    excluded:
+      - ".*/Packages/DesignSystem/Sources/DesignSystem/Legacy/.*"
+      - ".*/Packages/DesignSystem/Sources/DesignSystem/Components/.*"
+      # Les planches de composants du catalogue montrent ces sept composants : meme
+      # statut qu'eux, elles partent avec eux.
+      - ".*/Catalog/ComponentSheets.swift"
+      - ".*/App/Features/Settings/SettingsView.swift"
+      - ".*/App/Features/Titles/TitleDetailView.swift"
+      - ".*/App/Features/Titles/TitlesGrid.swift"
+      - ".*/App/Features/Titles/TitlesView.swift"
+      - ".*/App/Navigation/CompactRootView.swift"
+      - ".*/App/Navigation/ProfileMenu.swift"
+      - ".*/App/Navigation/ProfilePicker.swift"
+      - ".*/App/Navigation/ProfileSession.swift"
     excluded_match_kinds:
       - comment
       - doccomment

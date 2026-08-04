@@ -3431,3 +3431,172 @@ précédente (414 tests Core, 67 macOS) tiennent.
 
 **Suite : `L12`, l'archive `.cineshelfarchive`. Rigueur maximale** — c'est de l'écriture
 de données, et c'est le format qui portera les sauvegardes.
+
+---
+
+## 2026-08-04 — `L12` : l'archive `.cineshelfarchive`
+
+Première tâche menée sous le nouveau régime. **Rigueur maximale** : c'est de l'écriture de
+données, et c'est le format qui portera les sauvegardes.
+
+### Le format
+
+Un **paquet de dossier**, pas un `.zip` (`docs/04` §7) : `manifest.json`, dix-neuf
+`entities/*.json`, `media/<uuid>.bin`. Le motif est celui qui a fait retirer l'archive du
+handoff de design — un binaire ne se diffe pas, ne s'inspecte pas, et ne se répare pas à la
+main. Une sauvegarde dont on ne peut pas ouvrir un fichier pour vérifier ce qu'elle contient
+n'inspire aucune confiance au moment précis où on en a besoin.
+
+Quatre décisions de format, chacune contre une perte identifiée :
+
+1. **Les dérivés ne sont pas écrits.** `sortName`, `searchText`, `filterKeys`, `nameKey`,
+   `displayName`, `ageAtDeath` sont absents des fichiers et **recalculés** à la
+   restauration. Les écrire créerait une seconde source de vérité qui divergerait de la
+   fonction au premier changement de règle de repliage — et il y en a déjà eu un
+   aujourd'hui. Comme `filterKeys` dérive des identifiants des relations, préservés tels
+   quels, le recalcul rend exactement la même valeur, et un test le vérifie.
+2. **Les énumérations sont en `rawValue`, jamais typées.** Décoder en `TitleKind`
+   remplacerait par `.movie` un enregistrement écrit par une version future et rapatrié par
+   CloudKit. Une sauvegarde conserve ce qu'elle trouve ; elle ne normalise pas.
+3. **Les fichiers de `media/` sont nommés par l'identifiant de l'asset, pas par son
+   `checksum`.** Le checksum vaut `""` sur tout asset dont personne ne l'a calculé — le cas
+   de `DemoCatalog`, écart connu — donc nommer par checksum aurait écrit deux assets dans le
+   même fichier, le second écrasant le premier **sans qu'aucun compte ne bouge**.
+4. **Le manifeste porte les comptes, et la relecture les vérifie.** C'est ce qui distingue
+   « ce catalogue n'a pas de collections » de « le fichier des collections a été perdu ».
+   Sans ça, un fichier vidé se restaure en silence, amputé — la forme exacte du défaut du
+   lecteur CSV, qui annonçait 7 lignes sur 15.
+
+`ArchiveEntityFile` est une énumération de dix-neuf cas, et les trois `switch` qui la
+parcourent sont **exhaustifs sans `default`** : ajouter une entité au schéma sans lui donner
+son fichier cesse de compiler. C'est le filet qui remplace la vigilance, et le seul qui
+tienne — le manifeste étant écrit depuis cette même liste, une entité oubliée ne ferait
+bouger aucun compte. `cyclomatic_complexity` est désactivée sur ces trois-là, comme sur
+`ColorTokens.generated.swift` : la complexité mesurée est celle des dix-neuf cas, pas celle
+du code, et les découper détruirait la propriété qui les justifie.
+
+### Les deux arbitrages
+
+**L'archive contient tout, y compris la corbeille et le fil.** Les dix-neuf entités, dont
+les `deletedAt`, les `ActivityEntry` avec leur `payload` de diff, et les `LegacyRecord`. Une
+sauvegarde qui perdrait la corbeille supprimerait définitivement, à la restauration, ce que
+l'utilisateur avait seulement jeté ; une qui perdrait le fil rendrait inannulable tout lot
+antérieur, sans le dire.
+
+**La relecture fusionne par identifiant, elle ne remplace pas.** Une entité déjà en base est
+laissée **intacte** : rien n'est jamais écrasé, et rejouer la même archive ne change rien la
+seconde fois. Ça rend l'opération sûre sur une base non vide — récupérer trois fiches
+perdues n'oblige pas à tout effacer d'abord. La contrepartie est écrite noir sur blanc :
+**ce n'est pas un « restaurer la sauvegarde »**, qui se fait en repartant d'un magasin vide.
+
+### Les deux défauts que la sonde a trouvés
+
+Aucun n'était visible depuis la suite : tous deux rendaient un bilan **plausible et faux**.
+C'est le troisième cas du dépôt, après le lecteur CSV et l'écriture d'import, et le motif
+est chaque fois le même — la sonde imprime, le test assène.
+
+| # | Défaut | Effet mesuré |
+|---|---|---|
+| 1 | Les douze entités de la passe 2 étaient sautées par un `where !exists(…)`, qui ne note rien | Bilan « 0 créé, **15** ignoré » sur une archive de **26** entités : onze manquaient, donc le bilan laissait croire à onze disparitions — sur l'opération dont le seul rôle est de rassurer |
+| 2 | `mediaSource: nil` ne comptait **rien** | Catalogue complet restauré **sans une seule image**, en annonçant zéro anomalie |
+
+Le second était documenté comme un raccourci de test, ce qui est exactement ce qui l'a rendu
+invisible : un paramètre dont l'abus est décrit comme un usage légitime ne se relit plus.
+Correction : un seul compteur pour les deux façons de finir sans octets — fichier absent, ou
+source non fournie. L'état final est le même, une fiche sans image, donc les distinguer
+n'aiderait personne.
+
+Les deux corrections sont **prouvées par injection**, la faute constatée présente avant de
+conclure : la première fait mordre le test en nommant `import_mappings` (1 en archive, 0
+compté), la seconde en rendant 0 au lieu de 3. Puis retour au vert après restauration du
+code sain.
+
+### Ce que la sonde a validé, et qui n'allait pas de soi
+
+- **Deux écritures du même catalogue sont identiques octet pour octet**, 19 fichiers sur 19
+  — clés JSON triées, et identifiants de genres triés parce que SwiftData ne garantit pas
+  l'ordre d'un `to-many`. C'est ce qui rend une archive diffable.
+- **Les inverses de relations se repeuplent seuls**, y compris `Library.importMappings`, qui
+  est déclaré **sans** `@Relationship(inverse:)` et n'existe que pour que le miroir CloudKit
+  accepte le schéma. La restauration n'a donc pas à écrire les deux côtés.
+- **`updatedAt` survit.** `refreshDerived()` pose `updatedAt = .now`, et la passe des
+  dérivés l'appelle : la date de l'archive est reposée **après** chaque appel. Sans ça, un
+  catalogue restauré daterait entièrement du jour de sa restauration, et « trié par date de
+  modification » deviendrait faux partout — sans qu'aucun test de compte ne le voie. Dérive
+  mesurée : **0,8 ms**, la troncature de l'ISO 8601 à trois décimales.
+- Les six refus de format, chacun avec son injection vérifiée : manifeste absent, version
+  inconnue, fichier d'entité absent, fichier illisible, compte faux, date illisible.
+- Références pendantes comptées (4 sur 4), média manquant compté sans annuler la
+  restauration, octets orphelins de `media/` comptés, rattachement à deux propriétaires
+  compté sans être corrigé (`L16` nettoie).
+
+### Trois passes, et pourquoi
+
+Créer, relier, dériver. La séparation n'est pas un goût : `Title.collection` et
+`TitleCollection.titles` se pointent mutuellement, donc trier les dix-neuf entités par
+dépendance n'a pas de solution. Et `Title.refreshDerived()` lit `collection`, `genres` et
+`credits` pour composer `filterKeys` : l'appeler avant que les relations existent rendrait
+un filtre vide, et le titre serait **introuvable par tout critère** — muet, puisque sa fiche
+s'afficherait parfaitement. C'est la même famille de défaut que la grille vide derrière 42
+tests verts.
+
+### Mesures
+
+Sur ma machine, magasin sur disque :
+
+| Opération | 2 000 titres |
+|---|---|
+| Écriture de l'archive | **136 ms** |
+| Relecture (format seul, aucun magasin) | **12 ms** |
+| Restauration | **2 416 ms** |
+
+La restauration est superlinéaire pour la raison déjà mesurée à `L11b` : `save()` sur une
+table qui grossit. Ce n'est pas le résolveur. Conséquence pour `L13`, qui restaurera des
+volumes réels : prévoir la durée, et mesurer sur appareil avant de promettre quoi que ce
+soit.
+
+### `Transferable`
+
+`ArchiveFile` conforme à `Transferable` par `FileRepresentation` — un chemin, pas un
+contenu : une archive avec ses affiches pèse des dizaines de mégaoctets, et une
+représentation par `Data` obligerait à tout lire pour un AirDrop. À l'import, le fichier reçu
+est **déplacé** avant que la valeur soit rendue : l'emplacement temporaire du système est
+reprisdès le retour de la fermeture, et l'URL portée pointerait vers un fichier disparu —
+erreur qui ne se verrait qu'à la relecture, loin de là.
+
+Le type est déclaré dans `Info.plist`, dans les **deux** sections. `UTExportedTypeDeclarations`
+dit « cette app produit ce type », `UTImportedTypeDeclarations` « elle sait le lire » : sans
+la seconde, une archive reçue par AirDrop n'aurait pas CineShelf comme destination possible,
+et le partage ne servirait qu'à sortir des données, jamais à les faire revenir. Conformité à
+`com.apple.package`, plus `LSTypeIsPackage`, pour que le Finder l'affiche comme un fichier
+unique.
+
+`UTType` est construit par extension de nom de fichier et **non** par `UTType(exportedAs:)`,
+qui *piège le processus* quand le type n'est pas déclaré dans le bundle courant — donc sous
+`swift test`, où le binaire n'en a pas. Même piège que CloudKit, qui termine le processus
+faute d'identifiant de paquet.
+
+### Vérifications
+
+| Contrôle | Résultat |
+|---|---|
+| `swift test` CineShelfCore | **441 tests**, dont 27 d'archive |
+| `swiftlint --strict` | 0 violation |
+| `xcrun swift-format lint` | 0 avertissement |
+| `plutil -lint Info.plist` | OK |
+| Preuve d'échec, défaut 1 | mord, en nommant `import_mappings` |
+| Preuve d'échec, défaut 2 | mord, 0 au lieu de 3 |
+
+### Écarts que `L12` laisse
+
+- **Pas de progression ni d'annulation.** `ArchiveRestorer` est synchrone. `docs/04` §7 ne
+  demande la progression que pour l'import, et 2 000 titres prennent 2,4 s — mais un
+  catalogue réel de 10 000 titres gèlera l'interface. À reprendre avec `V8`, sur le modèle
+  d'`ImportActor` : le verrou de réentrance et le patron par lots existent déjà.
+- **La passe des dérivés ne sauvegarde pas par lots**, contrairement aux deux premières :
+  tout est accumulé et sauvegardé une fois. Sans effet mesurable à 2 000 titres, à surveiller
+  au-delà.
+- **Aucun test ne tourne contre un `Info.plist`.** La déclaration du type de fichier n'est
+  vérifiée que par `plutil`, et `UTType(filenameExtension:)` fabrique un type dynamique
+  quand la déclaration manque : une faute de frappe dans l'identifiant passerait tous les
+  tests. La vérification appartient à `Tests/CineShelfTests`, qui a un bundle — non fait.

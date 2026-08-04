@@ -180,6 +180,10 @@ reste en v1 à sa place.
 | `L2` | Service de recherche | Code | `02 §5`, `04 §6` | ✅ `6ea6a8e` |
 | `L3` | Indexation Spotlight | Code | `02 §5`, `04 §6`, `03 §9` | ✅ `4e696ee` |
 | `L4` | Mathématiques du recadrage | Code | `02 §2.4 §3.7`, `04 §4` | ✅ `07890db` |
+| `L10` | Édition en masse | Code | `03 §12` | ✅ `68688b2` |
+| `L11a` | CSV — format et analyse | Code | `03 §10`, `04 §7` | ✅ `902bfb1` … `4a42907` + revue |
+| `L11b` | CSV — application au magasin | Code | idem | ✅ `8f68345` + revue `c393ed9` |
+| `L12` | **Archive `.cineshelfarchive`** — paquet de dossier, aller-retour, fusion par identifiant, `Transferable` | Code | `04 §7`, `03 §10` | ✅ `e7e2915` `7a10b52` |
 
 ### Ce qui reste — chaque prompt est coupé en deux
 
@@ -194,7 +198,7 @@ La colonne **LOGIQUE** renvoie aux tâches `L…`, la colonne **VUES** aux tâch
 | 16 | Collections, genres, liens, accueil, fil | `L6` `L7` `L18` | `V5` | ⬜ |
 | 17 | Console de gestion | `L10` ✅ | `V6` | ⬜ |
 | 18 | Profils, bibliothèques, Face ID | `L14` `L15` | `V7` | ⬜ |
-| 19 | Import/export CSV | `L11a` `L11b` `L12` | `V8` | ⬜ |
+| 19 | Import/export CSV | `L11a` ✅ `L11b` ✅ `L12` ✅ | `V8` | ⬜ — toute la logique est faite, il ne reste que les écrans |
 | 2 | **Dump de l'app web** | — (dépôt web) | — | ⬜ **dépendance dure de `L13`** |
 | 20 | Migration des vraies données | `L13` | `V9` | ⬜ — **point de contrôle : geler `versionIdentifier`** (`02 §7` étape 0) |
 | 21 | Config CloudKit | — (toi) | — | ⬜ abonnement requis |
@@ -313,6 +317,10 @@ de découpage sur sa fiche.
 | `Typo.sectionTitle` inutilisé dans `App/` : **décision actée** — aucun en-tête de section n'est aujourd'hui sans style, donc rien à y brancher. Les quatre en-têtes de contenu de `TitleDetailView` gardent `railLabelStyle()` ; les promouvoir serait un changement de hiérarchie visuelle (12 → 20 pt de base sur iOS, perte des majuscules et du `tracking`), pas un branchement. À reprendre au prompt 16, qui écrit Accueil, Collections et Genres — de vrais groupes de contenu. Poser alors `sectionTitle` **une fois**, dans un `sectionTitleStyle()` sur le modèle de `railLabelStyle()`, plutôt que sur chaque appelant : ce serait un ajout aux composants, dont l'anatomie est désormais à refaire (voir la bascule) | `V5` |
 | Prédicat de production sans couverture : **il n'en reste qu'un**, `Bootstrap.existingProfile`, structurellement inatteignable en test — il ne sert qu'au cas d'une relation inverse désynchronisée par CloudKit. Les six qui étaient déclarés dans des vues (`MediaEnvironment`, `TitleDetailView`, `RouteInspector`, `Sidebar`, `TitleFilterSheet`, `DemoCatalog`) sont rapatriés dans `CineShelfCore/Queries/EntityQueries.swift`, couverts par `EntityQueryTests`, et la règle `no_predicate_outside_core` interdit qu'un septième réapparaisse dans une vue | `L17` |
 | `MediaRepository.asset(withID:)` : code mort, aucun appelant dans le dépôt | — |
+| **Une archive se restaure sans progression ni annulation.** `ArchiveRestorer` est synchrone. `docs/04` §7 ne demande la progression que pour l'import, et 2 000 titres prennent **2,4 s** — mais un catalogue réel de 10 000 titres gèlera l'interface, et une restauration n'est pas une opération qu'on interrompt à l'aveugle. Le patron existe déjà : `ImportActor`, son verrou de réentrance indexé sur le `ModelContainer`, et ses lots de 200. **La restauration est superlinéaire pour la raison déjà mesurée à `L11b`** — `save()` sur une table qui grossit, pas le résolveur : ne pas re-diagnostiquer | `V8` |
+| **La passe des dérivés de la restauration ne sauvegarde pas par lots**, contrairement aux deux premières : tout est accumulé et sauvegardé une fois. Sans effet mesurable à 2 000 titres. À surveiller au-delà, avec la même méthode — mesurer avant de changer | `L13` |
+| **Aucun test ne vérifie la déclaration du type de fichier d'archive.** Elle n'est contrôlée que par `plutil -lint`, et `UTType(filenameExtension:)` fabrique un type **dynamique** quand la déclaration manque : une faute de frappe dans `fr.feltrin.cineshelf.archive` passerait tous les tests, et ne se verrait qu'au premier AirDrop qui n'offre pas CineShelf comme destination. La vérification appartient à `Tests/CineShelfTests`, seule cible qui ait un bundle — même raison qui y a mis `CloudKitConformanceTests` | `V8` |
+| **Une archive restaurée dans une base non vide ne met rien à jour, par construction.** La fusion par identifiant laisse intacte toute entité déjà présente : c'est ce qui rend l'opération sûre, et ce qui fait qu'elle ne sait pas « restaurer par-dessus ». Si un vrai « remplacer par la sauvegarde » devient nécessaire, c'est une **opération distincte** à écrire — pas un drapeau sur celle-ci, qui perdrait sa seule garantie | — |
 | `ColorTokens.typedAccessor(for:)` n'a plus d'appelant de production depuis que `ProfileSession.accentColor` est un `switch` sur `ProfileAccent` : API `public` exercée par les seuls tests. La garder tant que le catalogue peut en avoir besoin, sinon la passer `internal` | — |
 | **Teinte de profil : deux choix seulement** (`accent/solid`, `accent/text`). Ce sont les deux seuls jetons d'accent à alpha 1 ; `accent/soft` est un lavis de fond (alpha 0,10 à 0,22) qui rendrait l'accent invisible en `.tint`. Si le prompt 18 veut de vraies couleurs par profil, il faudra étendre la palette dans `colors.tokens.json`, pas réutiliser les rôles existants. **La palette entière étant à refaire, ce point se tranchera avec la nouvelle** | `V7` |
 | **Passe sur les réglages, reportée** (décision actée, voir « Arbitrages tranchés » point 3) : le périmètre réel des options n'est pas connu tant que la synchronisation, la corbeille et l'espace occupé n'ont pas ajouté les leurs. Dessiner l'écran avant reviendrait à le redessiner | après les prompts 21 et 22 |
@@ -512,7 +520,7 @@ L1 → L2 → L3 → L4 → L10 → L11 → L12 → prompt 2 → L13
 | 5 | `L10` | Édition en masse : décrire une mutation, l'appliquer à une sélection | `03 §12` | — | ✅ `68688b2` |
 | 6 | `L11a` | CSV : le format et l'analyse — sérialiseur, lecteur tolérant, correspondance, validation. **Aucune écriture de modèle** | `03 §10`, `04 §7`, `design/README.md` §6 | `L10` (de forme) | ✅ `902bfb1` `4697fe2` `fe63fa0` `738f5c5` `6676c44` `f6b13b4` `4a42907` + revue `e5d37ac` `c29140a` `f10bc13` `034157c` |
 | 6 bis | `L11b` | CSV : l'application au magasin — références, dédoublonnage, `ImportActor`, brouillon | idem | `L11a` | ✅ `02f2ec7` `8447134` `b5f8d76` `8f68345` + revue `c393ed9` |
-| 7 | `L12` | Archive `.cineshelfarchive` : écriture et relecture | `04 §7`, `03 §10` | `L11a` (le sérialiseur suffit) | ⬜ **suivant** |
+| 7 | `L12` | Archive `.cineshelfarchive` : écriture et relecture | `04 §7`, `03 §10` | `L11a` (le sérialiseur suffit) | ✅ `e7e2915` `7a10b52` |
 | 8 | **prompt 2** | **Dump du bundle depuis l'app web** — dans le dépôt web, pas ici | `02 §7` étape 1 | — | ⬜ **dépendance dure de `L13`** |
 | 9 | `L13` | Migration des vraies données depuis le bundle web | `02 §7` | `L1` `L3` `L4` `L11a` `L11b` `L12` **+ prompt 2** | ⬜ |
 

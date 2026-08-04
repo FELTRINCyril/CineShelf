@@ -14,13 +14,19 @@ struct SectionPlaceholder: View {
     let section: AppSection
 
     var body: some View {
-        StateView(kind)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(.bgCanvas)
-            .navigationTitle(section.title)
-            #if os(iOS)
-                .navigationBarTitleDisplayMode(.inline)
-            #endif
+        VStack(alignment: .leading, spacing: Space.s5) {
+            // Depuis `V0 bis`, l'en-tête appartient à l'écran et non au chrome : c'est ce
+            // qui permet à la grille des titres d'y poser ses actions sans en avoir deux.
+            ScreenHeader(section: section)
+            StateView(kind)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(.bgCanvas)
+        .navigationTitle(section.title)
+        #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 
     private var kind: StateView<EmptyView>.Kind {

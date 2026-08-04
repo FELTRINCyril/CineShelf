@@ -3,12 +3,16 @@ import DesignSystem
 import SwiftData
 import SwiftUI
 
-/// La liste des titres — `docs/03` §4.
+/// L'écran « Titres » — planche 3 bloc `4a`.
 ///
-/// Découpée en deux : cette vue porte le chrome (barre d'outils, filtres,
-/// recherche), `TitlesGrid` porte la requête. C'est nécessaire, pas cosmétique :
-/// un `@Query` à prédicat dynamique ne se réévalue qu'à la reconstruction de la
-/// vue qui le déclare, donc la grille est recréée à chaque changement de filtre.
+/// Découpé en deux, et c'est nécessaire, pas cosmétique : un `@Query` à prédicat dynamique
+/// ne se réévalue qu'à la reconstruction de la vue qui le déclare. Cette vue porte
+/// l'en-tête et les réglages, `TitlesGrid` porte la requête et se fait recréer.
+///
+/// **Les actions vivent dans `ScreenHeader`, pas dans une barre à part.** `V0` a livré
+/// l'en-tête d'écran en laissant son emplacement d'actions vide ; `V0 bis` le remplit. Une
+/// `.toolbar` SwiftUI aurait donné une seconde barre au-dessus de celle du chrome, ce que
+/// le bloc `4a` ne montre pas.
 struct TitlesView: View {
     @Environment(NavigationModel.self) private var navigation
     @Environment(ProfileSession.self) private var session
@@ -17,103 +21,151 @@ struct TitlesView: View {
     @State private var isFilterSheetPresented = false
     @State private var editedTitle: Title?
 
-    /// L'affichage est tenu en `@State` **et** persisté : lu depuis
-    /// `UserDefaults` à chaque accès, il persistait bien mais ne redessinait
-    /// rien — `UserDefaults` n'invalide aucune vue SwiftUI.
-    @State private var display = CardDisplaySetting.default
+    /// Tenu en `@State` **et** persisté : lu depuis `UserDefaults` à chaque accès, il
+    /// persistait bien mais ne redessinait rien — `UserDefaults` n'invalide aucune vue.
+    @State private var setting = PosterContext.titles.defaultSetting
 
     var body: some View {
         @Bindable var navigation = navigation
 
-        TitlesGrid(
-            filter: navigation.titleFilter,
-            hidingPrivate: session.current?.hidesPrivateContent ?? false,
-            libraryID: session.current?.library?.id,
-            display: display,
-            onEdit: { editedTitle = $0 },
-            onCreate: createTitle
-        )
-        .navigationTitle("Titres")
-        #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-        #endif
-        .searchable(text: $navigation.titleFilter.searchText, prompt: "Rechercher un titre")
-        .task(id: session.current?.id) { display = storedDisplay }
-        .onChange(of: display) { _, new in
-            CardDisplayStore.save(new, profileID: session.current?.id, context: .titles)
+        VStack(alignment: .leading, spacing: Space.s4) {
+            ScreenHeader(section: .titles) { actions }
+            activeFilters
+            TitlesGrid(
+                filter: navigation.titleFilter,
+                hidingPrivate: session.current?.hidesPrivateContent ?? false,
+                libraryID: session.current?.library?.id,
+                setting: setting,
+                onCreate: createTitle
+            )
         }
-        .toolbar { toolbarContent }
+        .searchable(text: $navigation.titleFilter.searchText, prompt: "Rechercher un titre")
+        .task(id: session.current?.id) { setting = storedSetting }
+        .onChange(of: setting) { _, new in
+            PosterSettingStore.save(new, profileID: session.current?.id, context: .titles)
+        }
         .sheet(isPresented: $isFilterSheetPresented) {
             TitleFilterSheet(filter: $navigation.titleFilter)
         }
         .sheet(item: $editedTitle) { title in
             TitleEditor(title: title)
-                // Fermer la feuille par glissement n'appelle pas « Annuler » :
-                // sans ça, un titre créé puis abandonné reste dans la
-                // bibliothèque, sans nom, en tête du tri alphabétique.
+                // Fermer la feuille par glissement n'appelle pas « Annuler » : sans ça, un
+                // titre créé puis abandonné reste dans la bibliothèque, sans nom, en tête
+                // du tri alphabétique.
                 .onDisappear { discardIfUnnamed(title) }
         }
-        // `onChange` seul ne suffit pas : ⌘N depuis une autre section lève le
-        // drapeau *avant* que cette vue existe, et l'événement est manqué.
+        // `onChange` seul ne suffit pas : ⌘N depuis une autre section lève le drapeau
+        // *avant* que cette vue existe, et l'événement est manqué.
         .onChange(of: navigation.wantsNewTitle) { _, _ in consumeCreationRequest() }
         .onAppear { consumeCreationRequest() }
     }
 
-    // MARK: Barre d'outils — `docs/01` partie C : tri, filtres, affichage
+    // MARK: Les actions de l'en-tête — bloc `4a` : Trier · Filtres · Affichage · ＋ Nouveau
 
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        ToolbarItem {
-            Menu {
-                Picker("Trier par", selection: sortBinding) {
-                    ForEach(TitleSortField.allCases) { field in
-                        Label(field.label, systemImage: field.symbol).tag(field)
-                    }
-                }
-                Divider()
-                Picker("Ordre", selection: ascendingBinding) {
-                    Text("Croissant").tag(true)
-                    Text("Décroissant").tag(false)
-                }
-            } label: {
-                Label("Trier", systemImage: Icon.sort)
-            }
-        }
-
-        ToolbarItem {
-            Button {
-                isFilterSheetPresented = true
-            } label: {
-                // Un filtre actif doit se voir sans ouvrir la feuille.
-                Label("Filtrer", systemImage: filterSymbol)
-            }
-        }
-
-        ToolbarItem {
-            DisplayMenu(setting: $display, context: .titles)
-        }
-
-        ToolbarItem {
-            // `docs/03` §3 : bascule dans la barre d'outils, pas enterrée dans
-            // la feuille de filtres. Elle y reste aussi, les deux sont liées.
-            Toggle(isOn: showsArchivedBinding) {
-                Label("Afficher les archivés", systemImage: Icon.archived)
-            }
-            .toggleStyle(.button)
-            .help("Afficher les archivés")
-        }
-
-        ToolbarItem {
-            Button {
-                createTitle()
-            } label: {
-                Label("Nouveau titre", systemImage: "plus")
-            }
+    @ViewBuilder
+    private var actions: some View {
+        HStack(spacing: Space.s5) {
+            sortMenu
+            filterButton
+            displayMenu
+            Button("Nouveau", action: createTitle)
+                .buttonStyle(.plain)
+                .actionStyle()
+                .foregroundStyle(Color.textSecondary)
+                .frame(minHeight: Space.minHitTarget)
         }
     }
 
-    private var filterSymbol: String {
-        navigation.titleFilter.isActive ? "line.3.horizontal.decrease.circle.fill" : Icon.filter
+    private var sortMenu: some View {
+        Menu {
+            Picker("Trier par", selection: sortBinding) {
+                ForEach(TitleSortField.allCases) { field in
+                    Label(field.label, systemImage: field.symbol).tag(field)
+                }
+            }
+            Divider()
+            Picker("Ordre", selection: ascendingBinding) {
+                Text("Croissant").tag(true)
+                Text("Décroissant").tag(false)
+            }
+        } label: {
+            Text("Trier")
+                .actionStyle()
+                .foregroundStyle(Color.textSecondary)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .frame(minHeight: Space.minHitTarget)
+    }
+
+    /// Le libellé porte le compte de filtres actifs et passe en ambre — bloc `4a`,
+    /// « Filtres · 2 ». C'est le seul signal : la direction n'a pas de pastille.
+    private var filterButton: some View {
+        Button {
+            isFilterSheetPresented = true
+        } label: {
+            Text(navigation.titleFilter.isActive ? "Filtres · actifs" : "Filtres")
+                .actionStyle()
+                .foregroundStyle(filterTint)
+                .frame(minHeight: Space.minHitTarget)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var filterTint: Color {
+        navigation.titleFilter.isActive ? Color.accent : Color.textSecondary
+    }
+
+    /// La matrice `disposition × taille`, qui est une **fonctionnalité** mémorisée par
+    /// contexte et non un réglage d'apparence — voir `PosterContext`.
+    private var displayMenu: some View {
+        Menu {
+            Picker("Disposition", selection: layoutBinding) {
+                ForEach(CardLayout.allCases) { layout in
+                    Label(layout.label, systemImage: layout.symbol).tag(layout)
+                }
+            }
+            Divider()
+            Picker("Taille", selection: sizeBinding) {
+                ForEach(CardSize.allCases) { size in
+                    Text(size.label).tag(size)
+                }
+            }
+        } label: {
+            Text("Affichage")
+                .actionStyle()
+                .foregroundStyle(Color.textSecondary)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .frame(minHeight: Space.minHitTarget)
+    }
+
+    /// La rangée de filtres actifs — bloc `4a`, « Drame ✕ · Note ≥ 4 ✕ ».
+    ///
+    /// **Rendue en `StateBadge` et non en jeton interactif.** Le jeton de filtre avec sa
+    /// croix est un composant de `I5`, qui n'est pas fait (palier 3) ; en écrire une
+    /// version ici la ferait exister en double le jour où `I5` arrive. La rangée dit donc
+    /// ce qui filtre, et on l'enlève par la feuille — moins direct que le prototype, et
+    /// inscrit comme tel.
+    @ViewBuilder
+    private var activeFilters: some View {
+        if navigation.titleFilter.isActive {
+            HStack(spacing: Space.s2) {
+                StateBadge("Filtres actifs", tone: .accent)
+                Button("Tout effacer") { navigation.titleFilter.clear() }
+                    .buttonStyle(.plain)
+                    .actionStyle()
+                    .foregroundStyle(Color.textTertiary)
+                    .frame(minHeight: Space.minHitTarget)
+                Spacer(minLength: Space.s4)
+                Text("\(setting.layout.label) · \(setting.size.label)")
+                    .labelStyle()
+                    .foregroundStyle(Color.textTertiary)
+            }
+            .padding(.horizontal, Breakpoint.macStandard.screenMargin)
+        }
     }
 
     // MARK: Liaisons
@@ -125,13 +177,6 @@ struct TitlesView: View {
         )
     }
 
-    private var showsArchivedBinding: Binding<Bool> {
-        Binding(
-            get: { navigation.titleFilter.showsArchived },
-            set: { navigation.titleFilter.showsArchived = $0 }
-        )
-    }
-
     private var ascendingBinding: Binding<Bool> {
         Binding(
             get: { navigation.titleFilter.ascending },
@@ -139,12 +184,16 @@ struct TitlesView: View {
         )
     }
 
-    /// L'affichage est persisté par profil **et** par contexte : la grille des
-    /// titres et celle de la galerie n'ont pas la même densité utile.
-    /// `docs/02` §3.10 le range hors du modèle — c'est une préférence
-    /// d'appareil, pas une donnée à synchroniser.
-    private var storedDisplay: CardDisplaySetting {
-        CardDisplayStore.setting(profileID: session.current?.id, context: .titles)
+    private var layoutBinding: Binding<CardLayout> {
+        Binding(get: { setting.layout }, set: { setting.layout = $0 })
+    }
+
+    private var sizeBinding: Binding<CardSize> {
+        Binding(get: { setting.size }, set: { setting.size = $0 })
+    }
+
+    private var storedSetting: PosterSetting {
+        PosterSettingStore.setting(profileID: session.current?.id, context: .titles)
     }
 
     private func consumeCreationRequest() {
@@ -163,25 +212,5 @@ struct TitlesView: View {
     private func createTitle() {
         guard let library = session.current?.library else { return }
         editedTitle = TitleRepository(context: modelContext).create(name: "", in: library)
-    }
-}
-
-/// La persistance de `CardDisplaySetting`, par profil et par contexte.
-enum CardDisplayStore {
-
-    static func setting(profileID: UUID?, context: CardDisplayContext) -> CardDisplaySetting {
-        guard let data = UserDefaults.standard.data(forKey: key(profileID, context)),
-            let decoded = try? JSONDecoder().decode(CardDisplaySetting.self, from: data)
-        else { return .default }
-        return decoded
-    }
-
-    static func save(_ setting: CardDisplaySetting, profileID: UUID?, context: CardDisplayContext) {
-        guard let data = try? JSONEncoder().encode(setting) else { return }
-        UserDefaults.standard.set(data, forKey: key(profileID, context))
-    }
-
-    private static func key(_ profileID: UUID?, _ context: CardDisplayContext) -> String {
-        "display.\(profileID?.uuidString ?? "none").\(context.rawValue)"
     }
 }

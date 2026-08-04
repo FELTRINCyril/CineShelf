@@ -36,13 +36,15 @@ struct RegularRootView: View {
 
     /// Le contenu de la section, avec son en-tête d'écran et son capteur de défilement.
     private var sectionContent: some View {
+        // **L'en-tête n'est pas posé ici, il est posé par l'écran.** Le poser au niveau du
+        // chrome donnerait deux en-têtes à tout écran qui a des actions — la grille des
+        // titres, la galerie — et forcerait un drapeau « celui-ci a le sien ».
+        // `ScreenHeader` reste un composant du chrome ; c'est son *placement* qui
+        // appartient à l'écran.
         ScrollView {
-            VStack(alignment: .leading, spacing: Space.s5) {
-                ScreenHeader(section: navigation.section)
-                navigation.section.destination
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.bottom, Space.s8)
+            navigation.section.destination
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, Space.s8)
         }
         .reportsScrollOffset(to: $isScrolled)
         .scrollContentBackground(.hidden)
@@ -52,27 +54,50 @@ struct RegularRootView: View {
 
 // MARK: - L'en-tête d'écran
 //
-// Relevé sur la planche 2 bloc `3a`, « Barre d'outils d'écran — Titres (Mac / iPad) » :
-// un titre en Bebas, un compte en capitales à côté, et les actions alignées à droite —
-// Trier, Filtres, Affichage, Sélectionner, ＋ Nouveau.
+// Relevé sur la planche 2 bloc `3a` et la planche 3 bloc `4a`, « Barre d'outils d'écran —
+// Titres » : un titre en Bebas 44 pt, un compte en capitales posé sur sa ligne de base, et
+// les actions alignées à droite — Trier, Filtres, Affichage, Sélectionner, ＋ Nouveau.
 //
-// **Les actions ne sont pas branchées ici, et c'est volontaire.** Elles appartiennent aux
-// écrans qui les portent (`V0 bis` pour Titres, `V3` pour la galerie), et un menu « Trier »
-// posé par le chrome trierait quoi ? L'en-tête rend donc le titre, et laisse l'écran
-// remplir le reste. Poser des menus inertes ici serait la version chrome du code
-// « au cas où ».
+// **Le chrome porte la forme, l'écran porte les actions.** `V0` avait laissé l'emplacement
+// vide en écrivant qu'un menu « Trier » posé par le chrome trierait quoi ; `V0 bis` ouvre
+// cet emplacement plutôt que d'ajouter une seconde barre dans la grille. C'est ce qui
+// garantit que Titres, Personnes et Collections auront le même en-tête sans que personne
+// n'ait à le recopier.
 
-struct ScreenHeader: View {
-    let section: AppSection
+struct ScreenHeader<Actions: View>: View {
+    private let title: String
+    private let count: String?
+    private let actions: Actions
+
+    init(section: AppSection, count: String? = nil, @ViewBuilder actions: () -> Actions) {
+        self.title = section.title
+        self.count = count
+        self.actions = actions()
+    }
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: Space.s4) {
-            Text(section.title)
+            Text(title)
                 .title1Style()
                 .foregroundStyle(Color.textPrimary)
+
+            if let count {
+                Text(count)
+                    .labelStyle()
+                    .foregroundStyle(Color.textTertiary)
+            }
+
             Spacer(minLength: Space.s4)
+            actions
         }
         .padding(.horizontal, Breakpoint.macStandard.screenMargin)
         .padding(.top, Space.s4)
+    }
+}
+
+extension ScreenHeader where Actions == EmptyView {
+    /// L'en-tête d'un écran qui n'a pas encore d'actions — la plupart, jusqu'à leur `V`.
+    init(section: AppSection, count: String? = nil) {
+        self.init(section: section, count: count) { EmptyView() }
     }
 }

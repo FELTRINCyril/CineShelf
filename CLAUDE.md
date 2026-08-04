@@ -361,6 +361,28 @@ approximation : c'est une information fausse, et elle est indétectable.
 - Aucune inférence : que le build passe ne dit rien des tests, et qu'un paquet passe ne
   dit rien des trois autres.
 
+### La même règle vaut pour le code, pas seulement pour les commandes
+
+**Une affirmation sur du code que je n'ai pas encore confronté à sa source est du même
+ordre qu'un ✅ sur une commande non lancée.** Dans les deux cas j'énonce un résultat que je
+n'ai pas constaté, et dans les deux cas tu n'as aucun moyen de le savoir.
+
+Trois occurrences, la même faute sous trois habits :
+
+- **« Les builds passent »** sans avoir lancé les tests. L'inférence est nommée plus haut.
+- **Le contre-test de `P0`**, qui lisait `DEVELOPMENT_TEAM` au lieu de jouer le geste du
+  `README`.
+- **« `NavigationModelTests` restera vert sans que j'y touche »**, annoncé en fin de `I6`.
+  Il n'a pas compilé : le design donne cinq onglets là où la coquille en avait cinq autres.
+  La prédiction portait sur du code que je connaissais — mais elle affirmait son accord
+  avec une **planche que je n'avais pas encore ouverte**.
+
+Ce que ça change en pratique : avant d'écrire qu'un fichier, un test ou une décision
+« tient » face au design, **ouvrir la planche qui en décide**. Tant que ce n'est pas fait,
+la formulation honnête est « je n'ai pas encore confronté X à la planche Y », pas une
+prédiction. Une prédiction explicitement marquée comme telle reste utile — elle se vérifie,
+et son échec apprend quelque chose ; c'est l'affirmation *déguisée en constat* qui trompe.
+
 ### Une preuve doit exercer le geste, pas seulement la valeur
 
 Corollaire de `P0`, et le défaut était réel. Le contre-test vérifiait

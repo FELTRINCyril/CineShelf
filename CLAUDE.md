@@ -174,6 +174,49 @@ C'est la quatrième fois, et c'est désormais un motif établi : `no_literal_col
 « ce code passe par tel unique point d'entrée » plutôt que « ce code produit telle
 valeur », écrire la règle de lint en plus du test, et la prouver en injectant la faute.
 
+## Le paquet sonde : méthode attendue sur les tâches critiques de données
+
+**Une suite de tests écrite par l'auteur du code partage ses angles morts.** Elle
+n'interroge que les entrées auxquelles il a pensé, et c'est précisément là qu'il n'y a rien
+à trouver. `L11a` l'a démontré : 320 tests verts, `swiftlint --strict` à zéro, et **trois
+défauts muets** dans le lecteur d'octets — un guillemet de pouce dans un titre coûtait huit
+lignes valides, un synopsis multiligne pourtant conforme corrompait la fin du fichier, un
+fichier à fins de ligne `CR` devenait un en-tête de quatre colonnes. Aucun test ne les
+voyait, et le rapport annonçait « 7 lignes analysées » sur 15 sans un mot sur les huit
+autres.
+
+Ce qui les a trouvés est une **sonde hors dépôt** : un paquet SwiftPM jetable, qui dépend de
+`CineShelfCore` par chemin local, et dont le `main.swift` n'assène rien mais **imprime**.
+
+```swift
+// Package.swift : dependencies: [.package(path: "…/Packages/CineShelfCore")]
+let d = CSVReader().read(fichierAdverse)
+print("15 lignes fournies -> rows=\(d.rows.count) saines=\(d.wellFormedRows.count)")
+```
+
+Pourquoi ça marche là où un test échoue :
+
+- **Elle imprime au lieu d'assener.** Un test dit « conforme à mon attente » ; la sonde dit
+  ce qui s'est *réellement* passé. `rows=7` sur quinze lignes fournies saute aux yeux — et
+  aucune assertion ne l'aurait demandé, puisque personne ne soupçonnait la perte.
+- **Elle est jetable, donc les entrées peuvent être franchement hostiles** sans qu'on
+  s'inquiète du temps de la suite ni de sa lisibilité.
+- **Elle mesure avant de corriger, puis remesure après.** Les tableaux « avant / après » du
+  journal viennent tous de là, et c'est ce qui a montré que ma première correction du seuil
+  de resynchronisation **aggravait** le pire cas — 24 lignes perdues au lieu de 8. Sans
+  mesure, je l'aurais livrée en la croyant meilleure.
+
+**Attendue sur `L11b`, `L13` et `L20`** : ce sont les trois tâches où une donnée fausse
+s'écrit en base et ne se voit plus. La sonde y précède les tests, et chaque défaut qu'elle
+trouve devient un test de non-régression — c'est le test qui reste, pas la sonde.
+
+Les entrées à essayer sont celles qu'un auteur ne choisit pas spontanément : la valeur qui
+contient le séparateur, celle qui contient le caractère d'échappement, la ligne trop courte,
+la ligne trop longue, l'encodage étranger, la fin de ligne d'un autre système, la collection
+vide, le doublon intra-lot, l'annulation au pire moment, et la même opération jouée deux
+fois. Les scripts de sonde vont dans le répertoire de travail temporaire de la session, pas
+dans le dépôt.
+
 ## Commandes
 ```bash
 xcodegen generate   # après tout ajout de fichier : *.xcodeproj n'est pas versionné

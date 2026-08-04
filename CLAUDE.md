@@ -174,6 +174,28 @@ C'est la quatrième fois, et c'est désormais un motif établi : `no_literal_col
 « ce code passe par tel unique point d'entrée » plutôt que « ce code produit telle
 valeur », écrire la règle de lint en plus du test, et la prouver en injectant la faute.
 
+## Deux crans de rigueur, réglés sur l'irréversibilité — pas sur la couche
+
+Le classement fait foi dans `docs/PROMPTS.md`, section « La rigueur se règle sur
+l'irréversibilité ». **À lire avant de commencer une tâche**, parce qu'il décide de la
+méthode et de la longueur du rapport.
+
+Le critère : **si cette tâche a un défaut et que personne ne le voit pendant trois
+semaines, est-ce que la donnée est récupérable ?** Non → maximale. Oui → légère. Deux
+crans, pas trois. Une seconde porte compte autant sans être de l'irréversibilité :
+exposer un contenu marqué privé ne se répare pas.
+
+- **Maximale** — sonde hors dépôt, preuve d'échec avec injection vérifiée, sous-agent de
+  revue, rapport détaillé. `L8` `L11a` `L11b` `L12` `L13` `L15` `L16` `L20`.
+- **Légère** — compile, teste normalement, avance. `L1 bis` `L5` `L6` `L7` `L9` `L17`
+  `L18`, et **toute la chaîne `I`**.
+
+**La longueur du rapport suit le même cran.** Sur une tâche légère : **cinq lignes** — ce
+qui est fait, ce qui est vert, ce qui reste. Les rapports détaillés, les tableaux de
+mesures et les récits d'arbitrage restent pour les tâches à rigueur maximale, où ils ont
+servi. Sur une tâche légère, en produire un n'est pas du zèle, c'est une erreur de
+méthode.
+
 ## Le paquet sonde : méthode attendue sur les tâches critiques de données
 
 **Une suite de tests écrite par l'auteur du code partage ses angles morts.** Elle
@@ -206,9 +228,15 @@ Pourquoi ça marche là où un test échoue :
   de resynchronisation **aggravait** le pire cas — 24 lignes perdues au lieu de 8. Sans
   mesure, je l'aurais livrée en la croyant meilleure.
 
-**Attendue sur `L11b`, `L13` et `L20`** : ce sont les trois tâches où une donnée fausse
-s'écrit en base et ne se voit plus. La sonde y précède les tests, et chaque défaut qu'elle
-trouve devient un test de non-régression — c'est le test qui reste, pas la sonde.
+**Attendue sur les tâches à rigueur maximale, et sur elles seules** : ce sont celles où une
+donnée fausse s'écrit en base et ne se voit plus. La liste fait foi dans `docs/PROMPTS.md`,
+section « La rigueur se règle sur l'irréversibilité, pas sur la couche » — au 2026-08-04 :
+`L8`, `L11a`, `L11b`, `L12`, `L13`, `L15`, `L16`, `L20`. La sonde y précède les tests, et
+chaque défaut qu'elle trouve devient un test de non-régression — c'est le test qui reste,
+pas la sonde.
+
+**Sur une tâche à rigueur légère, ne pas la construire.** Pas de sonde, pas de preuve
+d'échec, pas de sous-agent de revue : compile, teste normalement, avance.
 
 Les entrées à essayer sont celles qu'un auteur ne choisit pas spontanément : la valeur qui
 contient le séparateur, celle qui contient le caractère d'échappement, la ligne trop courte,
@@ -270,7 +298,10 @@ document le dit lui-même.
 2. **Proposer un plan avant d'écrire du code.** Attendre ma validation.
 3. Écrire, compiler, corriger jusqu'à build vert sur iOS **et** macOS.
 4. Lancer les tests.
-5. Ajouter une ligne à `docs/journal.md`.
+5. Ajouter une ligne à `docs/journal.md` — ou à `docs/journal-design.md` pour une tâche
+   de la chaîne `I`, qui vit dans l'arbre de travail `CineShelf-design/`. Deux fichiers
+   parce que les deux chaînes y ajoutaient en fin de fichier et se conflictaient à
+   chaque session ; procédure des deux arbres dans le `README`.
 6. **Un commit par sujet cohérent, message conventionnel** — une tâche peut en
    produire plusieurs. Le critère est la bissectabilité : chaque commit doit
    pouvoir être compris, et le cas échéant révoqué, sans entraîner les autres.

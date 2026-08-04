@@ -42,7 +42,115 @@ Même découpage pour la console de gestion : la ligne de tableau et le jeton de
 des composants (`I`), la console est un écran (`V6`).
 
 État au 2026-08-04 : **`I1` intégrée**, `I2` débloquée et pas commencée, aucune `V`
-démarrée. Le catalogue porte la même explication sur sa première planche.
+démarrée. Le catalogue porte la même explication sur sa première planche. La chaîne `I`
+n'était pas inventoriée — elle l'est ci-dessous, en **neuf lots de trois composants**.
+
+---
+
+## La rigueur se règle sur l'irréversibilité, pas sur la couche
+
+Décidé le 2026-08-04. `L11b` avait mérité ses deux heures : sa clé de doublon
+fabriquait **quatre fiches à partir de deux lignes identiques**, en silence. `L5`, `L6`,
+`L7` et `L9` ne les méritent pas, et c'est là que le temps se perdait.
+
+**« Chaîne `L` = rigueur maximale » était faux.** Ce qui décide n'est pas la couche,
+c'est ce qu'un défaut muet coûte. Une tâche qui écrit ou supprime des données qu'aucun
+geste ne refait n'a pas droit au même régime qu'un service de lecture dont l'erreur se
+voit à l'écran et disparaît au rechargement.
+
+### Le critère, en une question
+
+> **Si cette tâche a un défaut et que personne ne le voit pendant trois semaines,
+> est-ce que la donnée est récupérable ?**
+
+Non → **rigueur maximale**. Oui → **rigueur légère**. Deux crans, pas trois.
+
+Une seconde porte, qui n'est pas de l'irréversibilité mais coûte autant : **exposer un
+contenu marqué privé ne se répare pas** — l'index Spotlight est unique pour l'appareil,
+c'est la fuite que `L3` a fermée, et c'est la raison de la monotonie du privé à
+l'import. Une tâche dont un défaut peut montrer du privé passe en maximale **sur ce
+point nommé**, le reste en légère.
+
+### Ce que chaque cran engage
+
+| | Rigueur maximale | Rigueur légère |
+|---|---|---|
+| Sonde hors dépôt (`CLAUDE.md` § « Le paquet sonde ») | **oui**, avant les tests | non |
+| Preuve d'échec par injection, la faute vérifiée présente avant de conclure | **oui**, pour chaque correction | non |
+| Sous-agent de revue | **oui** | non |
+| Tests | la suite, plus un test de non-régression par défaut trouvé | normaux |
+| Rapport de fin | détaillé — mesures, arbitrages, tableaux avant/après | **cinq lignes** : ce qui est fait, ce qui est vert, ce qui reste |
+| Entrée au journal | complète | trois lignes |
+
+Sur une tâche légère : **compile, teste, avance.** Pas de sonde, pas de preuve d'échec,
+pas de revue, pas de rapport détaillé. C'est tout ce qui est demandé, et en demander
+plus est une erreur, pas un excès de zèle.
+
+### Le classement
+
+| Cran | Tâches | Ce qu'un défaut muet coûte |
+|---|---|---|
+| **Maximale** | `L8` `L11a` `L11b` `L12` `L13` `L15` `L16` `L20` | Des enregistrements écrasés, fusionnés ou purgés sans trace, ou une sauvegarde qui ne se relit pas |
+| **Légère** | `L1 bis` `L5` `L6` `L7` `L9` `L17` `L18` · **toute la chaîne `I`** | Un affichage faux, une image à régénérer, un cache à vider |
+| **Légère, sauf un point** | `L14` | La logique du verrou est légère ; **la portée du déverrouillage et le délai de grâce** sont maximaux — ils décident qui voit le privé |
+
+Justification tâche par tâche, pour les cas qui ne sont pas évidents :
+
+- **`L8` (doublons et fusion) est maximale**, et c'est la correction la plus importante
+  de ce classement. La fusion transfère des relations et marque le perdant supprimé, et
+  **rien ne l'annule avant `L20`** : c'est l'opération destructive, `L20` n'est que son
+  filet. Classer le filet en maximale et l'opération en défaut serait exactement à
+  l'envers.
+- **`L15` (transfert entre bibliothèques, fusion des genres) est maximale** : elle
+  rejoue l'exécuteur de `L8` et déplace des entités d'une bibliothèque à l'autre. Même
+  nature, même absence de retour.
+- **`L16` (maintenance et corbeille) est maximale** : c'est la seule tâche qui
+  **supprime définitivement** — orphelins, non référencés, purge à 30 jours. Une règle
+  d'orphelin trop large efface des médias que rien ne récupère, et après le prompt 21
+  la suppression se propage à tous les appareils.
+- **`L5` reste légère** malgré `flushPendingWrites()` : ce qui se perd sous pression
+  mémoire est un cache de vignettes, régénérable au prochain affichage.
+- **`L6` reste légère** bien qu'elle écrive un `MediaAsset` : une mosaïque fausse se
+  voit au premier coup d'œil, et la fiche exige qu'elle soit régénérable.
+- **`L17` est légère pour une raison de plus** : sa propre fiche dit qu'elle ne sera
+  jamais « vérifiée » avant le prompt 21. Investir en rigueur là où la vérification est
+  structurellement impossible ne rend rien.
+- **`L18` est légère avec deux points nommés** : le filtre « jamais un titre archivé ni
+  privé si le profil les masque » se teste (c'est la porte du privé), et tout prédicat
+  nouveau se mesure (écart « le plafond de `#Predicate` »). Rien d'autre.
+- **Les tâches `V` se classeront à leur démarrage**, avec le même critère. Deux sont
+  maximales d'avance parce qu'elles déclenchent des écritures de masse : `V6` (édition
+  en masse) et `V8` (import).
+
+---
+
+## Reporté en v1.1 — inscrit, pas supprimé
+
+Décidé le 2026-08-04, pour raccourcir le chemin jusqu'à une app utilisable. **Rien
+n'est abandonné** : ce qui suit sort du périmètre de la v1 et reste ici, avec ce qui
+reste en v1 à sa place.
+
+| Reporté | Ce qui reste en v1 |
+|---|---|
+| **`L19`** — App Intents, Handoff, données du widget, partage entrant depuis Safari. Et `V11` (widget, extension de partage) avec elle | Ajouter un lien à la main, dans les signets (`V5`). Ça couvre le même besoin que le partage entrant, sans extension d'app ni provisioning. Les écrans de **statistiques** de `V11` restent à trancher : leur logique est dans `L18`, qui n'est pas reportée |
+| **`L6`** — génération d'une couverture en mosaïque | La couverture **choisie à la main** : `MediaAttachment` porte déjà l'emplacement, rien à écrire. Et un repli calculé à l'affichage — les premières jaquettes en grille — qui n'écrit **aucun** `MediaAsset`. Ce qui part est la génération d'un asset, pas l'apparence d'une collection sans couverture |
+| **`L9`** — suggestion de casting | L'ajout d'un crédit **par recherche de nom** : `PersonRepository.addCredit` existe, `L2` fournit la recherche. La suggestion est du confort, pas un chemin |
+| **`L8`** — détection de doublons et exécuteur de fusion. Et l'écran de fusion de `V4` avec elle | Le dédoublonnage **à l'entrée** : `L11b` refuse déjà de créer un doublon à l'import, `GenreRepository.findOrCreate` fait de même pour les genres. Donc les doublons ne s'**accumulent** pas en v1 ; ce qui manque est le nettoyage de ceux déjà là |
+| **`V6` au-delà d'une `Table` brute** — colonnes réordonnables, édition inline, mise en forme | Une `Table` SwiftUI par entité, tri par colonne, sélection multiple. **L'édition en masse n'y est livrée que si `L20` est faite** — sinon une sélection mal cliquée détruit une heure de saisie sans recours, et c'est déjà noté des deux côtés du plan |
+
+**Trois conséquences du report de `L8`, à ne pas découvrir plus tard :**
+
+1. **`L20` perd la moitié de son objet mais garde tout son format.** Sa fiche exige que
+   l'édition en masse et la fusion s'annulent « par le même chemin ». En v1, `L20`
+   n'annule que `L10` — mais le diff doit **rester capable de porter une fusion**, sinon
+   `L8` en v1.1 devra faire évoluer `BulkEditDiff.currentVersion`, et un `payload` déjà
+   en base ne se relit pas autrement.
+2. **`L15` se réduit au transfert entre bibliothèques.** Sa troisième puce, la fusion
+   des genres en double, dépend de l'exécuteur de `L8` : elle part en v1.1 avec lui.
+3. **`L13` importera les doublons du bundle web s'il y en a**, et rien en v1 ne les
+   fusionnera. Le rapport de vérification doit donc les **compter et les nommer** — il
+   le peut, `LegacyRecord` le lui permet — même sans savoir les résoudre. Un doublon
+   signalé et non résolu est acceptable ; un doublon silencieux ne l'est pas.
 
 ---
 
@@ -66,7 +174,7 @@ démarrée. Le catalogue porte la même explication sur sa première planche.
 | — | Corbeille des genres, invariant `DemoCatalog` | Code | — | ✅ `c5bdb58` |
 | — | Entitlements par SDK, couleurs sémantiques | Code | — | ✅ `ce3e63c` |
 | — | Grille des titres vide derrière 42 tests verts | Code | — | ✅ `e0f0f0b` |
-| `I1` | **Tokens de la nouvelle direction** — couleur, typographie, 5 polices, espacement, densité, rayons, traits, mouvement, plans, ruptures, 6 tailles d'affiche et matrice, 37 SF Symbols. Ancienne direction isolée dans `Legacy/` | Code | `design/README.md` §4, planche 8 | ✅ `9b4b64e` |
+| `I1` | *(la chaîne `I` se suit désormais dans sa propre section, « Tâches INTÉGRATION DU DESIGN » — cette ligne reste pour l'historique)* **Tokens de la nouvelle direction** — couleur, typographie, 5 polices, espacement, densité, rayons, traits, mouvement, plans, ruptures, 6 tailles d'affiche et matrice, 37 SF Symbols. Ancienne direction isolée dans `Legacy/` | Code | `design/README.md` §4, planche 8 | ✅ `9b4b64e` |
 | `L1` | Requêtes interrogeables — titres et personnes | Code | `02 §3 §5`, `04 §3` | ✅ `eb05149` `e347b11` |
 | — | CI réparée, invariant des relations verrouillé | Code | — | ✅ `8ae4dfb` |
 | `L2` | Service de recherche | Code | `02 §5`, `04 §6` | ✅ `6ea6a8e` |
@@ -413,6 +521,29 @@ L1 → L2 → L3 → L4 → L10 → L11 → L12 → prompt 2 → L13
 > `DemoCatalog`, et la direction artistique reste injugeable. Il se fait dans l'autre
 > dépôt, il ne coûte rien à cette base de code, et il bloque tout le reste : à faire
 > dès que `L12` est passée, sinon avant.
+
+#### Le chemin le plus court jusqu'aux vraies affiches, sur l'iPhone
+
+`L12 → prompt 2 → L13` amène les vraies données **dans le magasin d'une machine**.
+Ça ne les met pas sur l'iPhone, et le plan ne le disait nulle part. Deux étapes y
+manquaient, aucune des deux inscrite jusqu'ici :
+
+| # | Étape | Pourquoi elle manque au plan |
+|---|---|---|
+| 1 | `L12` — l'archive | sur le chemin critique, c'est la suivante |
+| 2 | **prompt 2** — le dump du bundle web | autre dépôt, dépendance dure |
+| 3 | `L13` — la migration | le gros du travail |
+| 4 | **`P0` — signature de développement** | `DEVELOPMENT_TEAM` est **vide** et deux `CODE_SIGN_IDENTITY: "-"` traînent dans la cible : dans cet état l'app **ne s'installe pas sur un appareil**, seulement dans le simulateur. Un Apple ID gratuit suffit (profil de 7 jours, renouvelable) ; l'abonnement n'est requis que pour CloudKit, le widget et les App Intents — tous trois hors du chemin, `L19` étant reportée. Procédure dans le `README`, section « Activer CloudKit », dont seul le **point 1** est nécessaire ici |
+| 5 | **`P1` — faire entrer le bundle dans l'appareil** | Sans CloudKit (prompt 21, abonnement), une migration jouée sur le Mac **ne se propage pas** à l'iPhone. Il faut donc que `L13` lise un bundle **choisi par l'utilisateur** — AirDrop puis un `fileImporter` — et non un chemin de développement. C'est la « commande cachée » de `V9`, réduite à son strict nécessaire : pas d'écran, un bouton dans les réglages de débogage |
+
+**La conséquence à ne pas manquer : `L13` doit lire depuis un fichier importé, pas
+depuis un chemin local.** Si elle est écrite en supposant un bundle sur le disque du
+Mac, l'étape 5 exige de la reprendre. Le coût d'y penser à l'écriture est nul, celui
+d'y penser après est une réécriture de son point d'entrée.
+
+Et sans les étapes 4 et 5, le design se juge sur le **simulateur iOS** et dans la
+fenêtre Mac, avec les vraies affiches — ce qui est déjà beaucoup mieux que
+`DemoCatalog`, mais pas « sur mon iPhone ».
 
 ### Tâches d'appoint — à insérer quand tu veux changer de sujet
 
@@ -961,6 +1092,62 @@ qu'il faut, et pas plus.
 - Partage entrant depuis Safari : une URL devient un `SavedLink`, ou pré-remplit un
   titre si elle est reconnue. La reconnaissance et l'aperçu viennent de `L7`.
 - Fournisseur de données du widget : entrées de timeline calculées, sans vue.
+
+---
+
+# Tâches INTÉGRATION DU DESIGN — la chaîne `I`
+
+**Ce que « intégration » veut dire ici :** du SwiftUI dans
+`Packages/DesignSystem`, validé **au catalogue** et nulle part ailleurs. Aucune
+écriture de modèle, aucun accès au magasin, rien dans `App/` — le banc d'essai des
+prompts 10 et 11 ne se touche pas. Rigueur **légère** pour toute la chaîne : compile,
+teste, regarde la planche, avance.
+
+`I1` a livré les tokens. `I2` et suivantes livrent les composants, **par lots de trois,
+avec une validation groupée au catalogue** — ils sont indépendants entre eux, donc les
+valider un par un coûtait un aller-retour par composant sans rien apprendre de plus.
+
+### L'inventaire, et d'où il vient
+
+Vingt-six composants, tirés de `06` §5.5 (les champs), §5.7 (les états), §5.8 (la liste
+« Composants »), plus la clarification en tête de ce document : les champs de formulaire
+sont des composants de la chaîne `I`, l'écran d'import est un écran de `V8`.
+
+Trois décisions de décompte, pour que le chiffre soit vérifiable :
+
+- La « note » de §5.5 et la « barre de notation » de §5.8 sont **le même composant**,
+  compté une fois, en version lecture et en version éditable.
+- Les **quatre marques d'erreur** de l'addendum 1 font **un** modificateur commun, pas
+  quatre composants — les appliquer champ par champ était le défaut de la première
+  tentative.
+- Des neuf surfaces superposées de §5.6, **une seule** est un composant : la
+  notification temporaire. Les huit autres (feuille, popover, dialogue, confirmation
+  destructive, menu contextuel, menu de barre d'outils, visionneuse, panneau latéral)
+  sont des primitives SwiftUI que les tokens habillent — en écrire une version maison
+  serait du code « au cas où », et perdrait le comportement système.
+
+### Les neuf lots
+
+| Tâche | Les trois composants | Planche de validation | État |
+|---|---|---|---|
+| `I2` | Carte affiche (les 6 variantes de la matrice) · carte paysage · carte personne | Planche 1 et §5 du handoff — la matrice se juge d'un bloc | ⬜ **suivante de la chaîne** |
+| `I3` | Carte collection · vignette galerie · avatar de profil | Planche 4 | ⬜ |
+| `I4` | Rail horizontal · grille adaptative (les 6 points de rupture) · squelette de chargement | Planches 1 et 3 — le squelette est un rail vide à la géométrie finale, il se valide avec eux | ⬜ |
+| `I5` | Ligne de tableau · jeton de filtre · pastille de compteur | Planche 5, aux deux crans de densité | ⬜ |
+| `I6` | Badge d'état · barre de notation · indicateur de progression | Planche 7 | ⬜ |
+| `I7` | Champ texte · zone de texte · champ nombre | Planche 6 | ⬜ |
+| `I8` | Date à précision variable (année / mois / jour) · sélecteur simple · interrupteur | Planche 6 | ⬜ |
+| `I9` | Sélecteur multiple avec création à la volée · sélecteur de couleur de profil · marques d'erreur de champ | Planche 6 et addendum 1 (11a–11c, 11i) | ⬜ |
+| `I10` | Vue vide paramétrée · notification temporaire | Planche 7 | ⬜ |
+
+**Neuf tâches**, `I2` à `I10`, huit lots de trois et un de deux. Contre vingt-six
+tâches avant regroupement.
+
+**Terminé quand**, pour chaque lot : les trois composants s'affichent sur leur planche
+du catalogue dans les quatre apparences, `swiftlint --strict` est à zéro — dont
+`no_legacy_design_system`, qu'aucun composant neuf n'a le droit de contourner —,
+`xcodebuild test -scheme DesignSystemCatalog` passe, et un lot ne se rouvre pas pour
+polir le lot précédent.
 
 ---
 

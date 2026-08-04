@@ -94,6 +94,22 @@ résoudre.
 C'est arrivé le 2026-08-04 : treize commits de retard, dont la fermeture du schéma et
 la livraison de `docs/design/`, plus un commit local posé par-dessus.
 
+## Une garde à la compilation se prouve en cassant le build
+
+Quand un filet est une **erreur de compilation** — une ambiguïté de nom, un `switch`
+exhaustif sans `default`, un paramètre sans valeur par défaut — sa preuve d'échec ne peut
+pas être un test à l'exécution : la suite cesse de compiler **avant** d'atteindre le test,
+et ce qu'on observe alors est « symbole absent », pas la garde qui mord.
+
+C'est arrivé sur les collisions `ShapeStyle` : retirer la désambiguïsation de `separator`
+a bien cassé la suite, mais par symbole introuvable. Ça démontrait la détection, pas la
+garde. La bonne démonstration a consisté à ajouter un token nommé `fill`, dont l'accesseur
+heurte une statique de SwiftUI : la suite compilait alors, et quatre tests mordaient.
+
+La règle : pour prouver une garde de compilation, **introduire la faute que la garde
+existe pour attraper**, et constater l'erreur de compilation — pas retirer la garde.
+Retirer la garde prouve seulement qu'on l'utilisait.
+
 ## Commandes
 ```bash
 xcodegen generate   # après tout ajout de fichier : *.xcodeproj n'est pas versionné

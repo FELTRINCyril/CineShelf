@@ -90,7 +90,7 @@ struct SpotlightIndexerTests {
         #expect(store.index.indexed.contains { $0.id == id })
         #expect(store.index.removed.isEmpty)
 
-        repository.update(title) { $0.isPrivate = true }
+        repository.update(title, journal: .perEntity) { $0.isPrivate = true }
         #expect(store.index.removed == [id.rawValue])
     }
 
@@ -117,11 +117,11 @@ struct SpotlightIndexerTests {
             context: store.context, spotlight: SpotlightIndexer(index: store.index))
 
         let title = repository.create(name: "Un titre", in: store.library)
-        repository.update(title) { $0.isPrivate = true }
+        repository.update(title, journal: .perEntity) { $0.isPrivate = true }
         store.index.forgetCalls()
 
         // Une écriture ultérieure ne doit pas le réintroduire.
-        repository.update(title) { $0.rating = 8 }
+        repository.update(title, journal: .perEntity) { $0.rating = 8 }
         #expect(store.index.indexed.isEmpty, "Une entité privée ne rentre pas dans l'index")
     }
 
@@ -132,10 +132,10 @@ struct SpotlightIndexerTests {
             context: store.context, spotlight: SpotlightIndexer(index: store.index))
 
         let title = repository.create(name: "Un titre", in: store.library)
-        repository.update(title) { $0.isPrivate = true }
+        repository.update(title, journal: .perEntity) { $0.isPrivate = true }
         store.index.forgetCalls()
 
-        repository.update(title) { $0.isPrivate = false }
+        repository.update(title, journal: .perEntity) { $0.isPrivate = false }
         #expect(store.index.indexed.map(\.id) == [SpotlightItemID(kind: .title, entityID: title.id)])
     }
 
@@ -150,7 +150,7 @@ struct SpotlightIndexerTests {
         let collection = collections.create(name: "Une saga", in: store.library)
         store.index.forgetCalls()
 
-        people.update(person) { $0.isPrivate = true }
+        people.update(person, journal: .perEntity) { $0.isPrivate = true }
         collections.update(collection) { $0.isPrivate = true }
 
         #expect(
@@ -246,7 +246,7 @@ struct SpotlightIndexerTests {
 
         titles.create(name: "Public", in: store.library)
         let secret = titles.create(name: "Privé", in: store.library)
-        titles.update(secret) { $0.isPrivate = true }
+        titles.update(secret, journal: .perEntity) { $0.isPrivate = true }
         let trashed = titles.create(name: "Corbeille", in: store.library)
         titles.softDelete(trashed)
         people.create(firstName: "Ana", lastName: "Novak", in: store.library)

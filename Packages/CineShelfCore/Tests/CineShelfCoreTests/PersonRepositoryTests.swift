@@ -45,7 +45,7 @@ struct PersonRepositoryTests {
         let repository = PersonRepository(context: context)
         let person = repository.create(firstName: "Jean", lastName: "Renoir", in: library)
 
-        repository.update(person) { updated in
+        repository.update(person, journal: .perEntity) { updated in
             updated.lastName = "Renoîr"
             updated.bio = "Cinéaste FRANÇAIS"
         }
@@ -78,7 +78,7 @@ struct PersonRepositoryTests {
         let repository = PersonRepository(context: context)
         let person = repository.create(firstName: "Zendaya", in: library)
 
-        repository.update(person) { updated in
+        repository.update(person, journal: .perEntity) { updated in
             updated.roles = updated.roles.union([.social])
         }
         let handle = SocialHandle(platform: "instagram", handle: "zendaya")

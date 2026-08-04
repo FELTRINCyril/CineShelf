@@ -35,11 +35,11 @@ struct RelationMutatorTests {
         let pattern = FilterKey.pattern(FilterKey.collection(saga.id))
         #expect(try filtered(context, pattern).isEmpty)
 
-        repository.setCollection(saga, on: title)
+        repository.setCollection(saga, on: title, journal: .perEntity)
         #expect(try filtered(context, pattern).map(\.name) == ["Un titre"])
 
         // Et le retrait nettoie la clé.
-        repository.setCollection(nil, on: title)
+        repository.setCollection(nil, on: title, journal: .perEntity)
         #expect(try filtered(context, pattern).isEmpty)
     }
 
@@ -52,13 +52,13 @@ struct RelationMutatorTests {
         let first = try genres.findOrCreate(name: "Policier", in: library)
         let second = try genres.findOrCreate(name: "Comédie", in: library)
 
-        repository.setGenres([first, second], on: title)
+        repository.setGenres([first, second], on: title, journal: .perEntity)
         for genre in [first, second] {
             #expect(try filtered(context, FilterKey.pattern(FilterKey.genre(genre.id))).count == 1)
         }
 
         // Remplacer la liste retire les clés des genres sortants.
-        repository.setGenres([second], on: title)
+        repository.setGenres([second], on: title, journal: .perEntity)
         #expect(try filtered(context, FilterKey.pattern(FilterKey.genre(first.id))).isEmpty)
         #expect(try filtered(context, FilterKey.pattern(FilterKey.genre(second.id))).count == 1)
     }
@@ -121,8 +121,8 @@ struct RelationMutatorTests {
         let genre = try GenreRepository(context: context)
             .findOrCreate(name: "Voix", target: .person, in: library)
 
-        repository.setGenres([genre], on: person)
-        repository.setRoles([.actor, .director], on: person)
+        repository.setGenres([genre], on: person, journal: .perEntity)
+        repository.setRoles([.actor, .director], on: person, journal: .perEntity)
         try context.save()
 
         for token in [
@@ -150,7 +150,7 @@ struct RelationMutatorTests {
         let saga = CollectionRepository(context: context).create(name: "Saga", in: library)
 
         let before = try activityCount(in: context, action: .update)
-        repository.setCollection(saga, on: title)
+        repository.setCollection(saga, on: title, journal: .perEntity)
 
         #expect(try activityCount(in: context, action: .update) == before + 1)
     }

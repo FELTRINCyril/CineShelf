@@ -2503,3 +2503,62 @@ un défaut de code.
 L'annulation elle-même est `L20` : `payload` et `undoneAt` sont écrits et lisibles, mais
 personne ne les consomme encore. `V6` ne doit pas livrer l'édition en masse sans elle —
 c'est déjà au tableau des tâches VUES.
+
+---
+
+## 2026-08-04 (5) — Quatre resserrages avant `L11`
+
+**`JournalPolicy` perd sa valeur par défaut**
+
+Deux mutateurs avaient accepté le paramètre sans le transmettre, dans la même heure. Sans
+défaut, le compilateur force chaque site à décider : **24 sites** ont dû être explicités —
+4 internes aux repositories, 2 dans `App/`, 18 dans les tests. Aucun n'a perdu en
+lisibilité, sauf un qui était déjà cryptique avant : `update(title, journal: .perEntity)
+{ _ in }` dans `addCredit` et `removeCredit`, où la fermeture vide veut dire « rafraîchis
+les dérivés et journalise ». Le raisonnement est inscrit dans la docstring du type, avec
+l'instruction de ne pas remettre de défaut.
+
+Un piège au passage : mon `sed` a ajouté le paramètre à `CollectionRepository.update`, qui
+ne le porte pas. Rattrapé par la compilation — ce qui est exactement l'intérêt de la
+manœuvre.
+
+**Une garde à la compilation se prouve en cassant le build**
+
+Règle ajoutée à `CLAUDE.md`. La preuve d'échec des collisions `ShapeStyle` avait d'abord
+consisté à retirer la désambiguïsation : la suite cessait de compiler **avant** d'atteindre
+le test, et ce qu'on observait était « symbole absent », pas la garde qui mord. Ça
+démontrait la détection, pas la garde.
+
+La règle : pour prouver une garde de compilation, **introduire la faute que la garde existe
+pour attraper** — pas retirer la garde. Retirer la garde prouve seulement qu'on l'utilisait.
+
+**`.xxxLarge` inscrit comme décision, pas comme déduction**
+
+Le handoff dit « jusqu'à `.xxLarge` » puis « à partir de `.accessibilityMedium` », et ne dit
+rien du cran intermédiaire. Il fallait trancher pour écrire le code : `.xxxLarge` reste en
+Bebas Neue, parce que ce n'est pas une taille d'accessibilité. C'est écrit dans
+`design/README.md` comme **comblement de silence** et non comme lecture du document, avec
+la manœuvre exacte pour l'inverser si le design en décide autrement.
+
+**Les trois chaînes, expliquées là où la question se pose**
+
+La confusion s'est produite pour de vrai : on ouvre le catalogue, on cherche les
+formulaires et la console de gestion, on ne les trouve pas, et rien ne dit s'ils sont
+oubliés ou pas encore arrivés.
+
+`RoadmapSheet` est donc la **première** planche du catalogue, et `PROMPTS.md` porte la même
+explication en tête : `L` la logique (invisible, testée), `I1` les tokens, `I2…In` les
+composants un par un, `V1…V12` les écrans. Avec le cas qui piège : « les formulaires » se
+répartit sur les deux chaînes visuelles — les **champs** sont des composants et se voient
+dans le catalogue, l'**écran d'import** est `V8` et ne s'y verra jamais. Même découpage
+pour la console : la ligne de tableau est un composant, la console est un écran.
+
+**Vérifications**
+
+| Contrôle | Résultat |
+|---|---|
+| Build `CineShelf` macOS / iOS | `** BUILD SUCCEEDED **` |
+| Build `DesignSystemCatalog` macOS | `** BUILD SUCCEEDED **` |
+| `swift test` CineShelfCore | 200 tests |
+| `swiftlint --strict` | 0 violation / 179 fichiers |
+| `xcrun swift-format lint` | 0 avertissement |

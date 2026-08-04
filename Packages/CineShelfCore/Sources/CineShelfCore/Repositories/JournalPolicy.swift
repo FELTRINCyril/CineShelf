@@ -13,6 +13,18 @@ import Foundation
 /// `refreshDerived()`, donc qui maintiennent `filterKeys`, et une relation écrite sans
 /// rafraîchissement rend le filtre correspondant faux **en silence**. Mieux vaut un
 /// paramètre de plus qu'une seconde porte d'écriture.
+/// > **Ce paramètre n'a volontairement pas de valeur par défaut.**
+/// >
+/// > La première version en donnait une (`.perEntity`), et deux mutateurs de
+/// > `PersonRepository` — `setGenres` et `setRoles` — ont aussitôt accepté le paramètre
+/// > **sans le transmettre** à `update`. Le lot journalisait quand même, et rien ne le
+/// > signalait : ni la compilation, ni les tests d'alors. Deux fois dans la même heure,
+/// > ce n'est pas un accident, c'est une propriété de la forme.
+/// >
+/// > Sans défaut, le compilateur force chaque site d'appel à décider, et un mutateur
+/// > ajouté demain ne peut pas hériter silencieusement du mauvais comportement. Le coût
+/// > est de six caractères par appel ; le bénéfice est qu'un oubli devient une erreur de
+/// > compilation. **Ne pas remettre de défaut.**
 public enum JournalPolicy: Sendable, Hashable {
     /// Une entrée par entité touchée. Le défaut, et ce que veut toute écriture faite à
     /// la main dans l'interface.

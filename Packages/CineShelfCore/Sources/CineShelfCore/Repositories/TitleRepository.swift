@@ -44,7 +44,7 @@ public struct TitleRepository {
     /// de frappe passent par le même chemin. Voir `SpotlightIndexer`.
     public func update(
         _ title: Title,
-        journal: JournalPolicy = .perEntity,
+        journal: JournalPolicy,
         _ mutate: (Title) -> Void
     ) {
         mutate(title)
@@ -95,7 +95,7 @@ public struct TitleRepository {
     public func setCollection(
         _ collection: TitleCollection?,
         on title: Title,
-        journal: JournalPolicy = .perEntity
+        journal: JournalPolicy
     ) {
         update(title, journal: journal) { $0.collection = collection }
     }
@@ -103,7 +103,7 @@ public struct TitleRepository {
     public func setGenres(
         _ genres: [Genre],
         on title: Title,
-        journal: JournalPolicy = .perEntity
+        journal: JournalPolicy
     ) {
         update(title, journal: journal) { $0.genres = genres }
     }
@@ -113,7 +113,7 @@ public struct TitleRepository {
     /// Ne touche qu'au titre : la clôture transitive de ses dépendances — médias,
     /// crédits, liens — est le sujet de `L15`, pas d'ici.
     public func move(_ title: Title, to library: Library) {
-        update(title) { $0.library = library }
+        update(title, journal: .perEntity) { $0.library = library }
     }
 
     /// Crédite une personne sur un titre.
@@ -139,7 +139,7 @@ public struct TitleRepository {
         credit.person = person
         credit.title = title
         context.insert(credit)
-        update(title) { _ in }
+        update(title, journal: .perEntity) { _ in }
         return credit
     }
 
@@ -160,6 +160,6 @@ public struct TitleRepository {
         credit.title = nil
         credit.person = nil
         context.delete(credit)
-        update(title) { _ in }
+        update(title, journal: .perEntity) { _ in }
     }
 }

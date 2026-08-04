@@ -35,7 +35,7 @@ public struct PersonRepository {
 
     public func update(
         _ person: Person,
-        journal: JournalPolicy = .perEntity,
+        journal: JournalPolicy,
         _ mutate: (Person) -> Void
     ) {
         mutate(person)
@@ -70,7 +70,7 @@ public struct PersonRepository {
     public func setGenres(
         _ genres: [Genre],
         on person: Person,
-        journal: JournalPolicy = .perEntity
+        journal: JournalPolicy
     ) {
         update(person, journal: journal) { $0.genres = genres }
     }
@@ -78,12 +78,12 @@ public struct PersonRepository {
     public func setRoles(
         _ roles: Set<PersonRole>,
         on person: Person,
-        journal: JournalPolicy = .perEntity
+        journal: JournalPolicy
     ) {
         update(person, journal: journal) { $0.roles = roles }
     }
 
     public func move(_ person: Person, to library: Library) {
-        update(person) { $0.library = library }
+        update(person, journal: .perEntity) { $0.library = library }
     }
 }

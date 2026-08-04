@@ -22,6 +22,9 @@ struct DesignSystemCatalogApp: App {
 }
 
 enum CatalogSection: String, CaseIterable, Identifiable {
+    // En tête, et volontairement : sans elle, on cherche les formulaires et la console
+    // de gestion dans ce catalogue sans savoir s'ils sont oubliés ou pas encore arrivés.
+    case roadmap = "Où en est le design"
     // Les tokens de la direction courante.
     case palette = "Couleurs"
     case typography = "Typographie"
@@ -56,9 +59,9 @@ enum SimulatedPlatform: String, CaseIterable, Identifiable {
 
 struct CatalogRootView: View {
     // Optionnelle : sur iOS, `List(selection:)` n'accepte pas de liaison non
-    // optionnelle. Le NavigationSplitView retombe sur la palette si rien n'est
-    // sélectionné.
-    @State private var section: CatalogSection? = .palette
+    // optionnelle. Le NavigationSplitView retombe sur la feuille d'avancement si rien
+    // n'est sélectionné.
+    @State private var section: CatalogSection? = .roadmap
     @State private var appearance = CatalogAppearance()
     @State private var typeSize: DynamicTypeSize = .large
     @State private var platform: SimulatedPlatform = .mac
@@ -116,7 +119,8 @@ struct CatalogRootView: View {
 
     @ViewBuilder
     private var content: some View {
-        switch section ?? .palette {
+        switch section ?? .roadmap {
+        case .roadmap: RoadmapSheet()
         case .palette: PaletteSheet()
         case .typography: TypographySheet()
         case .metrics: MetricsSheet()

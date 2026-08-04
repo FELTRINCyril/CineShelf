@@ -40,7 +40,7 @@ struct TitleRepositoryTests {
         let title = repository.create(name: "Dune", in: library)
         let before = title.updatedAt
 
-        repository.update(title) { updated in
+        repository.update(title, journal: .perEntity) { updated in
             updated.name = "Dune, deuxième partie"
             updated.summary = "Suite du Récit"
         }

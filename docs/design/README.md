@@ -134,9 +134,21 @@ Règles : tout chiffre aligné en colonne est en IBM Plex Mono tabulaire. Deux n
 > c'est cette propriété que `DynamicTypeSize.usesAccessibleTitling` utilise — plus
 > lisible qu'une comparaison, et insensible à un renommage futur des crans.
 >
-> Conséquence à connaître : le document ne dit rien de `.xxxLarge`, qui se situe entre
-> « jusqu'à `.xxLarge` » et le seuil. Il **reste en Bebas Neue**, puisqu'il n'est pas
-> une taille d'accessibilité. Verrouillé par test. Conséquences validées : les formulaires en regard passent en libellé-au-dessus, les grilles perdent une à deux colonnes, et le mot CINESHELF perd son allure de logotype (à transformer en image si nécessaire). Rendus : planche 8, bloc 10l.
+> **`.xxxLarge` : décision prise par défaut le 2026-08-04, pas déduite de ce document.**
+>
+> Le handoff dit « jusqu'à `.xxLarge`, Bebas grandit normalement » puis « à partir de
+> `.accessibilityMedium`, les titrages basculent ». Entre les deux se trouve `.xxxLarge`,
+> dont le document **ne dit rien**. Il fallait bien trancher pour écrire le code.
+>
+> Retenu : **`.xxxLarge` reste en Bebas Neue.** Motif : ce n'est pas une taille
+> d'accessibilité, et le seuil nommé par le design est la première d'entre elles.
+> Basculer plus tôt aurait fait perdre le logotype à des utilisateurs qui n'ont pas
+> demandé de réglage d'accessibilité.
+>
+> C'est un comblement de silence, pas une lecture du document : si le design voulait
+> basculer dès `.xxxLarge`, il suffit de changer `usesAccessibleTitling` pour comparer à
+> `.xxxLarge` au lieu d'utiliser `isAccessibilitySize` — et de corriger le test qui
+> verrouille le comportement actuel. Conséquences validées : les formulaires en regard passent en libellé-au-dessus, les grilles perdent une à deux colonnes, et le mot CINESHELF perd son allure de logotype (à transformer en image si nécessaire). Rendus : planche 8, bloc 10l.
 
 Dynamic Type est suivi dès le premier lancement sur iOS et iPadOS. Sur macOS la typographie est fixe ; seule la densité varie.
 

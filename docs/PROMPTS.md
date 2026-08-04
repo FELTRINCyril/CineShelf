@@ -15,6 +15,37 @@ ordre :
 
 ---
 
+## Les trois chaînes de tâches, et ce que chacune apporte
+
+Il y a **trois** séries de tâches, et elles ne font pas la même chose. La confusion est
+facile — elle s'est produite : en ouvrant le catalogue du design system, on y cherche les
+formulaires et la console de gestion, on ne les trouve pas, et rien ne dit s'ils sont
+oubliés ou simplement pas encore arrivés.
+
+| Chaîne | Ce qu'elle apporte | Où ça se voit |
+|---|---|---|
+| **`L1`…`L20`** — logique | Le comportement, sans interface : requêtes, services, mathématiques, import, annulation. Insensible au design | Nulle part à l'écran. Uniquement dans les tests |
+| **`I1`…`In`** — intégration du design | `I1` les **tokens** (couleur, typographie, espacement, densité, rayons, traits, mouvement, plans, ruptures, tailles d'affiche, symboles). `I2` et suivantes les **composants, un par un** | Le catalogue `DesignSystemCatalog`, planche par planche |
+| **`V1`…`V12`** — écrans | Les écrans assemblés, écrits **une seule fois** contre le design final | L'app elle-même, jamais le catalogue |
+
+**Le cas des formulaires, parce que c'est le piège.** « Les formulaires » ne sont pas une
+étape : ils se répartissent sur les deux chaînes visuelles.
+
+- Les **champs** — texte, nombre, bascule, date à précision variable, notation,
+  multi-sélecteur, jeton de couleur, et les quatre marques d'erreur de l'addendum 1 — sont
+  des **composants**. Ils arrivent dans la chaîne `I`, et se voient dans le catalogue.
+- L'**écran d'import** et ses quatre étapes — correspondance des colonnes, aperçu,
+  corrections en masse, import — est un **écran**. Il appartient à `V8`, ne se verra jamais
+  dans le catalogue, et ne peut pas commencer avant que ses champs existent.
+
+Même découpage pour la console de gestion : la ligne de tableau et le jeton de filtre sont
+des composants (`I`), la console est un écran (`V6`).
+
+État au 2026-08-04 : **`I1` intégrée**, `I2` débloquée et pas commencée, aucune `V`
+démarrée. Le catalogue porte la même explication sur sa première planche.
+
+---
+
 ## Récapitulatif
 
 ### Ce qui est fait

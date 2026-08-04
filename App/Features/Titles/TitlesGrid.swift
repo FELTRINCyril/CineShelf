@@ -157,9 +157,8 @@ struct TitlesGrid: View {
             toggleWatched: { flags?.toggleWatched(title) },
             edit: { onEdit(title) },
             archive: {
-                TitleRepository(context: modelContext).update(title) {
-                    $0.isArchived.toggle()
-                }
+                TitleRepository(context: modelContext)
+                    .update(title, journal: .perEntity) { $0.isArchived.toggle() }
             },
             delete: { TitleRepository(context: modelContext).softDelete(title) }
         )

@@ -110,7 +110,8 @@ struct TitleEditor: View {
     // MARK: Enregistrement
 
     private func save() {
-        TitleRepository(context: modelContext).update(title) { draft.apply(to: $0) }
+        TitleRepository(context: modelContext)
+            .update(title, journal: .perEntity) { draft.apply(to: $0) }
         if !isInspector { dismiss() }
     }
 

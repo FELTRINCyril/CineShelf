@@ -7,20 +7,15 @@ import Foundation
 //
 //     folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
 //
-// `.current` est un bug, et il ne se voit pas en France. Mesuré :
+// **Pourquoi `.current` est un bug — et l'argument ne repose sur aucune locale exotique.**
+// Une clé repliée n'a de sens que comparée à une autre clé repliée de la MÊME façon. Si le
+// côté écriture et le côté lecture replient différemment, la comparaison est fausse, quelle
+// que soit la locale de chacun : il suffit qu'elles diffèrent.
 //
-//     mot            | fr_FR        | tr_TR
-//     Interstellar   | interstellar | ınterstellar   <- diverge
-//     ITALIA         | italia       | ıtalıa         <- diverge
-//     Indépendant    | independant  | ındependant    <- diverge
-//
-// Ce n'est pas un cas exotique : **tout mot contenant un `I` majuscule** diverge, parce
-// que le turc et l'azéri ont un `i` sans point. La moitié des titres écrits en capitales
-// sont concernés.
-//
-// **Pourquoi c'est grave ici et pas ailleurs.** `sortName`, `searchText` et `nameKey` sont
-// des champs **persistés et synchronisés par CloudKit**. Deux appareils sous des locales
-// différentes écriraient donc des valeurs différentes pour la même entité :
+// Or `sortName`, `searchText` et `nameKey` sont des champs **persistés et synchronisés par
+// CloudKit** : une valeur est écrite depuis un appareil et interrogée depuis un autre.
+// Replier selon les réglages de l'appareil fait donc de la divergence un **défaut
+// structurel de la synchronisation**, pas un cas limite. Conséquences par champ :
 //
 //   - `Genre.nameKey` sert au **dédoublonnage** — c'est notre remplacement de
 //     `@Attribute(.unique)`, que CloudKit interdit. Un iPhone en turc et un Mac en français
@@ -31,9 +26,15 @@ import Foundation
 //     qui ne matche pas ne lève aucune erreur.
 //   - `sortName` produirait un ordre instable et des écritures de synchronisation inutiles.
 //
-// La règle est donc : **une seule fonction, une locale invariante, les deux côtés.** Le
-// côté écriture et le côté lecture doivent replier identiquement, sinon la comparaison est
-// fausse quelle que soit la locale choisie.
+// La règle est donc : **une seule fonction, une locale invariante, les deux côtés.**
+//
+// Le turc, où `I` se replie en `ı` sans point, n'est **qu'une illustration** : c'est là que
+// la divergence se mesure commodément, ce n'est pas la raison de la règle.
+//
+//     mot            | fr_FR        | tr_TR
+//     Interstellar   | interstellar | ınterstellar   <- diverge
+//     ITALIA         | italia       | ıtalıa         <- diverge
+//     Indépendant    | independant  | ındependant    <- diverge
 
 /// Replie du texte pour la comparaison, l'indexation et le dédoublonnage.
 public enum TextFolding {
@@ -44,9 +45,16 @@ public enum TextFolding {
     /// dépendre des réglages de l'appareil. Ce qui est replié ici n'est jamais montré à
     /// l'utilisateur : ce sont des clés de comparaison.
     ///
-    /// Le tri **affiché**, lui, peut légitimement être localisé — mais il se fait alors à
-    /// l'affichage avec un comparateur, pas dans un champ stocké. `sortName` est une clé de
-    /// tri partagée entre appareils, pas un ordre alphabétique national.
+    /// **Compromis assumé : le tri n'est pas sensible à la locale.** `sortName` étant replié
+    /// ici, l'ordre produit est le même partout — c'est ce qu'on veut d'une clé partagée
+    /// entre appareils. En français c'est sans effet visible (`é` se replie sur `e`, à sa
+    /// place attendue), mais une bibliothèque suédoise trierait `ö` avec les `o` au lieu de
+    /// l'attendre après `z`. Arbitrage retenu pour une app personnelle en français, décidé
+    /// et non subi (voir `docs/02` §3).
+    ///
+    /// Si l'ordre affiché doit un jour être national, il se fait à l'affichage avec un
+    /// comparateur localisé — **jamais** dans le champ stocké, sous peine de ramener la
+    /// divergence entre appareils.
     public static let locale = Locale(identifier: "en_US_POSIX")
 
     /// Sans accents, sans casse.

@@ -125,6 +125,38 @@ Décision opposée à la version web. En base privée, chaque octet compte sur l
 
 ## 3. Le modèle
 
+> **Tout repliage de texte passe par `String.foldedForMatching`, en locale invariante.**
+> Vaut pour les quatre entités qui stockent une clé repliée — `Title` et `Person`
+> (`sortName`, `searchText`), `Genre` (`nameKey`), `SavedLink` (`searchText`) — **et** pour
+> le terme cherché au moment de la requête.
+>
+> **Pourquoi.** Une clé repliée n'a de sens que comparée à une autre clé repliée **de la
+> même façon**. Si le côté écriture et le côté lecture ne replient pas identiquement, la
+> comparaison est fausse — et ça ne dépend d'aucune locale particulière : il suffit que les
+> deux côtés diffèrent. Or ces champs sont **persistés et synchronisés par CloudKit** : une
+> valeur est écrite depuis un appareil et interrogée depuis un autre. Replier selon les
+> réglages de l'appareil fait donc de la divergence un **défaut structurel de la
+> synchronisation**, pas un cas limite. Et il est muet : un `CONTAINS` qui ne matche pas ne
+> lève aucune erreur, et `Genre.findOrCreate` — notre remplacement de `@Attribute(.unique)`
+> que CloudKit interdit — crée un doublon **sans rien signaler**.
+>
+> Le turc, où `I` se replie en `ı` sans point, n'est **qu'une illustration** de la
+> divergence : elle est simplement mesurable là. Ce n'est pas la raison de la règle, et
+> « je ne mettrai jamais mon appareil en turc » n'en dispense pas.
+>
+> **Le compromis, assumé : le tri n'est pas sensible à la locale.** `sortName` est replié en
+> `en_US_POSIX`, donc l'ordre produit est le même partout — c'est précisément ce qu'on veut
+> d'une clé partagée entre appareils. En français c'est sans effet visible (`é` se replie sur
+> `e`, à sa place attendue). Mais une bibliothèque suédoise trierait `ö` avec les `o` au lieu
+> de l'attendre après `z`. C'est le bon arbitrage pour une app personnelle en français, et
+> c'est un **choix**, pas un oubli. Si un jour l'ordre affiché doit être national, il se fait
+> à l'affichage avec un comparateur localisé — jamais dans le champ stocké, sous peine de
+> ramener la divergence par la porte d'à côté.
+>
+> Un seul filet ne suffisait pas : les tests d'invariance sont aveugles sur une machine
+> française, puisque `fr_FR` et `en_US_POSIX` y replient pareil. D'où la règle de lint
+> `no_folding_outside_text_folding`. Voir `docs/PROMPTS.md`, « Écarts connus ».
+
 ### 3.1 Énumérations
 
 ```swift
@@ -421,12 +453,12 @@ public extension Title {
     /// À appeler dans chaque `didSet` métier et avant chaque `save`.
     func refreshDerived() {
         sortName = name
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .foldedForMatching
             .trimmingCharacters(in: .whitespacesAndNewlines)
         searchText = [name, originalName, summary]
             .compactMap { $0 }
             .joined(separator: " ")
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .foldedForMatching
         // Les relations, sous forme interrogeable : bibliothèque, collection,
         // genres, personnes créditées. Voir §5 bis.
         filterKeys = FilterKey.keys(
@@ -514,11 +546,11 @@ public extension Person {
     func refreshDerived() {
         displayName = "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
         sortName = "\(lastName) \(firstName)"
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .foldedForMatching
             .trimmingCharacters(in: .whitespaces)
         searchText = [displayName, bio]
             .compactMap { $0 }.joined(separator: " ")
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .foldedForMatching
         filterKeys = FilterKey.keys(
             [library?.id].compactMap { $0 }.map(FilterKey.library)
                 + (genres ?? []).map { FilterKey.genre($0.id) }
@@ -617,7 +649,8 @@ public final class Genre {
     }
 
     public static func key(for name: String) -> String {
-        name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        name
+            .foldedForMatching
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
@@ -885,7 +918,7 @@ Pas de FTS5. Trois niveaux, du plus simple au plus coûteux :
 
 ```swift
 func searchTitles(_ query: String, in context: ModelContext) throws -> [Title] {
-    let key = query.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+    let key = query.foldedForMatching
     var d = FetchDescriptor<Title>(
         predicate: #Predicate { $0.deletedAt == nil && $0.searchText.contains(key) },
         sortBy: [SortDescriptor(\.sortName)]

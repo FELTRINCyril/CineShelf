@@ -144,6 +144,36 @@ La règle : pour prouver une garde de compilation, **introduire la faute que la 
 existe pour attraper**, et constater l'erreur de compilation — pas retirer la garde.
 Retirer la garde prouve seulement qu'on l'utilisait.
 
+### Une preuve d'échec vérifie d'abord que la faute est bien là
+
+Constater l'échec ne suffit pas : il faut constater que **l'injection de faute a
+réellement eu lieu**. Une preuve se lit en deux temps — la faute est présente, *puis* le
+filet mord — et le premier temps s'oublie, parce qu'un rouge attendu ressemble à un
+succès. Trois fois que ça mord :
+
+- un `sed` d'injection qui n'avait **rien remplacé** (la forme réelle du code était
+  `.foldedForMatching` seul sur sa ligne) : le rouge observé venait d'ailleurs ;
+- un test de couleurs qui **passait malgré** la faute de frappe injectée ;
+- une garde de compilation dont la démonstration prouvait la détection du symbole absent,
+  pas la garde (le cas ci-dessus).
+
+En pratique : après toute injection, **relire le fichier modifié** (ou vérifier le compte
+de substitutions), et seulement ensuite lancer la vérification.
+
+### Une propriété invisible depuis l'environnement de test n'est protégée que par le lint
+
+Quand la faute ne se manifeste **pas** sur ma machine, un test ne protège rien : il est
+vert avec le bug. Ma machine est française, donc les deux chemins de repliage y donnent la
+même réponse — les tests d'invariance de locale passent même si un modèle contourne
+`TextFolding`. Seule une **règle de lint** attrape ça, parce qu'elle regarde le code et
+non son comportement.
+
+C'est la quatrième fois, et c'est désormais un motif établi : `no_literal_color`,
+`no_predicate_outside_core`, la règle sur les mutateurs de relation, et
+`no_folding_outside_text_folding`. Le réflexe : quand la propriété à garantir est
+« ce code passe par tel unique point d'entrée » plutôt que « ce code produit telle
+valeur », écrire la règle de lint en plus du test, et la prouver en injectant la faute.
+
 ## Commandes
 ```bash
 xcodegen generate   # après tout ajout de fichier : *.xcodeproj n'est pas versionné

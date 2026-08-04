@@ -3915,3 +3915,62 @@ donc elles ne sont pas vertes. Leur dernier passage connu date de la session pr�
 
 **Suite : `I4`** — rail horizontal, grille adaptative, squelette de chargement. C'est le lot
 qui débloque les écrans : sans lui, aucune `V` ne peut être posée.
+
+---
+
+## 2026-08-04 (5) — `I4`, et une constante retirée plutôt que documentée
+
+Rail horizontal, grille adaptative, squelette de chargement. Rigueur légère.
+
+**`Breakpoint.columns` est supprimée, pas annotée.** Le tableau des points de rupture de
+`docs/design/README.md` §4.6 donne une colonne « Colonnes » que `I1` avait transcrite en
+constante. Elle n'avait aucun lecteur hors du catalogue et d'un test, et elle contredit la
+règle arrêtée par l'addendum 2 bloc `13c` — « le nombre de colonnes n'est pas un réglage :
+la largeur de carte est fixe, la grille prend ce qui rentre ». Le seul écart réel est à
+1280 pt, où la table dit 6 et le calcul donne 7 ; à 1680 la table dit « 7+ », que 9
+satisfait. Une constante morte qui contredit le code vivant finit par se faire respecter
+par quelqu'un qui croit corriger un oubli, et c'est le troisième motif du genre. Le compte
+n'existe donc plus qu'en un endroit, `GridMetrics.columnCount`, qui sert aussi le masonry
+de la galerie — `I3` l'y avait explicitement renvoyé.
+
+**Ce que les tests peuvent réellement assener ici.** Deux largeurs seulement ont été
+rendues pour de vrai par le design : 393 px → 2 colonnes et 834 px → 4, dans l'addendum 2.
+Ce sont celles-là que `GridMetricsTests` cite avec leur source ; les quatre autres crans du
+tableau n'ont aucun rendu qui les vérifie, et le reste est couvert par une propriété — `n`
+colonnes tiennent, `n + 1` ne tiennent pas. C'est cette propriété qui a attrapé une
+constante fausse que j'avais calculée de tête (`poster.xxl` à 1280 : j'attendais 3, la
+réponse est 4).
+
+**Un cran de gouttière que la densité seule ne donne pas.** Le §4.6 écrit « ≥ 1680 : marges
+64, gouttière 24 » alors que la densité par défaut du Mac est dense, donc 16. D'où
+`Breakpoint.gridGutter(_:)`, sur le modèle de `screenMargin` : ces deux mesures sont données
+par point de rupture, pas seulement par densité.
+
+**Deux dettes nommées plutôt que devinées.** La couleur dominante du squelette (planche 7)
+se déduit de la première composante du `blurHash` — un décodeur, pas un champ, donc rien à
+demander au schéma fermé — et son producteur est assigné à `L5`, inscrit sur sa fiche.
+`ShelfRailModel.counter(visible:)` et `.progress(visible:)` deviennent morts : leur filet
+compteur était de la pagination déguisée, que le §7 interdit. Ils sont au point 8 de la
+procédure de suppression de `Legacy/`, à `V12` — le seul point de cette procédure qui vise
+un fichier hors du dossier, et c'est pour ça qu'il y est écrit.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `swift test` (DesignSystem) | ✅ **57 tests** (51 avant `I4`) |
+| `xcodebuild test -scheme DesignSystemCatalog -destination macOS` | ✅ **58 tests** (52 avant) |
+| `xcodebuild build -scheme DesignSystemCatalog -destination macOS` | ✅ `BUILD SUCCEEDED` |
+| `xcodebuild build -scheme CineShelf -destination macOS` | ✅ `BUILD SUCCEEDED` |
+| `xcodebuild build -scheme CineShelf -destination iOS Simulator` | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 239 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| `swift test` CineShelfCore · MediaKit | **non lancées** — `I4` ne touche aucun de leurs fichiers |
+| `xcodebuild test -scheme CineShelf` (macOS) | **non lancée** — `I4` ne touche ni `App/` ni `Tests/` |
+| `xcodebuild test -scheme CineShelfUITests` | **non lancée** |
+
+Les trois dernières lignes ne sont pas vertes : je ne les ai pas lancées. Leur dernier
+passage connu date de deux sessions plus tôt (450 · 38 · 67).
+
+**Suite : `I5`** — ligne de tableau, jeton de filtre, pastille de compteur, aux deux crans
+de densité.

@@ -3979,3 +3979,69 @@ passage connu date de deux sessions plus tôt (450 · 38 · 67).
 > de gestion**, palier 3. Le chemin critique dit `I4` → `I6` → `V0`. L'erreur vient de la
 > table « Les neuf lots », qui était triée par **numéro** et se lisait comme un ordre de
 > travail ; elle est désormais triée par ordre de travail et porte une colonne « Quand ».
+
+---
+
+## 2026-08-04 (6) — `I6`, et un crash de suite qui ne nommait aucun test
+
+Badge d'état, barre de notation, indicateur de progression. Rigueur légère.
+
+**Le piège de la notation était armé, et il n'a pas mordu.** « Cinq étoiles pleines, pas
+de demi-étoile » est une règle de **rendu** : le modèle note sur 10 (`docs/02` §3.3,
+`CatalogBounds.ratings`), et `TitleFormat.fiveStarRating` divise déjà par deux. `RatingBar`
+vit donc entièrement dans l'espace d'affichage — elle reçoit une note **déjà convertie sur
+5** et ne décide rien de ce qui s'écrit en base. Deux conséquences qui ne se devinent pas :
+la version éditable n'émet que **sur un geste**, donc ouvrir un éditeur ne réécrit pas une
+note impaire venue d'un import ; et une note fractionnaire garde son affichage de référence
+ailleurs — « 4,5 ★ » sur la tuile détaillée, comme la planche 3 le montre. La barre
+arrondit pour choisir son nombre d'étoiles, et son en-tête dit qu'elle n'est pas
+l'affichage de référence.
+
+**Le test qu'on n'a pas écrit, et pourquoi.** Il aurait été tentant d'assener ici « le
+modèle note sur 10 ». C'est `CatalogBounds.ratings`, dans `CineShelfCore`, que
+`DesignSystem` ne peut pas importer — le recopier aurait produit une seconde source de
+vérité pour une valeur qui n'en a qu'une, exactement ce qu'on venait de retirer de
+`Breakpoint.columns`. La frontière est déjà tenue ailleurs.
+
+**Une heure perdue sur un crash, et la leçon vaut d'être écrite.** `swift test` sortait en
+`signal code 5` sans nommer un seul test — y compris avec un filtre qui ne sélectionnait
+*rien*, ce qui m'a fait croire à un problème de chargement de bundle. Le rapport système a
+tranché : `_swift_task_checkIsolatedSwift`, dans la clôture d'un `map` porté par
+`ProgressTrack`. **`View` est `@MainActor`**, donc tout membre d'une vue l'est aussi, et une
+clôture qui capture `self` depuis un test non isolé fait sauter le processus au lieu
+d'échouer proprement.
+
+Deux façons de traiter ça, et j'ai utilisé les deux à bon escient : l'arithmétique pure
+**sort** de la vue (`ProgressMetrics`, même forme que `GridMetrics` pour `I4`) ; les jetons
+d'une teinte, qui n'ont rien à extraire, se testent en `@MainActor`. Ce qu'il faut retenir :
+sur ce projet, **une suite qui saute sans nommer de test se diagnostique par
+`~/Library/Logs/DiagnosticReports`**, pas en bissectant à l'aveugle — j'ai bissecté
+d'abord, et ça m'a coûté six exécutions pour arriver là où la pile menait directement.
+
+**Deux corrections de méthode, demandées et faites.** La table « Les neuf lots » était triée
+par **numéro** et se lisait comme un ordre de travail : après `I4` on y lit `I5`, alors que
+le chemin critique dit `I6` — `I5` porte la console, palier 3. Elle est désormais triée par
+ordre de travail, avec une colonne « Quand ». Et la précédence de la gouttière de grille est
+écrite à un seul endroit : `Density.gridGutter` devient `Density.baseGridGutter`, le nom
+porte la règle, et la raison du désaccord de `macWide` est sur la fonction qui l'applique.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `swift test` (DesignSystem) | ✅ **63 tests** (57 après `I4`) |
+| `xcodebuild test -scheme DesignSystemCatalog -destination macOS` | ✅ **64 tests** (58 après `I4`) |
+| `xcodebuild build -scheme DesignSystemCatalog -destination macOS` | ✅ `BUILD SUCCEEDED` |
+| `xcodebuild build -scheme CineShelf -destination macOS` | ✅ `BUILD SUCCEEDED` |
+| `xcodebuild build -scheme CineShelf -destination iOS Simulator` | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 244 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| `swift test` CineShelfCore · MediaKit | **non lancées** — `I6` ne touche aucun de leurs fichiers |
+| `xcodebuild test -scheme CineShelf` (macOS) | **non lancée** — `I6` ne touche ni `App/` ni `Tests/` |
+| `xcodebuild test -scheme CineShelfUITests` | **non lancée** |
+
+Les trois dernières ne sont pas vertes : elles ne sont pas mesurées. Dernier passage connu,
+trois sessions plus tôt : 450 · 38 · 67.
+
+**Suite : `V0`** — le chrome. C'est la première tâche `V` du palier 1, et elle s'appuie sur
+`I2` `I3` `I4`, tous les trois faits.

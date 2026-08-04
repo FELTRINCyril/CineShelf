@@ -64,7 +64,7 @@ struct MetricsSheet: View {
                         measure("marge d'écran", cran.screenMargin)
                         measure("espacement de formulaire", cran.formSpacing)
                         measure("hauteur de champ", cran.fieldHeight)
-                        measure("gouttière de grille", cran.gridGutter)
+                        measure("gouttière de grille (base)", cran.baseGridGutter)
                         caption("interlignage du corps · \(number(cran.bodyLeading))")
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)

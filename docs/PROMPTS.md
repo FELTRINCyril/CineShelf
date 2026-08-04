@@ -1268,20 +1268,31 @@ Trois décisions de décompte, pour que le chiffre soit vérifiable :
 
 ### Les neuf lots
 
-| Tâche | Les trois composants | Planche de validation | État |
-|---|---|---|---|
-| `I2` | Carte affiche (les 6 variantes de la matrice) · carte paysage · carte personne | Planche 1 et §5 du handoff — la matrice se juge d'un bloc | ✅ `8262878` — `PosterTile` couvre affiche **et** paysage par `CardLayout` ; le troisième composant est `PosterTileDetail` |
-| `I3` | Carte collection · vignette galerie · avatar de profil | Planche 3 bloc `4e`, planche 4 bloc `6b`, planche 5 bloc `7f` | ✅ `ad55476` |
-| `I4` | Rail horizontal · grille adaptative (les 6 points de rupture) · squelette de chargement | Planches 1 et 3 — le squelette est un rail vide à la géométrie finale, il se valide avec eux | ✅ `3f24344` `a2757f6` |
-| `I5` | Ligne de tableau · jeton de filtre · pastille de compteur | Planche 5, aux deux crans de densité | ⬜ |
-| `I6` | Badge d'état · barre de notation · indicateur de progression | Planche 7 | ⬜ |
-| `I7` | Champ texte · zone de texte · champ nombre | Planche 6 | ⬜ |
-| `I8` | Date à précision variable (année / mois / jour) · sélecteur simple · interrupteur | Planche 6 | ⬜ |
-| `I9` | Sélecteur multiple avec création à la volée · sélecteur de couleur de profil · marques d'erreur de champ | Planche 6 et addendum 1 (11a–11c, 11i) | ⬜ |
-| `I10` | Vue vide paramétrée · notification temporaire | Planche 7 | ⬜ |
+> **Le numéro d'un lot n'est pas son rang de travail, et c'est un piège qui a mordu.**
+> Cette table est triée par numéro parce que c'est ainsi que les lots ont été découpés ;
+> l'ordre d'exécution est celui du **chemin critique**, plus haut, et il entrelace les `I`
+> avec les `V`. Après `I4` vient `I6`, **pas `I5`** : `I5` porte les composants de la
+> console de gestion, qui appartient au palier 3. La colonne « Quand » donne le rang, pour
+> qu'il n'y ait plus à le déduire.
+
+| Tâche | Les trois composants | Planche de validation | Quand | État |
+|---|---|---|---|---|
+| `I2` | Carte affiche (les 6 variantes de la matrice) · carte paysage · carte personne | Planche 1 et §5 du handoff — la matrice se juge d'un bloc | palier 1, rang 1 | ✅ `8262878` — `PosterTile` couvre affiche **et** paysage par `CardLayout` ; le troisième composant est `PosterTileDetail` |
+| `I3` | Carte collection · vignette galerie · avatar de profil | Planche 3 bloc `4e`, planche 4 bloc `6b`, planche 5 bloc `7f` | palier 1, rang 2 | ✅ `ad55476` |
+| `I4` | Rail horizontal · grille adaptative (les 6 points de rupture) · squelette de chargement | Planches 1 et 3 — le squelette est un rail vide à la géométrie finale, il se valide avec eux | palier 1, rang 3 | ✅ `3f24344` `a2757f6` |
+| `I6` | Badge d'état · barre de notation · indicateur de progression | Planche 7 | **palier 1, rang 4 — le prochain lot `I`** | ⬜ |
+| `I10` | Vue vide paramétrée · notification temporaire | Planche 7 | palier 2, rang 10 | ⬜ |
+| `I5` | Ligne de tableau · jeton de filtre · pastille de compteur | Planche 5, aux deux crans de densité | palier 3, rang 14 — avec la console | ⬜ |
+| `I7` | Champ texte · zone de texte · champ nombre | Planche 6 | palier 3, rang 15 | ⬜ |
+| `I8` | Date à précision variable (année / mois / jour) · sélecteur simple · interrupteur | Planche 6 | palier 3, rang 15 | ⬜ |
+| `I9` | Sélecteur multiple avec création à la volée · sélecteur de couleur de profil · marques d'erreur de champ | Planche 6 et addendum 1 (11a–11c, 11i) | palier 3, rang 15 | ⬜ |
 
 **Neuf tâches**, `I2` à `I10`, huit lots de trois et un de deux. Contre vingt-six
 tâches avant regroupement.
+
+Les lignes sont désormais dans l'**ordre de travail**, pas dans l'ordre numérique — c'est
+la table qu'on lit pour savoir quoi faire ensuite, et la trier par numéro faisait dire
+« `I5` » à qui venait de finir `I4`.
 
 **Terminé quand**, pour chaque lot : les trois composants s'affichent sur leur planche
 du catalogue dans les quatre apparences, `swiftlint --strict` est à zéro — dont

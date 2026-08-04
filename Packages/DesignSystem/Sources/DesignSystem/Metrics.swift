@@ -53,8 +53,16 @@ public enum Density: String, Codable, Sendable, CaseIterable, Identifiable {
     public var formSpacing: CGFloat { self == .dense ? 10 : 20 }
     /// Hauteur d'un champ.
     public var fieldHeight: CGFloat { self == .dense ? 28 : 38 }
-    /// Gouttière de grille.
-    public var gridGutter: CGFloat { self == .dense ? 16 : 24 }
+    /// Gouttière de grille **avant résolution par le point de rupture**.
+    ///
+    /// Ce n'est pas la valeur à poser dans une mise en page : c'est celle du tableau de
+    /// densité du §4.3, que `Breakpoint.gridGutter(_:)` prend comme base et peut
+    /// désaccorder. La précédence et sa raison sont écrites là-bas, à un seul endroit.
+    ///
+    /// Le nom dit « base » exprès. Elle a d'abord été nommée `gridGutter`, et deux
+    /// membres du même nom sur deux types voisins auraient fini par diverger sans que
+    /// rien ne le signale — un appelant prend celui que l'autocomplétion propose.
+    public var baseGridGutter: CGFloat { self == .dense ? 16 : 24 }
     /// Interlignage du corps de texte, en multiple de la taille.
     public var bodyLeading: CGFloat { self == .dense ? 1.45 : 1.6 }
 
@@ -213,13 +221,29 @@ public enum Breakpoint: String, Sendable, CaseIterable, Identifiable {
 
     /// La gouttière de grille de ce cran, à une densité donnée.
     ///
-    /// C'est celle de la densité partout, **sauf en `macWide`** : le tableau des points
-    /// de rupture y écrit « marges 64, gouttière 24 » alors que la densité par défaut
-    /// du Mac est dense, donc 16. Une fenêtre de 1680 pt aère, elle ne resserre pas.
-    /// Même raison d'être que `screenMargin` — le design donne ces deux mesures par
-    /// point de rupture, pas seulement par densité.
+    /// **C'est le seul point d'entrée d'une gouttière de grille, et la précédence est
+    /// écrite ici parce que c'est ici qu'elle s'applique.** Deux sources existent, elles
+    /// ne sont pas en concurrence :
+    ///
+    /// 1. `Density.baseGridGutter` — le tableau de densité du §4.3, 16 en dense et 24 en
+    ///    ample. C'est la **base**, jamais la réponse finale.
+    /// 2. Ce point de rupture, qui peut la désaccorder. **Il gagne**, et il ne le fait
+    ///    qu'en `macWide`.
+    ///
+    /// **Pourquoi le §4.6 désaccorde ce cran-là, et lui seul.** Son tableau écrit
+    /// « ≥ 1680 · marges 64, gouttière 24 » alors que la densité par défaut du Mac est
+    /// dense, donc 16. Ce n'est pas une inattention : les deux mesures y bougent
+    /// *ensemble* et dans le même sens — la marge double (32 → 64) en même temps que la
+    /// gouttière s'ouvre. Une fenêtre de 1680 pt aère, elle ne resserre pas, et resserrer
+    /// la gouttière pendant qu'on double la marge aurait tassé la grille au milieu d'un
+    /// écran vide. Aux cinq autres crans le tableau ne mentionne aucune gouttière, donc
+    /// il n'y a rien à désaccorder et la densité passe telle quelle.
+    ///
+    /// Même raison d'être que `screenMargin`, qui est déjà dans ce cas : le design donne
+    /// ces deux mesures **par point de rupture**, pas seulement par densité — et là où il
+    /// les donne, elles gagnent.
     public func gridGutter(_ density: Density) -> CGFloat {
-        self == .macWide ? Density.roomy.gridGutter : density.gridGutter
+        self == .macWide ? Density.roomy.baseGridGutter : density.baseGridGutter
     }
 
     /// L'inspecteur est une colonne à partir de 1024 pt, une feuille en dessous.

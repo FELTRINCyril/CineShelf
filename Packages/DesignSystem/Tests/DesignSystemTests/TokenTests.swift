@@ -167,7 +167,7 @@ func densityHasTwoStepsAndRoomyIsLarger() {
     #expect(dense.screenMargin < roomy.screenMargin)
     #expect(dense.formSpacing < roomy.formSpacing)
     #expect(dense.fieldHeight < roomy.fieldHeight)
-    #expect(dense.gridGutter < roomy.gridGutter)
+    #expect(dense.baseGridGutter < roomy.baseGridGutter)
     #expect(dense.bodyLeading < roomy.bodyLeading)
 
     // La cible tactile de 44 pt doit etre atteignable meme en dense : c'est une
@@ -240,8 +240,8 @@ func macWideWidensTheGutter() {
     #expect(Breakpoint.macStandard.gridGutter(.dense) == 16)
     #expect(Breakpoint.macStandard.gridGutter(.roomy) == 24)
     for cran in Breakpoint.allCases where cran != .macWide {
-        #expect(cran.gridGutter(.dense) == Density.dense.gridGutter, "\(cran.rawValue)")
-        #expect(cran.gridGutter(.roomy) == Density.roomy.gridGutter, "\(cran.rawValue)")
+        #expect(cran.gridGutter(.dense) == Density.dense.baseGridGutter, "\(cran.rawValue)")
+        #expect(cran.gridGutter(.roomy) == Density.roomy.baseGridGutter, "\(cran.rawValue)")
     }
 }
 

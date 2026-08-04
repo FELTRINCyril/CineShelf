@@ -3972,5 +3972,10 @@ un fichier hors du dossier, et c'est pour ça qu'il y est écrit.
 Les trois dernières lignes ne sont pas vertes : je ne les ai pas lancées. Leur dernier
 passage connu date de deux sessions plus tôt (450 · 38 · 67).
 
-**Suite : `I5`** — ligne de tableau, jeton de filtre, pastille de compteur, aux deux crans
-de densité.
+**Suite : `I6`** — badge d'état, barre de notation, indicateur de progression.
+
+> **Cette ligne disait d'abord « Suite : `I5` », et c'était faux.** `I5` porte la ligne de
+> tableau, le jeton de filtre et la pastille de compteur — les composants de la **console
+> de gestion**, palier 3. Le chemin critique dit `I4` → `I6` → `V0`. L'erreur vient de la
+> table « Les neuf lots », qui était triée par **numéro** et se lisait comme un ordre de
+> travail ; elle est désormais triée par ordre de travail et porte une colonne « Quand ».

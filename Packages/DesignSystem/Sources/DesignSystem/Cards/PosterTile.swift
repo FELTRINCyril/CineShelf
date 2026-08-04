@@ -131,18 +131,15 @@ public struct PosterTile: View {
             }
     }
 
-    /// Le bandeau d'état en haut à gauche — `oklch(0.155 … / 0.82)` du prototype, en
-    /// capitales serrées. Un seul état à la fois : celui qui informe le plus.
+    /// Le bandeau d'état en haut à gauche. Un seul état à la fois : celui qui informe le
+    /// plus.
+    ///
+    /// **Le badge lui-même appartient à `I6`** — cette vue l'a porté en propre le temps
+    /// que le lot arrive, et n'en garde que la décision qui est bien de la tuile : à
+    /// partir de quel cran il s'affiche, et lequel des trois états gagne.
     @ViewBuilder private var stateBadge: some View {
         if let text = badgeText, scale.width >= PosterScale.m.width {
-            Text(text)
-                .font(Typo.label)
-                .tracking(Typo.Tracking.label)
-                .textCase(.uppercase)
-                .foregroundStyle(Color.textPrimary)
-                .padding(.horizontal, Space.s2)
-                .padding(.vertical, Space.s1)
-                .background(Color.chipOnImage)
+            StateBadge(text)
                 .padding(Space.s2)
         }
     }

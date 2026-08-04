@@ -81,6 +81,7 @@ Lancer Xcode une première fois avant tout, pour qu'il installe ses composants.
 | `.build/`, `DerivedData/` | reconstruits au premier build |
 | `Package.resolved` | rien à résoudre : zéro dépendance externe |
 | `.claude/settings.local.json` | autorisations locales de Claude Code, redemandées à l'usage |
+| `Configuration/Local.xcconfig` | ton identifiant d'équipe Apple — voir « Signer pour un appareil ». Sans lui, le dépôt compile pour le simulateur et macOS |
 
 Ce qui **est** versionné et qu'on pourrait croire absent : les quatre fichiers
 `Archivo*.ttf` et leur licence, `colors.tokens.json`, et l'intégralité de
@@ -94,6 +95,68 @@ Xcode 26 n'embarque plus les runtimes de simulateur. Si `xcodebuild` répond
 ```bash
 xcodebuild -downloadPlatform iOS
 ```
+
+---
+
+## Signer pour un appareil
+
+Sans configuration, le dépôt compile pour le **simulateur** et pour **macOS**, pas pour
+un iPhone. Un build appareil échoue alors ainsi, et c'est le comportement attendu :
+
+```
+error: Signing for "CineShelf" requires a development team.
+```
+
+**Un Apple ID gratuit suffit.** Il donne une « Personal Team », des profils de 7 jours
+renouvelables par un simple rebuild, et l'installation sur ses propres appareils.
+L'abonnement payant ne sert qu'à CloudKit, aux widgets et aux App Intents.
+
+```bash
+# 1. Une seule fois, dans Xcode (interactif, rien à automatiser) :
+#    Settings › Accounts › + › Apple ID
+
+# 2. Relever l'identifiant d'équipe — entre parenthèses en fin de nom d'identité
+security find-identity -v -p codesigning
+
+# 3. Le poser dans un fichier local, jamais dans le dépôt
+cp Configuration/Local.xcconfig.example Configuration/Local.xcconfig
+$EDITOR Configuration/Local.xcconfig      # DEVELOPMENT_TEAM = A1B2C3D4E5
+
+# 4. Vérifier qu'il est bien pris en compte
+xcodebuild -scheme CineShelf -showBuildSettings | grep DEVELOPMENT_TEAM
+
+# 5. Construire pour un appareil
+xcodebuild -scheme CineShelf -destination 'generic/platform=iOS' build
+```
+
+Aucun `xcodegen generate` n'est nécessaire après l'étape 3 : le `.xcodeproj` référence le
+`xcconfig`, pas sa valeur.
+
+### Pourquoi un `xcconfig` et pas `project.yml`
+
+| | |
+|---|---|
+| `Configuration/Signing.xcconfig` | **versionné.** Pose `DEVELOPMENT_TEAM` vide, puis `#include? "Local.xcconfig"` |
+| `Configuration/Local.xcconfig` | **gitignoré.** Porte ton identifiant |
+| `Configuration/Local.xcconfig.example` | versionné, le modèle |
+
+Deux raisons, et une conséquence à connaître :
+
+1. **Le dépôt est public.** Un identifiant d'équipe n'est pas un secret critique, mais
+   c'est un identifiant personnel, et un historique public ne se rétracte pas.
+2. **`xcodegen generate` réécrit le `.xcodeproj`** à chaque ajout de fichier : une équipe
+   choisie dans l'interface d'Xcode serait perdue à la régénération suivante. Un
+   `xcconfig` survit.
+
+Le `#include?` est **optionnel** — le point d'interrogation compte. Sans lui, un clone
+neuf et la CI échoueraient sur un fichier absent.
+
+> ⚠️ **Ne jamais remettre `DEVELOPMENT_TEAM` dans `project.yml`.** Un build setting du
+> projet **écrase** un `xcconfig`, et sans rien signaler : `Local.xcconfig` deviendrait
+> inopérant alors qu'il est là et correctement rempli. Vérifié par la mesure — avec
+> `DEVELOPMENT_TEAM: ""` réintroduit, `-showBuildSettings` rend une valeur vide malgré un
+> `Local.xcconfig` renseigné. C'est aussi le premier endroit à regarder si l'étape 4
+> ci-dessus ne rend rien.
 
 ---
 
@@ -112,6 +175,7 @@ Catalog/              app de démonstration du design system (schéma dédié)
 Tests/
   CineShelfTests/     tests de logique, sans app hôte (dont CloudKitConformanceTests)
   CineShelfUITests/   tests d'interface (XCUITest) — simulateur iOS uniquement
+Configuration/        xcconfig de signature — Local.xcconfig est gitignoré
 scripts/              generate-colors.py — génère Colors.xcassets depuis colors.tokens.json
 docs/                 spécifications, plan, journal — voir docs/README.md
   _archive/           documents remplacés, jamais une référence pour du travail neuf
@@ -202,10 +266,12 @@ cible.
 
 Le jour où tu prends l'abonnement, dans cet ordre :
 
-1. **Équipe de développement** — renseigne `DEVELOPMENT_TEAM` dans `project.yml`
-   (bloc `settings.base`), supprime les deux lignes
+1. **Équipe de développement** — voir « Signer pour un appareil » ci-dessus : elle vit
+   dans `Configuration/Local.xcconfig`, **pas** dans `project.yml`. Ne reste ici que la
+   partie propre à l'abonnement : supprimer les deux lignes
    `CODE_SIGN_IDENTITY[sdk=macosx*]: "-"` de la cible `CineShelf`, puis
-   `xcodegen generate`.
+   `xcodegen generate`. Tant qu'il n'y a pas d'abonnement, ces deux lignes restent —
+   elles ne gênent pas iOS, et les retirer casserait le build macOS local.
 2. **Conteneur iCloud** — crée `iCloud.fr.feltrin.CineShelf` sur
    [developer.apple.com](https://developer.apple.com/account/resources/identifiers/list/cloudContainer),
    et active la capacité CloudKit sur l'App ID `fr.feltrin.CineShelf`.

@@ -1,0 +1,27 @@
+// Signature — la partie versionnée.
+//
+// Ce fichier est lu par toutes les configurations du projet (voir `configFiles` dans
+// `project.yml`). Il ne contient aucune valeur personnelle : il pose le défaut vide,
+// puis laisse `Local.xcconfig` — gitignoré — le remplacer s'il existe.
+//
+// **`#include?` et non `#include`** : le point d'interrogation rend l'inclusion
+// optionnelle. Sans lui, un clone neuf et la CI échoueraient sur un fichier absent, et
+// c'est exactement ce qu'on ne veut pas — le dépôt doit compiler sans configuration
+// locale.
+//
+// **L'ordre compte.** En `xcconfig`, la dernière assignation gagne : le défaut d'abord,
+// l'inclusion ensuite. L'inverse rendrait `Local.xcconfig` inopérant sans rien signaler.
+//
+// Pourquoi pas la valeur en dur dans `project.yml` ? Deux raisons :
+//
+// 1. **Le dépôt est public.** Un identifiant d'équipe n'est pas un secret critique, mais
+//    c'est un identifiant personnel, et un historique public ne se rétracte pas.
+// 2. **`xcodegen generate` réécrit le `.xcodeproj` à chaque ajout de fichier.** Une équipe
+//    choisie dans l'interface d'Xcode serait donc perdue à la régénération suivante — un
+//    `xcconfig` survit.
+
+// Vide = simulateur uniquement. `xcodebuild` refuse alors de signer pour un appareil,
+// avec « Signing for "CineShelf" requires a development team ».
+DEVELOPMENT_TEAM =
+
+#include? "Local.xcconfig"

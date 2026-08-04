@@ -644,6 +644,23 @@ l'interface d'Xcode serait perdue à la régénération suivante**. Un `xcconfig
 **Ce que je ne peux pas faire à ta place :** la connexion du compte. Elle est
 interactive, dans Xcode › Settings › Accounts.
 
+**Le mécanisme est en place et vérifié** (`e3d0fd4`) — trois mesures, dont un contre-test :
+
+| Mesure | Résultat |
+|---|---|
+| Sans `Local.xcconfig` | `-showBuildSettings` ne rend **aucune** valeur — le défaut vide |
+| Avec `Local.xcconfig = SONDE12345` | rend **`SONDE12345`** |
+| `DEVELOPMENT_TEAM: ""` réintroduit dans `project.yml`, `Local.xcconfig` toujours rempli | rend une valeur **vide** — le build setting du projet écrase bien le `xcconfig`, silencieusement |
+| Build appareil sans équipe | `error: Signing for "CineShelf" requires a development team.` |
+| Builds macOS et simulateur iOS | `** BUILD SUCCEEDED **` — le dépôt compile sans configuration locale, ce dont la CI a besoin |
+
+Le troisième est le seul qui comptait vraiment : il vérifie l'affirmation portée par les
+commentaires, au lieu de la supposer. C'est aussi le premier endroit à regarder si le
+`xcconfig` paraît ignoré.
+
+**Il te reste trois commandes**, dans le `README` § « Signer pour un appareil » : ajouter
+le compte dans Xcode, relever l'identifiant, le coller dans `Configuration/Local.xcconfig`.
+
 **Terminé quand :** `xcodebuild -scheme CineShelf -destination 'generic/platform=iOS'
 build` réussit, et que l'app s'installe sur l'iPhone depuis Xcode. La signature ad hoc
 macOS (`CODE_SIGN_IDENTITY[sdk=macosx*]: "-"`) reste en place tant qu'il n'y a pas

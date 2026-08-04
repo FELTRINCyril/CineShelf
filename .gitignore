@@ -58,3 +58,7 @@ Icon?
 # --- Outils ---
 .claude/settings.local.json
 *.log
+
+# Signature locale : porte l'identifiant d'équipe Apple, qui est personnel et
+# ne doit pas partir dans un dépôt public. Modèle : Local.xcconfig.example.
+Configuration/Local.xcconfig

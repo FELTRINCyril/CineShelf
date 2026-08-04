@@ -11,6 +11,13 @@ options:
   xcodeVersion: "2600"
 
 # Packages locaux. Aucune dépendance externe : c'est une règle du projet.
+# Signature. Le fichier versionné pose un défaut vide et inclut, s'il existe, un
+# Configuration/Local.xcconfig gitignoré qui porte l'identifiant d'équipe. Le dépôt
+# compile donc sans configuration locale — c'est ce dont la CI a besoin.
+configFiles:
+  Debug: Configuration/Signing.xcconfig
+  Release: Configuration/Signing.xcconfig
+
 packages:
   CineShelfCore:
     path: Packages/CineShelfCore
@@ -25,8 +32,10 @@ settings:
     SWIFT_STRICT_CONCURRENCY: complete
     SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY: YES
     CODE_SIGN_STYLE: Automatic
-    # Vide tant que l'abonnement Apple Developer n'est pas souscrit.
-    DEVELOPMENT_TEAM: ""
+    # DEVELOPMENT_TEAM n'est PAS ici, et c'est délibéré : un build setting du projet
+    # écrase un xcconfig, donc le poser ici rendrait Configuration/Local.xcconfig
+    # inopérant — sans rien signaler. Il vient de Configuration/Signing.xcconfig,
+    # référencé par `configFiles` ci-dessous. Voir la fiche P0 de docs/PROMPTS.md.
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
     ENABLE_USER_SCRIPT_SANDBOXING: YES

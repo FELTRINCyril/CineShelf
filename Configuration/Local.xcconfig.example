@@ -1,0 +1,32 @@
+// Modèle de `Local.xcconfig`. Copie-le sans le suffixe `.example` et renseigne la valeur.
+//
+//     cp Configuration/Local.xcconfig.example Configuration/Local.xcconfig
+//
+// Le fichier obtenu est **gitignoré** : il ne partira jamais dans le dépôt, qui est
+// public. Rien à faire de plus — `Signing.xcconfig` l'inclut automatiquement, et
+// `xcodegen generate` n'a pas besoin d'être relancé pour ça.
+//
+// ## Où trouver l'identifiant
+//
+// 1. Xcode › Settings › Accounts › `+` › Apple ID. **Un Apple ID gratuit suffit** : il
+//    donne une « Personal Team », des profils de 7 jours renouvelables par un simple
+//    rebuild, et l'installation sur ses propres appareils. L'abonnement payant ne sert
+//    qu'à CloudKit, aux widgets et aux App Intents.
+// 2. L'identifiant lui-même, en une commande, une fois le compte ajouté :
+//
+//        security find-identity -v -p codesigning
+//
+//    Il apparaît entre parenthèses à la fin du nom de l'identité, par exemple
+//    `Apple Development: toi@exemple.fr (A1B2C3D4E5)` → l'équipe est `A1B2C3D4E5`.
+//    Sinon : Xcode › réglages de la cible › Signing & Capabilities, colonne Team.
+//
+// ## Vérifier que c'est pris en compte
+//
+//     xcodebuild -scheme CineShelf -showBuildSettings 2>/dev/null \
+//       | grep DEVELOPMENT_TEAM
+//
+// Doit rendre ta valeur. Si la ligne est vide alors que le fichier existe, la cause la
+// plus probable est un `DEVELOPMENT_TEAM` réintroduit dans `project.yml` : un build
+// setting du projet **écrase** un `xcconfig`, silencieusement.
+
+DEVELOPMENT_TEAM = REMPLACE_MOI

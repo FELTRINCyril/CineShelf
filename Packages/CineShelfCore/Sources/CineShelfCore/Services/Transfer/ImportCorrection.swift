@@ -5,7 +5,10 @@ import Foundation
 /// Une correction appliquée à un lot de lignes.
 ///
 /// La planche 11f : « une cause, une décision, un aperçu de l'effet avant de l'appliquer ».
-public struct ImportCorrection: Sendable, Hashable {
+/// `Codable` parce que le **brouillon d'import la persiste** : reprendre un import rejoue ses
+/// corrections dans l'ordre, ce qui redonne exactement l'état où l'utilisateur s'est arrêté. La
+/// forme est donc un format de fichier, et c'est `ImportDraft.currentVersion` qui la protège.
+public struct ImportCorrection: Codable, Sendable, Hashable {
     /// Le champ corrigé.
     public let fieldKey: String
     /// La valeur à écrire dans la cellule.

@@ -23,23 +23,9 @@ struct SpotlightIndexerTests {
     /// `CSSearchableIndex` n'est pas utilisable ici : sous `swift test`, le binaire n'a
     /// pas d'identifiant de paquet, et une suite de tests n'a rien à écrire dans
     /// l'index de la machine qui la fait tourner.
-    private final class RecordingIndex: SpotlightIndexing {
-        private(set) var indexed: [SpotlightEntry] = []
-        private(set) var removed: [String] = []
-        private(set) var removeAllCount = 0
-
-        func index(_ entries: [SpotlightEntry]) { indexed.append(contentsOf: entries) }
-        func remove(identifiers: [String]) { removed.append(contentsOf: identifiers) }
-        func removeAll() { removeAllCount += 1 }
-
-        /// Repart d'un journal vide, pour n'observer que ce qui suit la préparation.
-        /// `removeAllCount` n'est pas remis à zéro : c'est un compteur d'événements
-        /// rares, et les tests qui l'observent veulent son total.
-        func forgetCalls() {
-            indexed.removeAll()
-            removed.removeAll()
-        }
-    }
+    /// L'espion vit désormais dans `TestContainer.swift` : `L11b` en avait besoin aussi, et un
+    /// second espion du même protocole aurait fini par ne pas enregistrer les mêmes choses.
+    private typealias RecordingIndex = RecordingSpotlightIndex
 
     /// Le magasin, la bibliothèque d'accueil et l'index observable d'un test.
     private struct Store {

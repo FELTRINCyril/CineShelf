@@ -4924,3 +4924,166 @@ qui est déjà mieux qu'avant, où il n'y avait rien à regarder.
 
 **Suite : `V3`**, la galerie — où le préchargement devra trouver son foyer, et où
 `PrefetchWindow` devra apprendre à connaître sa tranche visible.
+
+## 2026-08-05 (7) — `V3` : la galerie, et une signature qu'aucun appelant ne pouvait remplir
+
+### La leçon d'abord, parce qu'elle ne parle pas de galerie
+
+**« Aucun appelant » peut vouloir dire « aucun appelant *possible* », et alors ce n'est pas la
+liste des appelants qu'il faut regarder mais l'API.**
+
+`PrefetchWindow` a été livrée par `L5` le 2026-08-05 (2). Son écart a ensuite été réinscrit
+trois fois de suite, toujours dans les mêmes termes : « `prefetch` n'a toujours aucun appelant
+de vue ». La formulation portait une cause implicite — *il manque un écran* — et elle était
+fausse. L'API prenait `visible: Range<Int>`, et **aucun conteneur paresseux de SwiftUI ne
+rapporte cette tranche** : un `LazyVStack` notifie élément par élément, par `onAppear`, et il
+notifie **un** index. Trois écrans se sont succédé sans que le défaut se voie, parce qu'aucun
+n'était censé s'en servir.
+
+Ce qui l'a fait apparaître : l'écran qui *devait* s'en servir. Et à ce moment-là, la question
+« quel écran manque ? » s'est transformée en « pourquoi aucun écran ne peut ? ».
+
+**Le réflexe à garder** : quand un écart se réinscrit à l'identique d'une session sur l'autre,
+relire sa **cause** avant sa conséquence. Une conséquence stable est normale ; une cause qu'on
+recopie sans la revérifier finit par être fausse sans qu'il n'y paraisse rien.
+
+### `PrefetchWindow`, corrigée et non contournée
+
+L'ancienne signature est **supprimée**, pas doublée. La garder aurait laissé au prochain
+lecteur le choix entre une API utilisable et une API qui ne l'est pas, et rien n'aurait dit
+laquelle.
+
+**La route `ScrollPosition` est écartée, et le motif est écrit** : elle ne rend qu'un
+identifiant d'ancrage pour toute la vue de défilement — donc rien des trois autres colonnes
+d'une maçonnerie à quatre — et rien du tout **au repos**, c'est-à-dire au premier affichage,
+qui est précisément le moment où précharger l'écran suivant sert le plus.
+
+**`PrefetchScheduler` porte les deux décisions qui restaient dans la vue** : comment une
+frontière se déduit d'apparitions individuelles, et quand une nouvelle commande vaut la peine
+d'être passée. Les deux sont de l'arithmétique, donc les deux sortent de la vue.
+
+**L'agrégation entre colonnes est le maximum, et le motif est écrit** — c'était la première des
+trois précisions demandées. Un index qui a **apparu** a déjà été réclamé par le chemin
+d'affichage : sa vignette est en cours ou en cache. Donc tout ce qui est sous le maximum est
+déjà demandé, et **seul l'au-delà du maximum n'est réclamé par personne**. Le minimum ferait
+précharger du travail déjà fait ; la moyenne n'a de sens géométrique nulle part.
+
+**Et c'est pour ça qu'il n'y a pas d'heuristique de demi-tour.** « Un index nettement sous la
+frontière signale une remontée, donc on se réancre » paraît meilleur et se casse sur le cas
+même qui motive la règle : avec 40 et 25 sur deux colonnes, l'écart **entre colonnes** dépasse
+déjà le seuil qu'un tel test devrait employer, et la colonne en retard serait lue comme un
+demi-tour à chaque passe de rendu. Les deux sont indiscernables depuis ce type, donc il ne
+tranche pas. `PrefetchSchedulerTests` porte les deux cas, dont celui-là nommément.
+
+### Le préchargement fait-il quelque chose ? Oui, et voici les chiffres
+
+Quatre sessions durant, il n'était qu'une intention. Premier endroit où la question se pose
+pour de vrai, donc première mesure :
+
+| Régime | Affichages trouvant leur image déjà en mémoire |
+|---|---|
+| sans préchargement | **0 sur 24** |
+| avec, défilement plus lent que le décodage | **23 sur 24** |
+| avec, défilement à 5 ms par élément | **12 sur 24** |
+
+**Les deux premiers sont assénés, le troisième seulement imprimé**, et la coupure suit la
+doctrine des seuils de performance : le mécanisme (« un affichage qui suit un préchargement
+terminé trouve son image ») est un **rapport**, indépendant de la machine ; le recouvrement
+dépend d'une horloge, et sur un runner GitHub le décodage peut être vingt fois plus lent.
+
+La ligne de base compte autant que le reste : sans le « 0 sur 24 », le « 23 sur 24 » ne dirait
+pas si le préchargement y est pour quelque chose.
+
+### Les rendus divergent — et j'avais raison par accident
+
+C'était la troisième précision demandée, et elle a mordu. J'avais écrit que la planche 4 bloc
+`6b` « diverge » de l'addendum 2 bloc `13c` en comparant 3/5/8 colonnes à 2/4 — sans vérifier
+que les largeurs étaient comparables. Vérification faite :
+
+| Bloc | Largeurs rendues | Colonnes | Largeur de carte implicite |
+|---|---|---|---|
+| `6b` | 393 · 1194 · 1920 | 3 · 5 · 8 | 116 · 222 · 223 |
+| `13c` | 393 · 834 | 2 · 4 | `poster.l` (140), **nommé** aux deux formats |
+
+Les deux blocs rendent **393 px**, et ils s'y contredisent : 3 colonnes contre 2, soit 116 pt de
+carte contre 140. Ce sont donc bien des valeurs comparables, et la contradiction est réelle. Et
+`6b` se contredit lui-même — 116 puis 222 — donc il encode un **compte de colonnes par format**
+et non une carte constante, ce qui est exactement la règle que `I4` avait déjà arbitrée à
+l'envers.
+
+Verdict inchangé, mais pour la bonne raison cette fois : les rendus divergent → le jeton fait
+foi, et `13c` est le seul bloc qui nomme un cran. `PosterScale.l` avec les jetons de marge et de
+gouttière redonne **exactement** 2 colonnes à 393 pt et 4 à 834.
+
+**La leçon de méthode** : « compter les blocs » ne suffit pas, il faut d'abord vérifier que les
+blocs parlent de la même chose. Une conclusion juste par accident est une conclusion qu'on
+reproduira mal ailleurs.
+
+### `DemoCatalog` était le cas nul, et c'est la troisième fois
+
+Avant cette tâche : **aucune** pièce jointe `.gallery`, aucune image sur une personne ou une
+collection, **aucun orphelin**, et une seule proportion — 2:3, la même pour toutes. Donc l'écran
+de galerie aurait été **vide**, la maçonnerie n'aurait rien eu à répartir, et trois des quatre
+branches du filtre par source n'auraient jamais été empruntées.
+
+Les proportions sont choisies pour **casser l'algorithme**, pas pour être variées : la maçonnerie
+additionne des hauteurs de colonne, donc un jeu « franchement varié » entre 2:3 et 16:9 ne
+prouve rien. 21:9, 9:21 (5,4 fois plus haut à largeur égale), le carré — et un média **sans
+dimensions lues**, qui emprunte le repli de `MasonryColumns`. Sans lui, ce repli serait du code
+que rien n'exerce, et il existe pour un cas que le schéma rend inévitable : `pixelWidth` vaut 0
+par défaut, donc une division 0/0.
+
+Ces images passent par `MediaIngestor`, donc par le chemin réel de l'import : c'est la première
+fois que les données de démonstration portent un `blurHash`. Les jaquettes n'en ont toujours pas
+— écart inscrit.
+
+### Deux gardes existantes ont mordu, et un test que j'avais écrit faux
+
+- **`Icon.all` a refusé deux constantes de même glyphe.** `nextImage` et `selectionMark`
+  deviennent des **alias** de symboles déjà listés : la liste sert à vérifier qu'un symbole
+  existe dans SF Symbols, et le vérifier deux fois ne prouve rien de plus.
+- **`file_length` a refusé `BlockReference.swift` à 513 lignes**, et la coupure qu'il a imposée
+  est meilleure que le fichier : le type et son rendu d'un côté, les valeurs attendues de
+  l'autre — elles n'ont pas la même durée de vie.
+- **`MasonryColumnsTests` a échoué sur une assertion fausse de ma main** : j'attendais
+  `clamped(aspect: .infinity)` à la borne haute. L'infini n'est pas une image très large, c'est
+  une division par zéro — donc une dimension inconnue, donc le repli. **Le code avait raison, le
+  test avait tort**, et c'est le bon sens de l'erreur.
+
+### Le reste de `V3`
+
+- **`MediaFit`** : l'image en `contain`, seul endroit du système où « remplit et recadre »
+  s'inverse — parce que c'est le seul où l'on regarde l'image *pour elle-même*. Elle charge par
+  `\.imageLoader` et jamais par `AsyncImage`, qui ne sait pas résoudre `cineshelf-asset://`.
+- **`GalleryThumb`** passe du voile d'accent au liseré du bloc `6f`, posé vers l'intérieur, avec
+  sa pastille cochée. Le voile teintait l'image qu'on est en train de choisir, et aucun bloc ne
+  le dessine.
+- **La galerie de la fiche titre est complétée** : elle rendait cinq images au plus, dans un
+  cadre 16:9 imposé, et aucune n'était cliquable. Le recadrage d'une image de galerie devient
+  donc atteignable — écart ouvert depuis `V2 bis`.
+- **`MediaFlag` a son premier écrivain.** Il existait depuis le premier jour et personne ne
+  l'écrivait.
+- **Le forçage sombre est posé**, sur la galerie et la visionneuse. Les quatre apparences
+  existaient depuis `I1` ; aucun écran ne posait celle-ci.
+- **La branche « orphelin » n'est plus payée par l'écran par défaut** : un filtre inactif ne
+  déclenche aucun `fetch`. Mesurée quand elle est demandée — 12 orphelins en 39 ms sur 205
+  médias, contre 25 ms pour la branche « titre ».
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **461 · 70 · 64** |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **114 tests** (99 avant) |
+| `xcodebuild test -scheme CineShelfUITests -destination iOS Simulator` | ✅ **1 test** |
+| `xcodebuild test -scheme DesignSystemCatalog` · macOS et iOS | ✅ **71** et **70** |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 281 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| **La galerie vue à l'œil** | ❌ **non vérifiée** — ni la maçonnerie sur la planche, ni l'écran sur Mac, ni la visionneuse, ni le liseré de sélection. C'est le cœur d'une tâche `V`, et ça reste à toi |
+| **Le geste de sélection sur iPhone** | ❌ **non essayé** — le bloc `6f` demande un appui long, le bouton « Sélectionner » est rendu sur les deux plateformes |
+
+**Ce que cette tâche ne prouve pas.** Que la galerie *ressemble* à la planche 4. Elle prouve que
+les colonnes se calculent comme `13c` le dit, que les proportions dégénérées ne la cassent pas,
+que le préchargement remplit le cache et que les quatre sources ont de quoi filtrer. Le reste se
+regarde.

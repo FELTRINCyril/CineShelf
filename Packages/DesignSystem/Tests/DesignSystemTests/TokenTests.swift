@@ -44,7 +44,11 @@ func iconListHasNoDuplicate() {
     // `Icon.all` est ecrite a la main — Swift n'enumere pas les membres statiques
     // d'un enum sans cas — donc un copier-coller peut y glisser deux fois le meme.
     #expect(Set(Icon.all).count == Icon.all.count)
-    #expect(Icon.all.count == 37)
+    // 38 depuis `V3`, qui ajoute `previousImage` (`chevron.left`, bloc `6c`). Les deux autres
+    // noms du même lot — `nextImage`, `selectionMark` — sont des **alias** de symboles déjà
+    // listés, et c'est cette assertion qui l'a imposé : les écrire en clair les faisait
+    // compter deux fois.
+    #expect(Icon.all.count == 38)
 }
 
 // MARK: - Affiches et matrice

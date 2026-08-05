@@ -64,7 +64,8 @@ public struct GalleryThumb: View {
             // ce soit.
             .aspectRatio(model.aspect, contentMode: .fit)
             .frame(width: width)
-            .overlay { selectionVeil }
+            .overlay { selectionRing }
+            .overlay(alignment: .topTrailing) { selectionCheck }
             .overlay(alignment: .bottomLeading) { caption }
             .clipped()
             .contentShape(.rect)
@@ -96,9 +97,34 @@ public struct GalleryThumb: View {
         }
     }
 
-    @ViewBuilder private var selectionVeil: some View {
+    /// La marque de sélection, relevée sur le bloc `6f` : un liseré d'accent **à
+    /// l'intérieur** du cadre, et une pastille cochée en haut à droite.
+    ///
+    ///     <span style="position:absolute;inset:0;outline:3px solid …;outline-offset:-3px">
+    ///     <span style="top:9px;right:9px;width:24px;height:24px;border-radius:50%;…">✓</span>
+    ///
+    /// **Le liseré remplace le voile d'accent** de la version `I3`. Le voile teintait l'image
+    /// — donc il changeait ce qu'on est en train de choisir, ce qui est exactement ce qu'une
+    /// galerie ne doit pas faire — et aucun bloc ne le dessine. Le §7 confirme le liseré :
+    /// « aucune ombre, aucun contour, sauf en sélection (contour ambre) ».
+    ///
+    /// `strokeBorder` et non `stroke` : `stroke` centre le trait sur le bord, donc la moitié
+    /// s'en va au-delà du `clipped()` et le liseré paraît deux fois plus fin qu'il n'est.
+    @ViewBuilder private var selectionRing: some View {
         if isSelected {
-            Color.accent.opacity(0.28)
+            Rectangle()
+                .strokeBorder(Color.accent, lineWidth: Stroke.selection)
+        }
+    }
+
+    @ViewBuilder private var selectionCheck: some View {
+        if isSelected {
+            Image(systemName: Icon.selectionMark)
+                .font(Typo.micro)
+                .foregroundStyle(Color.accentOnAccent)
+                .frame(width: Space.s6, height: Space.s6)
+                .background(Color.accent, in: .circle)
+                .padding(Space.s2)
         }
     }
 }

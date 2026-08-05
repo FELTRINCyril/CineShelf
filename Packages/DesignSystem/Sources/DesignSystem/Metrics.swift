@@ -119,6 +119,14 @@ public enum Stroke {
     public static let hairline: CGFloat = 1
     /// Récapitulatif de refus en tête de formulaire, et rien d'autre.
     public static let emphasis: CGFloat = 2
+    /// Le liseré de sélection, **posé à l'intérieur** du cadre de l'image.
+    ///
+    /// Relevé sur le bloc `6f` : `outline:3px solid …; outline-offset:-3px`. Le §7 écrit
+    /// « contour ambre 2 px, offset 3 px », ce qui n'est pas la même chose — ni la même
+    /// épaisseur, ni le même côté du bord. **Le bloc rendu gagne sur la prose de synthèse**,
+    /// comme la barre latérale du §4.6 avait perdu contre les douze écrans qui n'en montraient
+    /// aucune. L'écart est inscrit.
+    public static let selection: CGFloat = 3
 }
 
 // MARK: - Mouvement

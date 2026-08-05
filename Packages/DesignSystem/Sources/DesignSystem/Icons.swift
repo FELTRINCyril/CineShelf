@@ -92,6 +92,18 @@ public enum Icon {
     public static let navigateForward = "chevron.right"
     /// Visionneuse.
     public static let fullScreen = "arrow.up.left.and.arrow.down.right"
+    /// Image précédente et suivante dans la visionneuse — bloc `6c`, les deux cibles de 44.
+    ///
+    /// **Deux noms, et l'un des deux est un alias**, pas une constante neuve : `nextImage` et
+    /// `selectionMark` portent le glyphe de `navigateForward` et de `watchedMark`. La garde
+    /// « aucun doublon dans `Icon.all` » a mordu quand je les avais écrits en clair, et elle a
+    /// raison — `all` sert à vérifier qu'un symbole **existe** dans SF Symbols, et le vérifier
+    /// deux fois ne prouve rien de plus. L'alias garde le nom lisible à l'appel sans doubler
+    /// la liste.
+    public static let previousImage = "chevron.left"
+    public static let nextImage = navigateForward
+    /// La pastille de sélection multiple du bloc `6f`.
+    public static let selectionMark = watchedMark
 
     /// Tous les symboles de la correspondance, pour le catalogue et les tests.
     ///
@@ -106,7 +118,8 @@ public enum Icon {
         ratingStar, watchedMark, isPrivate,
         lockedProfile, lockFallback, settings, profiles,
         offline, sync, diskSpace, error,
-        close, moreActions, navigateForward, fullScreen
+        close, moreActions, navigateForward, fullScreen,
+        previousImage
     ]
 }
 

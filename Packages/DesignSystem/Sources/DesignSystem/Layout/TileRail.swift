@@ -11,6 +11,11 @@ import SwiftUI
 //       <div style="display:flex;gap:14px;padding:0 0 0 44px">…</div>
 //     </div>
 //
+// **La gouttière de 14 px est une mesure par point de rupture, pas de densité.** L'addendum
+// 2 rend les mêmes rails en iPhone 393 (10 px) et en iPad 834 (14 px) : trois formats
+// d'accord entre eux, et aucun ne suit `Density.baseGridGutter`. C'était l'écart 3 de la
+// revue du 2026-08-04 — la gouttière passe par `Breakpoint.railGutter`.
+//
 // **Le relevé qui décide de tout est `padding: 0 0 0 44px`** — une marge à gauche, et
 // *aucune à droite*. La dernière carte est donc coupée par le bord du cadre, et c'est
 // voulu : le §7 du handoff en fait le seul signal de défilement.
@@ -35,7 +40,8 @@ public struct TileRail<Content: View>: View {
     private let action: RailAction?
     private let content: Content
 
-    @Environment(\.density) private var density
+    // Pas de `\.density` ici : la gouttière du rail est une mesure par point de rupture,
+    // et le rail n'a aucune autre raison de lire la densité.
     @Environment(\.breakpoint) private var breakpoint
 
     /// Une action facultative en bout de libellé — « Tout voir », le plus souvent.
@@ -105,7 +111,12 @@ public struct TileRail<Content: View>: View {
         .accessibilityLabel(label)
     }
 
-    private var gutter: CGFloat { breakpoint.gridGutter(density) }
+    /// La gouttière du cran courant — 10 pt sur iPhone, 14 pt au-delà.
+    ///
+    /// Elle ne passe **pas** par `gridGutter(_:)` : trois formats rendus s'accordent sur
+    /// une mesure par point de rupture, et aucun ne suit la densité. Voir
+    /// `Breakpoint.railGutter`, qui porte le relevé.
+    private var gutter: CGFloat { breakpoint.railGutter }
 }
 
 // MARK: - Le cran de rupture courant

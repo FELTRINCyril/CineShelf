@@ -230,7 +230,7 @@ extension BlockSpec {
             .init(
                 name: "Gouttière de rangée",
                 expected: "10 pt sur iPhone, 14 pt sur iPad et sur Mac",
-                verdict: .toFix(gap: 3, code: "gridGutter(densité) = 16 dense, 24 ample")),
+                verdict: .matches),
             .init(
                 name: "Marge de gauche",
                 expected: "20 iPhone · 28 iPad · 44 (2a), 40 (3a), 36 (4b) sur Mac",

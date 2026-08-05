@@ -246,6 +246,26 @@ public enum Breakpoint: String, Sendable, CaseIterable, Identifiable {
         self == .macWide ? Density.roomy.baseGridGutter : density.baseGridGutter
     }
 
+    /// La gouttière **d'un rail horizontal**, et elle ne suit pas la densité.
+    ///
+    /// **Pourquoi ce n'est pas `gridGutter(_:)`.** C'était l'écart 3 de la revue du
+    /// 2026-08-04, et la vérification a été concluante : l'addendum 2 a rendu l'accueil et
+    /// la fiche en iPhone *et* en iPad, et le prototype Mac les rend aussi. Trois formats,
+    /// et ils sont d'accord entre eux — 10 pt sur iPhone 393, 14 pt sur iPad 834, 14 pt sur
+    /// Mac 1280–1440. Aucun ne suit `Density.baseGridGutter` (16 dense, 24 ample). Les
+    /// rendus concordent, donc ils font foi : c'est une mesure **par point de rupture**,
+    /// comme `screenMargin`, et le même relevé confirme la marge au jeton (20 et 28 y
+    /// tombent exactement).
+    ///
+    /// **Pourquoi la règle ne se coupe pas en `macWide`.** À la différence de
+    /// `gridGutter(_:)`, aucun écran n'y est rendu : le seul point de rupture observé
+    /// au-dessus de l'iPhone donne 14, et inventer un désaccord à 1680 pt serait inventer
+    /// du design. Une valeur jamais rendue reste une observation absente, pas une valeur à
+    /// deviner.
+    public var railGutter: CGFloat {
+        self == .phonePortrait ? 10 : 14
+    }
+
     /// L'inspecteur est une colonne à partir de 1024 pt, une feuille en dessous.
     public var showsInspectorAsColumn: Bool { minWidth >= Self.padLandscape.minWidth }
 

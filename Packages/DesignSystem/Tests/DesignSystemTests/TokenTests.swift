@@ -232,6 +232,23 @@ func inspectorIsASheetBelowPadLandscape() {
 // Le compte de colonnes n'est plus une propriete de `Breakpoint` : il se calcule, et
 // ses tests sont dans `GridMetricsTests`. Voir la note en tete de `GridMetrics.swift`.
 
+@Test("La gouttiere de rail ne suit pas la densite : 10 sur iPhone, 14 au-dela")
+func railGutterIsABreakpointMeasure() {
+    // Ecart 3 de la revue du 2026-08-04, arbitrage inscrit dans `docs/PROMPTS.md` :
+    // addendum 2 rend 10 px en iPhone 393 et 14 px en iPad 834, le prototype Mac 14 px a
+    // 1280-1440. Aucun des trois ne vaut 16 (dense) ni 24 (ample).
+    #expect(Breakpoint.phonePortrait.railGutter == 10)
+    #expect(Breakpoint.padPortrait.railGutter == 14)
+    #expect(Breakpoint.macStandard.railGutter == 14)
+    for cran in Breakpoint.allCases where cran != .phonePortrait {
+        #expect(cran.railGutter == 14, "\(cran.rawValue)")
+    }
+    // Et elle ne coincide avec aucune valeur de densite : c'est ce qui rend les deux
+    // mesures distinctes plutot qu'une duplication.
+    #expect(Breakpoint.allCases.allSatisfy { $0.railGutter != Density.dense.baseGridGutter })
+    #expect(Breakpoint.allCases.allSatisfy { $0.railGutter != Density.roomy.baseGridGutter })
+}
+
 @Test("Seul macWide desaccorde la gouttiere de la densite")
 func macWideWidensTheGutter() {
     // `docs/design/README.md` §4.6 : « ≥ 1680 · marges 64, gouttiere 24 », alors que la

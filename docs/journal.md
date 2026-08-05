@@ -4341,3 +4341,77 @@ est exactement ce qui se teste. Inscrite aux écarts connus, à reprendre avec `
 
 **Suite : `catalogue-porte`**, puis les corrections 1, 2, 3 et 5. Dans cet ordre — la porte
 d'abord, les corrections ensuite, pour qu'elles se constatent au lieu de se déduire.
+
+---
+
+## 2026-08-05 — La porte de bloc, et les quatre corrections qu'elle rend constatables
+
+Reprise sur une autre machine : dépôt **34 commits en retard**, rien en local par-dessus,
+donc `git pull --ff-only`. Le réflexe des deux sens a servi une troisième fois.
+
+**La routine locale ne couvrait qu'une des deux plateformes du catalogue.** La CI teste
+`DesignSystemCatalog` sur iOS *et* macOS (job `catalog`, matrice) ; `CLAUDE.md` n'en donnait
+qu'une. La commande iOS y est inscrite, et elle a tourné : 64 tests verts sur iPhone 17
+contre 65 sur macOS — l'écart est un test propre à macOS, pas un manque.
+
+**`catalogue-porte` : onze composants portent désormais leur bloc et ses mesures.** À côté de
+chaque composant de `I2` `I3` `I4` `I6`, la valeur attendue du bloc qui le spécifie, et ce
+que le code fait quand les deux diffèrent. Les six écarts gardés au jeton s'y lisent sans
+ouvrir une planche, et les quatre à corriger y étaient marqués comme tels — c'est ce qui
+rendait leur correction constatable au lieu de déductible. Chaque correction a retiré sa
+propre ligne, dans son propre commit.
+
+**Aucune assertion, délibérément.** Un test qui comparerait ces nombres recopierait les mêmes
+valeurs deux fois : il attraperait un changement de constante, et rien de ce qui a laissé
+passer `PersonTile` en rectangle 2:3 — la forme, la police, le poids. Le revers est inscrit
+aux écarts connus : **la porte ne mord que si le catalogue est ouvert et lu**, donc elle
+appartient à la relecture d'un lot, pas à la suite de tests.
+
+**Les quatre corrections, et les deux choses que les mesures ont changées.**
+
+| Écart | Bloc | Ce qui a été fait |
+|---|---|---|
+| 1 · 2 | `3a` · `7f` | Barre : 26 pt et `Typo.label` — Archivo Narrow 600 à 11 pt, exactement `3a`. Le prototype **change de police avec la taille** |
+| 3 | `2a` · addendum 2 | `Breakpoint.railGutter` : 10 sur iPhone, 14 au-delà. Distinct de `gridGutter(_:)`, qui reste la gouttière de **grille** |
+| 5 | `8a` | Jeton `rating/empty`, vingtième rôle |
+
+*La première mesure a corrigé l'arbitrage.* `bgFill` en sombre vaut oklch **0,289**, pas
+« ≈ 0,26 » comme la table d'arbitrage l'estimait. L'écart 5 est donc plus petit qu'annoncé
+(0,34 contre 0,289, pas un tiers) — il existe et va dans le sens dit, mais la table est
+corrigée. Effet de bord utile : l'écart 9, gardé au jeton pour « deux centièmes de
+luminance », n'en vaut qu'**un**, ce qui renforce son arbitrage.
+
+*La seconde a tranché jeton contre dérivation.* Un jeton, parce que la barre de notation vit
+aussi sur les surfaces de gestion, qui suivent l'apparence système : « éclaircir `bgFill` »
+donnerait une étoile **plus claire que sa surface** en apparence claire. Une dérivation
+n'est juste que dans une seule des quatre apparences. Seule l'apparence sombre est mesurée ;
+les trois autres sont déduites du même rapport (7,5 % du chemin `bg/fill` vers
+`text/primary`), comme `bg/inset` avant elle.
+
+**Un filet a mordu, et c'était le bon.** `shapeStyleListIsExhaustive` a signalé que
+`rating/empty` manquait à la table des accesseurs `ShapeStyle` du test — sa forme implicite
+serait restée non vérifiée en silence. Trois assertions de compte (19 → 20) et
+`ImplicitShapeStyleUsage` ont suivi.
+
+**Un écart neuf, assumé.** L'avatar de la fiche garde Bebas à 22 pt là où `7f` pose 20 :
+aucun rôle de `Typo` n'est Bebas à 20, et en ajouter un rouvrirait la porte que `Typo` a
+fermée — textuellement le motif qui garde l'écart 8 au jeton.
+
+| Commande | Résultat |
+|---|---|
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **67 tests**, 9 suites |
+| `xcodebuild test -scheme CineShelfUITests -destination iOS Simulator` | ✅ **1 test** |
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **450 · 64 · 38** |
+| `xcodebuild test -scheme DesignSystemCatalog -destination macOS` | ✅ **65 tests** |
+| `xcodebuild test -scheme DesignSystemCatalog -destination iOS Simulator` | ✅ **64 tests** — la commande qui manquait |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 246 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| Lancement réel du catalogue sur Mac | ✅ processus vivant |
+| **Rendu de la porte à l'œil** | ❌ **non vérifié** — `screencapture` refusé (autorisation d'enregistrement d'écran). Le catalogue tourne, les planches compilent, mais je n'ai pas *regardé* la porte |
+
+**La dernière ligne est la limite de cette session.** La porte est une porte **visuelle**, et
+je n'ai pas pu la voir : la seule vérification qui compte vraiment pour elle reste à faire,
+en ouvrant le catalogue.
+
+**Suite : `I7`–`I9`**, qui débloquent l'éditeur de `V0 bis`.

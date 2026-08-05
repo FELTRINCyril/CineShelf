@@ -5087,3 +5087,31 @@ fois que les données de démonstration portent un `blurHash`. Les jaquettes n'e
 les colonnes se calculent comme `13c` le dit, que les proportions dégénérées ne la cassent pas,
 que le préchargement remplit le cache et que les quatre sources ont de quoi filtrer. Le reste se
 regarde.
+
+**Post-scriptum du même jour — la CI rouge, et un seuil qui avait tort depuis le début.**
+
+Le run `31021407166` a rougi sur `SearchPerformanceTests` : **80,5 ms** contre un plafond de
+40 ms. Diagnostic avant correction, et il est net :
+
+- **le même arbre `CineShelfCore` avait passé le run précédent au vert** (`31020718872`, job à
+  3m20s) — donc non déterministe, donc un seuil et non une régression ;
+- le rapport runner / local est de **7 à 10**, cohérent avec l'autre mesure connue du dépôt :
+  décodage de vignette 15 ms en local contre 266 ms sur le runner ;
+- `V3` ne touche pas le chemin de recherche. Ses deux ajouts à `CineShelfCore` sont une fabrique
+  de prédicat que la recherche n'appelle pas, et le favori d'un média.
+
+**La faute était dans la calibration, et `CLAUDE.md` la nomme depuis longtemps** : « ne jamais
+assener un budget d'expérience utilisateur sur un runner partagé […] des plafonds absolus calés
+sur l'environnement **le plus lent** où il tourne ». Or le commentaire du test disait lui-même
+« environ quatre fois la mesure haute » — la mesure **locale**. Il documentait proprement
+l'erreur qu'il commettait.
+
+Ce n'est donc pas le cas « attendre une deuxième occurrence » : cette règle vaut pour un flake
+d'infrastructure dont la cause est inconnue. Ici la cause est écrite, et la première occurrence
+suffit. Plafond porté à **300 ms** — 3,7 fois la mesure du runner, 27 fois la locale : il
+n'attrape plus qu'un effondrement, ce qui est tout ce qu'un seuil peut honnêtement attraper. La
+mesure est désormais **imprimée**, et c'est elle qui porte le sens.
+
+**Un frère jumeau reste en place** : `TitleFilterPerformanceTests` plafonne à 25 ms, calé
+localement lui aussi. Il est passé au vert ce jour-là, ce qui est de la chance et non une
+preuve. Inscrit comme écart plutôt que corrigé au passage : la tâche soldait un reste-à-faire.

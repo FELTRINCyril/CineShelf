@@ -96,13 +96,34 @@ struct SearchPerformanceTests {
         // dit la dispersion réelle sur une machine au repos. Le budget de `docs/04` §4
         // est de 50 ms.
         //
-        // Seuil à 40 ms : environ quatre fois la mesure haute, et sous le budget. Ni le
-        // budget lui-même — il laisserait passer un facteur cinq —, ni 12 ms, qui
-        // clignoterait au premier runner chargé.
+        // MARK: Le seuil était à 40 ms, et c'était un budget d'utilisateur assené sur un runner
+        //
+        // **Il a rougi la CI le 2026-08-05** (run `31021407166`) à **80,5 ms**, sur un arbre
+        // `CineShelfCore` que le run précédent avait passé au vert — donc non déterministe, donc
+        // un seuil et non une régression. Le rapport runner / local est de 7 à 10, ce qui est
+        // cohérent avec l'autre mesure connue du dépôt : décodage de vignette 15 ms en local
+        // contre 266 ms sur le runner.
+        //
+        // **La faute était dans la calibration, et elle est nommée dans `CLAUDE.md`** : « ne
+        // jamais assener un budget d'expérience utilisateur sur un runner partagé […] des
+        // plafonds absolus calés sur l'environnement **le plus lent** où il tourne, qui
+        // n'attrapent qu'un ordre de grandeur ». Or 40 ms avait été calé sur « quatre fois la
+        // mesure **locale** haute » — exactement l'erreur que la règle décrit, et le commentaire
+        // d'origine le disait sans s'en apercevoir.
+        //
+        // **300 ms** : environ 3,7 fois la mesure observée sur le runner, et 27 fois la mesure
+        // locale. Ça n'attrape plus qu'un effondrement — ce qui est tout ce qu'un seuil peut
+        // honnêtement attraper ici. La vraie vérification du budget de 50 ms se fait avec
+        // Instruments sur appareil, comme `docs/04` §4 le dit lui-même.
         #expect(
-            duration < .milliseconds(40),
+            duration < .milliseconds(300),
             "Recherche `.all` sur \(Self.titleCount) titres : \(duration) — référence 8 à 11 ms"
         )
+
+        // La mesure est **imprimée**, et c'est elle qui porte le sens : un seuil calé sur le
+        // pire environnement ne dit plus rien du confort réel, seulement de l'absence de
+        // catastrophe.
+        print("[perf] recherche `.all` sur \(Self.titleCount) titres : \(duration)")
 
         // **Ce que ce fichier ne mesure pas, et pourquoi.** Une première version
         // comparait `.titles` à `.all` pour prouver que la portée restreint vraiment la

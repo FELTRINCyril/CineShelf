@@ -410,9 +410,11 @@ xcodebuild -scheme DesignSystemCatalog -destination 'platform=macOS' build
 xcodebuild test -scheme DesignSystemCatalog -destination 'platform=macOS'
 # La CI teste le catalogue sur les DEUX plateformes (job `catalog`, matrice iOS +
 # macOS). Le lancer seulement sur macOS en local laisse passer un échec propre à
-# la destination iOS, que rien ne signale avant le push :
+# la destination iOS, que rien ne signale avant le push. **`OS=latest` fait partie
+# du geste** : c'est le spécificateur exact de la CI, et une commande locale qui
+# l'omet ne joue pas le même chemin de résolution de destination.
 xcodebuild test -scheme DesignSystemCatalog \
-  -destination 'platform=iOS Simulator,name=iPhone 17'
+  -destination 'platform=iOS Simulator,name=iPhone 17,OS=latest'
 open ~/Library/Developer/Xcode/DerivedData/CineShelf-*/Build/Products/Debug/DesignSystemCatalog.app
 
 python3 scripts/generate-colors.py   # après toute modif de colors.tokens.json

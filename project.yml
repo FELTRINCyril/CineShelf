@@ -161,6 +161,14 @@ targets:
       # CineShelfCore et des frameworks système), donc compilable ici sans
       # entraîner de vue.
       - App/DemoData/DemoCatalog.swift
+      # Les fixtures de galerie de `V3` : ratios degeneres, images sur personne et
+      # collection, orphelins. Sans elles la galerie de demonstration est vide, donc
+      # trois des quatre sources du filtre ne sont exercees par rien.
+      - App/DemoData/DemoGallery.swift
+      # Ce que la galerie montre d'un media, et dans quel ordre — `GalleryFormat` et
+      # `GalleryOrder`. Sortis de la vue exactement pour etre testes ici : aucune vue,
+      # seulement CineShelfCore, DesignSystem et la convention d'URL.
+      - App/Features/Gallery/GalleryPresentation.swift
       # Le pont entre le vocabulaire persiste (CineShelfCore) et le vocabulaire
       # visuel (DesignSystem) : c'est le seul endroit de l'app ou les deux jeux se
       # rencontrent, donc le seul depuis lequel un test peut affirmer qu'ils

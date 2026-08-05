@@ -85,6 +85,14 @@
                 )
             }
 
+            // Les images de galerie viennent **après** les titres, et les orphelins après
+            // tout : la source « orphelin » se calcule par différence d'ensembles, donc un
+            // média sans propriétaire créé au milieu serait indistinguable d'un média dont le
+            // rattachement n'est pas encore posé. Voir `DemoGallery`.
+            attachGallery(to: people, in: context, using: &generator)
+            attachGallery(to: collections, in: context, using: &generator)
+            makeOrphans(in: context, using: &generator)
+
             try context.save()
         }
 
@@ -125,12 +133,19 @@
             // laissait donc derrière lui toutes celles qui n'avaient reçu ni
             // crédit ni titre. On les cherche par leur marqueur, qui est le seul
             // critère fiable.
-            for person in try context.fetch(FetchDescriptor<Person>())
-            where person.library?.id == libraryID && isDemo(person) {
+            let people = try context.fetch(FetchDescriptor<Person>())
+                .filter { $0.library?.id == libraryID && isDemo($0) }
+            let collections = try context.fetch(FetchDescriptor<TitleCollection>())
+                .filter { $0.library?.id == libraryID && isDemo($0) }
+
+            // Avant de supprimer les entités : leurs médias de galerie et les orphelins, que
+            // rien d'autre ne mène à supprimer. Voir `DemoGallery.clearGalleryAssets`.
+            try clearGalleryAssets(of: people, collections: collections, in: context)
+
+            for person in people {
                 context.delete(person)
             }
-            for collection in try context.fetch(FetchDescriptor<TitleCollection>())
-            where collection.library?.id == libraryID && isDemo(collection) {
+            for collection in collections {
                 context.delete(collection)
             }
 
@@ -239,6 +254,7 @@
                 attachBackdrop(to: title, in: context, using: &generator)
             }
             attachCredits(to: title, people: people, in: context, using: &generator)
+            attachGallery(to: title, in: context, using: &generator)
 
             // En dernier, une fois les relations posées : `refreshDerived()`
             // écrit aussi `updatedAt`, qui serait sinon antérieur à la jaquette

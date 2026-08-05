@@ -120,6 +120,19 @@ enum TitleFormat {
 
     /// La jaquette d'un titre : la pièce jointe `.primary` de plus petit
     /// `orderIndex`, à défaut la première image attachée.
+    /// L'image que le recadrage va régler : le backdrop s'il existe, la jaquette sinon.
+    ///
+    /// **Le même choix que le hero de la fiche**, et c'est nécessaire : recadrer une autre
+    /// image que celle qu'on voit serait incompréhensible. La fiche se replie sur la jaquette
+    /// quand aucun `backdrop` n'existe (`V0 bis`), donc l'éditeur doit se replier pareil.
+    ///
+    /// Ici plutôt que dans `TitleDetailView` parce que `type_body_length` a refusé la vue à
+    /// 303 lignes — et la règle a raison : ce choix appartient à la présentation d'un titre,
+    /// pas à un écran.
+    static func croppableAsset(of title: Title) -> MediaAsset? {
+        backdropAsset(of: title) ?? primaryAsset(of: title)
+    }
+
     static func primaryAsset(of title: Title) -> MediaAsset? {
         let attachments = title.attachments ?? []
         let primary =

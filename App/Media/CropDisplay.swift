@@ -36,10 +36,22 @@ enum CropDisplay {
             ? Double(asset.pixelWidth) / Double(asset.pixelHeight)
             : nil
 
+        return display(of: values, sourceAspect: aspect)
+    }
+
+    /// La même conversion, depuis des valeurs **non encore enregistrées**.
+    ///
+    /// C'est ce dont `CropEditor` a besoin : il pilote un `CropValues` en cours d'édition, qui
+    /// n'existe dans aucune ligne `MediaCrop`. Sans cette porte, l'éditeur aurait dû refaire
+    /// la conversion `unitPoint` / `fillScale` de son côté — deux chemins vers la même
+    /// sémantique, donc deux occasions de diverger, et un aperçu qui ne montrerait pas ce que
+    /// la grille montrera.
+    static func display(of values: CropValues, sourceAspect: Double?) -> MediaCropDisplay {
+        let focus = CropGeometry.unitPoint(values)
         return MediaCropDisplay(
             focus: UnitPoint(x: focus.x, y: focus.y),
             zoom: CropGeometry.fillScale(values),
-            sourceAspect: aspect
+            sourceAspect: sourceAspect
         )
     }
 }

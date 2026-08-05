@@ -32,6 +32,7 @@ struct TitleDetailView: View {
 
     @State private var isEditorPresented = false
     @State private var importReport: MediaImportOutcome?
+    @State private var croppedAsset: MediaAsset?
 
     init(titleID: UUID) {
         self.titleID = titleID
@@ -78,6 +79,13 @@ struct TitleDetailView: View {
         // galerie. Remplacer la jaquette est un geste **nomme**, il ne se fait pas par
         // accident — c'est le menu de l'editeur qui le portera.
         .modifier(OptionalImportSurface(title: title) { importReport = $0 })
+        // Le recadrage se règle sur l'image d'en-tête, dans ses **deux** cadres : la même
+        // image sert au bandeau 16:9 et à la carte 2:3, et un réglage qui va bien dans l'un
+        // coupe souvent mal dans l'autre. C'est pour ça que `MediaCrop` est stocké par
+        // contexte, et pour ça que l'éditeur les montre côte à côte.
+        .sheet(item: $croppedAsset) { asset in
+            CropEditor(asset: asset, contexts: [.hero, .card])
+        }
         .overlay(alignment: .bottom) { MediaImportBanner(report: $importReport) }
     }
 
@@ -225,6 +233,13 @@ struct TitleDetailView: View {
             }
 
             heroButton("Modifier") { isEditorPresented = true }
+
+            // « Recadrer » n'apparaît que s'il y a une image à recadrer : un bouton grisé
+            // sur une fiche sans jaquette est une promesse qu'on ne tient pas, et le
+            // prototype du bloc `4b` ne montre que des actions actives.
+            if let asset = TitleFormat.croppableAsset(of: title) {
+                heroButton("Recadrer") { croppedAsset = asset }
+            }
         }
         .padding(.top, Space.s1)
     }

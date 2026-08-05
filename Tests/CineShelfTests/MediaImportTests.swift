@@ -269,3 +269,75 @@ struct MediaImportTests {
         #expect(hero.zoom == 120)
     }
 }
+
+// MARK: - V2 bis · Le geste de recadrage part de son point de départ
+
+/// **Le défaut que ce test existe pour empêcher était dans ma première version de
+/// `CropEditor`.** `DragGesture` et `MagnifyGesture` rendent des valeurs **cumulées** depuis le
+/// début du geste ; `CropGeometry.crop(after:…)` attend un déplacement à appliquer à un
+/// recadrage de départ. Appliquer la valeur cumulée au recadrage **déjà déplacé** compose le
+/// mouvement : le doigt avance de 10 pt et l'image de 10, puis 30, puis 60.
+///
+/// Le calcul lui-même appartient à `L4` et y est testé. Ce qui se teste ici est la **façon de
+/// l'appeler**, c'est-à-dire ce que l'écran décide — et c'est pur, donc testable sans rendu.
+struct CropGestureTests {
+
+    private static let source = CGSize(width: 2000, height: 3000)
+    private static let frame = CGSize(width: 300, height: 169)
+
+    /// Rejouer un geste par petits pas depuis son point de départ donne le même résultat qu'un
+    /// seul pas de la même amplitude.
+    @Test("Un geste appliqué depuis son départ ne compose pas le mouvement")
+    func gestureFromStartDoesNotCompound() {
+        let start = CropValues(x: 50, y: 50, zoom: 200)
+        let total = CGSize(width: -60, height: 0)
+
+        // Ce que fait l'écran : chaque événement repart de `start`.
+        var fromStart = start
+        for step in [-20.0, -40.0, -60.0] {
+            fromStart = CropGeometry.crop(
+                after: CGSize(width: step, height: 0), magnifying: 1, from: start,
+                source: Self.source, frame: Self.frame)
+        }
+
+        let single = CropGeometry.crop(
+            after: total, magnifying: 1, from: start, source: Self.source, frame: Self.frame)
+
+        #expect(fromStart == single, "le dernier événement suffit à décrire le geste entier")
+    }
+
+    @Test("Le défaut inverse est bien un défaut : partir du courant accélère")
+    func compoundingFromCurrentAccelerates() {
+        // La démonstration du bug, pour que la raison du test reste lisible : trois événements
+        // de -20, -40, -60 appliqués **au recadrage courant** déplacent trois fois plus que le
+        // geste réel de -60.
+        let start = CropValues(x: 50, y: 50, zoom: 200)
+        var compounding = start
+        for step in [-20.0, -40.0, -60.0] {
+            compounding = CropGeometry.crop(
+                after: CGSize(width: step, height: 0), magnifying: 1, from: compounding,
+                source: Self.source, frame: Self.frame)
+        }
+
+        let correct = CropGeometry.crop(
+            after: CGSize(width: -60, height: 0), magnifying: 1, from: start,
+            source: Self.source, frame: Self.frame)
+
+        #expect(compounding.x != correct.x, "si ces deux-là sont égaux, le test ne prouve rien")
+        #expect(compounding.x > correct.x, "le cumul dépasse le geste réel")
+    }
+
+    @Test("Un pincement cumulé part aussi de son départ")
+    func magnificationFromStart() {
+        let start = CropValues(x: 50, y: 50, zoom: 100)
+
+        // `MagnifyGesture` rend 1,5 puis 2,0 — pas 1,5 puis 1,33.
+        let mid = CropGeometry.crop(
+            after: .zero, magnifying: 1.5, from: start, source: Self.source, frame: Self.frame)
+        let end = CropGeometry.crop(
+            after: .zero, magnifying: 2.0, from: start, source: Self.source, frame: Self.frame)
+
+        #expect(mid.zoom == 150)
+        #expect(end.zoom == 200, "et non 300, qui serait le cumul")
+    }
+}

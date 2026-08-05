@@ -232,6 +232,11 @@
             context.insert(title)
 
             attachPoster(to: title, in: context, using: &generator)
+            // Un titre sur quatre : assez pour exercer le chemin `hero`, pas assez pour
+            // effacer le repli sur la jaquette, qui reste le cas majoritaire.
+            if generator.next(upTo: 4) == 0 {
+                attachBackdrop(to: title, in: context, using: &generator)
+            }
             attachCredits(to: title, people: people, in: context, using: &generator)
 
             // En dernier, une fois les relations posées : `refreshDerived()`
@@ -263,6 +268,65 @@
             attachment.asset = asset
             attachment.title = title
             context.insert(attachment)
+
+            // Le recadrage de la jaquette pour la carte. **Une ligne réelle**, pas le repli
+            // neutre : jusqu'à `V2`, `DemoCatalog` n'en créait aucune, et le chemin de
+            // recadrage n'était donc jamais exercé — c'était l'écart « CropContext.hero
+            // n'est exercé par aucune donnée de démonstration ».
+            //
+            // Un recadrage **légèrement décentré**, et c'est le point : un `50/50/100` serait
+            // indistinguable du repli neutre, donc il ne prouverait rien. Avec 46/38, un
+            // recadrage ignoré se voit.
+            let cardCrop = MediaCrop(context: .card)
+            cardCrop.positionX = 46
+            cardCrop.positionY = 38
+            cardCrop.zoom = 100
+            cardCrop.asset = asset
+            context.insert(cardCrop)
+        }
+
+        /// L'image d'en-tête d'un titre, et son recadrage `hero`.
+        ///
+        /// **Pourquoi elle n'existait pas, et pourquoi elle existe maintenant.** Le §11 du
+        /// handoff dit qu'aucune image large n'est disponible, et `V0 bis` a tranché que la
+        /// fiche se replie sur la jaquette. Le repli est le bon comportement — mais il faisait
+        /// que **`CropContext.hero` n'était emprunté par rien**, donc jamais exercé.
+        ///
+        /// Un titre sur quatre reçoit donc un `backdrop` : assez pour que la fiche et
+        /// l'accueil montrent les deux chemins côte à côte, pas assez pour effacer le repli,
+        /// qui reste le cas majoritaire et doit continuer d'être vu.
+        private static func attachBackdrop(
+            to title: Title, in context: ModelContext, using generator: inout SeededGenerator
+        ) {
+            guard let data = PosterArtwork.png(for: "\(title.name) · large", seed: generator.next(upTo: 360))
+            else { return }
+
+            let asset = MediaAsset()
+            asset.kindRaw = MediaKind.image.rawValue
+            asset.data = data
+            asset.mimeType = "image/png"
+            asset.pixelWidth = PosterArtwork.size.width
+            asset.pixelHeight = PosterArtwork.size.height
+            asset.byteSize = data.count
+            asset.checksum = "demo-backdrop-\(title.id.uuidString)"
+            context.insert(asset)
+
+            let attachment = MediaAttachment()
+            attachment.slotRaw = MediaSlot.backdrop.rawValue
+            attachment.orderIndex = 0
+            attachment.asset = asset
+            attachment.title = title
+            context.insert(attachment)
+
+            // Le recadrage `hero` : une image 2:3 remplissant une bande 16:9 perd le haut et
+            // le bas, donc le point de focus remonte vers le tiers supérieur — là où se
+            // trouve un visage ou un titre imprimé.
+            let heroCrop = MediaCrop(context: .hero)
+            heroCrop.positionX = 50
+            heroCrop.positionY = 34
+            heroCrop.zoom = 110
+            heroCrop.asset = asset
+            context.insert(heroCrop)
         }
 
         private static func attachCredits(

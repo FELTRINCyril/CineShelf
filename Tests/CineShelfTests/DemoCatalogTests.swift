@@ -286,3 +286,51 @@ struct DemoCatalogTests {
         #expect(remainingCollections.first?.name == "À voir en salle")
     }
 }
+
+// MARK: - V2 · Le chemin de recadrage est-il exercé ?
+
+@MainActor
+struct DemoCropCoverageTests {
+
+    /// L'écart « `CropContext.hero` n'est exercé par aucune donnée de démonstration » est-il
+    /// fermé ?
+    ///
+    /// **Ce test répond à une question, il ne verrouille pas une valeur.** Les comptes exacts
+    /// dépendent de la graine du générateur ; ce qui doit rester vrai est qu'il existe **au
+    /// moins un** média de chaque sorte, sinon le chemin correspondant redevient mort sans que
+    /// rien ne le signale — exactement l'état d'avant `V2`.
+    @Test("Les données de démonstration exercent les deux contextes de recadrage")
+    func demoDataExercisesBothCropContexts() throws {
+        let container = try Persistence.makeContainer(cloudKit: false, inMemory: true)
+        let context = ModelContext(container)
+        let library = Library(name: "Principale")
+        context.insert(library)
+        try DemoCatalog.populate(in: context, library: library, count: 40)
+        try context.save()
+
+        let fresh = ModelContext(container)
+        let crops = try fresh.fetch(FetchDescriptor<MediaCrop>())
+        let attachments = try fresh.fetch(FetchDescriptor<MediaAttachment>())
+
+        let cardCrops = crops.filter { $0.context == .card }
+        let heroCrops = crops.filter { $0.context == .hero }
+        let backdrops = attachments.filter { $0.slot == .backdrop }
+
+        #expect(crops.isEmpty == false, "aucune ligne MediaCrop : le chemin est mort")
+        #expect(cardCrops.isEmpty == false, "le recadrage de carte n'est pas exercé")
+        #expect(heroCrops.isEmpty == false, "CropContext.hero n'est toujours pas exercé")
+        #expect(backdrops.isEmpty == false, "aucun backdrop : la fiche se replie toujours")
+
+        // Le repli doit **rester** visible : un backdrop sur tous les titres effacerait le
+        // chemin que `V0 bis` a tranché, et qui est le cas majoritaire.
+        let titles = try fresh.fetch(FetchDescriptor<Title>())
+        #expect(backdrops.count < titles.count, "le repli sur jaquette doit rester majoritaire")
+
+        // Et aucun recadrage n'est neutre : un 50/50/100 serait indistinguable du repli, donc
+        // il ne prouverait pas que le recadrage est appliqué.
+        for crop in crops {
+            let isNeutral = crop.positionX == 50 && crop.positionY == 50 && crop.zoom == 100
+            #expect(isNeutral == false, "un recadrage neutre ne prouve rien")
+        }
+    }
+}

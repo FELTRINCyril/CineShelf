@@ -383,6 +383,11 @@ et de rendu tournent avec un `Colors.xcassets` compilé (`swift test` ne lance p
 ```bash
 xcodebuild -scheme DesignSystemCatalog -destination 'platform=macOS' build
 xcodebuild test -scheme DesignSystemCatalog -destination 'platform=macOS'
+# La CI teste le catalogue sur les DEUX plateformes (job `catalog`, matrice iOS +
+# macOS). Le lancer seulement sur macOS en local laisse passer un échec propre à
+# la destination iOS, que rien ne signale avant le push :
+xcodebuild test -scheme DesignSystemCatalog \
+  -destination 'platform=iOS Simulator,name=iPhone 17'
 open ~/Library/Developer/Xcode/DerivedData/CineShelf-*/Build/Products/Debug/DesignSystemCatalog.app
 
 python3 scripts/generate-colors.py   # après toute modif de colors.tokens.json

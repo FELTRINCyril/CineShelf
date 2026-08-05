@@ -46,33 +46,50 @@ enum SampleLoadState: String, CaseIterable, Identifiable {
 enum SampleImageURL {
     static let scheme = "catalog-sample"
 
+    /// Ce qu'une URL d'échantillon porte.
+    ///
+    /// Valeur nommée et non tuple à trois membres : c'est la convention du dépôt, comme
+    /// `CropValues` et `PosterContext.Scales`, et `large_tuple` la fait respecter.
+    struct Sample {
+        let state: SampleLoadState
+        let seed: Int
+        /// La proportion à dessiner. `nil` donne le 2:3 d'une affiche.
+        let aspect: Double?
+    }
+
     /// - Parameters:
     ///   - state: l'état à exercer.
     ///   - seed: la graine du dégradé. Des graines différentes donnent des images différentes,
     ///     ce qui rend une grille lisible plutôt qu'un damier uniforme.
+    ///   - aspect: la proportion de l'image **dessinée**. `nil` donne le 2:3 d'une affiche.
+    ///
+    ///     **Ajouté par `V3`, et ce n'est pas cosmétique.** La planche de maçonnerie juge des
+    ///     ratios mêlés : si toutes les images dessinées sont des 2:3 recadrées dans des cadres
+    ///     21:9, on valide un remplissage et non une maçonnerie. Le cas nul à éviter était
+    ///     ici « toutes les images ont la même forme ».
     /// - Returns: l'URL, ou `nil` si `URLComponents` refuse — ce qui n'arrive pas avec un hôte
     ///   issu d'un `rawValue` clos, mais un `!` serait un force unwrap.
-    static func url(_ state: SampleLoadState, seed: Int) -> URL? {
+    static func url(_ state: SampleLoadState, seed: Int, aspect: Double? = nil) -> URL? {
         var components = URLComponents()
         components.scheme = scheme
         components.host = state.rawValue
-        components.queryItems = [URLQueryItem(name: "seed", value: String(seed))]
+        components.queryItems = [
+            URLQueryItem(name: "seed", value: String(seed)),
+            aspect.map { URLQueryItem(name: "aspect", value: String($0)) }
+        ].compactMap { $0 }
         return components.url
     }
 
-    static func decode(_ url: URL) -> (state: SampleLoadState, seed: Int)? {
+    static func decode(_ url: URL) -> Sample? {
         guard url.scheme == scheme,
             let host = url.host(),
             let state = SampleLoadState(rawValue: host)
         else { return nil }
 
-        let seed =
-            URLComponents(url: url, resolvingAgainstBaseURL: false)?
-            .queryItems?
-            .first { $0.name == "seed" }?
-            .value
-            .flatMap(Int.init) ?? 0
-        return (state, seed)
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
+        let seed = items?.first { $0.name == "seed" }?.value.flatMap(Int.init) ?? 0
+        let aspect = items?.first { $0.name == "aspect" }?.value.flatMap(Double.init)
+        return Sample(state: state, seed: seed, aspect: aspect)
     }
 }
 
@@ -102,13 +119,24 @@ extension ImageLoader {
                 try await Task.sleep(for: delay)
                 guard
                     let data = SampleArtwork.png(
-                        for: "Échantillon \(decoded.seed)", seed: decoded.seed),
+                        for: "Échantillon \(decoded.seed)", seed: decoded.seed,
+                        size: drawnSize(aspect: decoded.aspect)),
                     let image = PlatformImage(data: data)
                 else { throw SampleLoadError.refused }
                 return Image(platformImage: image)
             }
         }
     }
+}
+
+/// La taille à dessiner pour une proportion donnée.
+///
+/// Largeur fixe et hauteur dérivée : c'est la même convention que l'échelle d'affiche, où le
+/// cran est une largeur et le ratio donne la hauteur. Bornée à 4000 pt de haut pour qu'un
+/// ratio dégénéré n'aille pas allouer un bitmap démesuré — un 9:21 fait déjà 1400.
+private func drawnSize(aspect: Double?) -> (width: Int, height: Int) {
+    guard let aspect, aspect > 0, aspect.isFinite else { return SampleArtwork.size }
+    return (width: 600, height: min(4_000, max(1, Int(600 / aspect))))
 }
 
 enum SampleLoadError: Error {
@@ -183,4 +211,29 @@ extension PosterCardModel {
     /// « Portraits de personnes : aucun. » `PersonTile` se replie sur les initiales, et
     /// l'habiller d'une image ici ferait valider un rendu que l'app ne produira jamais.
     static var artworkPeople: [PosterCardModel] { people }
+}
+
+// MARK: - Les vignettes de galerie, avec de vraies images à leur propre ratio
+
+extension MediaThumbnailModel {
+
+    /// Les sept ratios de `galleryRatios`, dotés d'images **dessinées à ce ratio**.
+    ///
+    /// Les échantillons du package portent une URL `https://exemple.test/…` que le chargeur du
+    /// catalogue refuse : rendus tels quels, les sept auraient affiché le symbole d'échec, et
+    /// la planche de maçonnerie aurait validé la forme d'une grille d'erreurs. C'est le même
+    /// motif que `catalogue-images` a corrigé sur les affiches, et il se reproduit à chaque
+    /// composant neuf tant qu'on ne le vérifie pas.
+    static var galleryArtwork: [MediaThumbnailModel] {
+        galleryRatios.enumerated().map { offset, model in
+            MediaThumbnailModel(
+                id: model.id,
+                imageURL: SampleImageURL.url(
+                    .loaded, seed: offset * 53 + 7, aspect: model.aspect),
+                blurHash: model.blurHash,
+                aspect: model.aspect,
+                caption: model.caption,
+                crop: model.crop)
+        }
+    }
 }

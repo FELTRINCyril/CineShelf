@@ -29,6 +29,7 @@ struct LayoutSheet: View {
             VStack(alignment: .leading, spacing: Space.s6) {
                 rails
                 grids
+                masonry
                 skeletons
             }
         }
@@ -96,6 +97,43 @@ struct LayoutSheet: View {
                     }
                 }
                 BlockNote(.adaptiveTileGrid)
+            }
+        }
+    }
+
+    /// La maçonnerie de `V3`.
+    ///
+    /// **Ce que cette planche vient rendre voyant, et que ni un test ni la grille ne
+    /// montrent** : que les colonnes coulent séparément. À ratios égaux, une maçonnerie et un
+    /// `LazyVGrid` sont indistinguables — c'est pourquoi les échantillons portent ici les
+    /// ratios extrêmes, 21:9 et 9:21 compris. Un algorithme cassé ne se voit qu'avec eux.
+    private var masonry: some View {
+        section(
+            "Maçonnerie",
+            note: """
+                Les deux largeurs que l'addendum 2 rend pour de vrai, à `poster.l`. La \
+                planche 4 bloc `6b` en annonce 3 à 393 pt, et c'est l'écart 12 : à cette \
+                largeur les deux blocs se contredisent, donc le jeton fait foi.
+                """
+        ) {
+            VStack(alignment: .leading, spacing: Space.s5) {
+                ForEach([393.0 as CGFloat, 834.0], id: \.self) { width in
+                    VStack(alignment: .leading, spacing: Space.s2) {
+                        Text(verbatim: "\(Int(width)) pt · \(columnCount(width)) colonnes")
+                            .font(Typo.micro)
+                            .foregroundStyle(.textTertiary)
+                        framed(width) {
+                            MasonryGrid(
+                                MediaThumbnailModel.galleryArtwork,
+                                cardWidth: PosterScale.l.width,
+                                aspect: \.aspect
+                            ) { thumb in
+                                GalleryThumb(thumb) {}
+                            }
+                        }
+                    }
+                }
+                BlockNote(.masonryGrid)
             }
         }
     }

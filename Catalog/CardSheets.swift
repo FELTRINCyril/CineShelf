@@ -241,11 +241,17 @@ struct CardSurfacesSheet: View {
                     ForEach(0..<3, id: \.self) { column in
                         VStack(spacing: Space.s2) {
                             ForEach(
-                                MediaThumbnailModel.galleryRatios.enumerated()
+                                MediaThumbnailModel.galleryArtwork.enumerated()
                                     .filter { $0.offset % 3 == column }
                                     .map(\.element)
                             ) { thumb in
-                                GalleryThumb(thumb) {}
+                                // La deuxième de chaque colonne est **sélectionnée** : sans un
+                                // échantillon coché, le liseré du bloc `6f` n'est rendu nulle
+                                // part, et rien ne dirait qu'il est passé du voile au liseré.
+                                GalleryThumb(
+                                    thumb,
+                                    isSelected: thumb.id == selectedGalleryThumbID(in: column)
+                                ) {}
                             }
                         }
                     }
@@ -254,6 +260,16 @@ struct CardSurfacesSheet: View {
                 BlockNote(.galleryThumb)
             }
         }
+    }
+
+    /// L'identifiant de la vignette montrée sélectionnée dans une colonne, s'il y en a une.
+    private func selectedGalleryThumbID(in column: Int) -> String? {
+        MediaThumbnailModel.galleryArtwork.enumerated()
+            .filter { $0.offset % 3 == column }
+            .map(\.element)
+            .dropFirst()
+            .first?
+            .id
     }
 
     private var avatars: some View {

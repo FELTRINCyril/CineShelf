@@ -44,6 +44,7 @@ struct CineShelfApp: App {
                 .environment(session)
                 .environment(media)
                 .imageLoader(media.imageLoader())
+                .displayScale(feeding: media)
                 .tint(session.accentColor)
                 .task { media.startObservingMemoryPressure() }
         }

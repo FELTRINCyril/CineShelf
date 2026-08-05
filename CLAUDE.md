@@ -501,6 +501,38 @@ fonctionne. Lire une valeur n'est pas exécuter un chemin.
 8. **`git push origin main`.** Sans le demander - voir la règle d'ouverture et de
    clôture de session plus haut.
 
+## Le tableau des écarts se relit à chaque fin de palier
+
+**Un écart résolu qu'on n'a pas rayé coûte exactement le temps d'un vrai.** Il envoie
+chercher un défaut qui n'existe pas, et le jour où on s'en aperçoit il fait douter de tout
+le reste du tableau - qui n'a pourtant rien fait de mal. C'est le pire des deux mondes :
+le travail est perdu *et* la confiance aussi.
+
+Mesuré le 2026-08-05, à la première relecture complète des « Écarts connus » de
+`docs/PROMPTS.md` : sur **86 lignes**, deux étaient déjà réglées sans être rayées, trois
+étaient devenues sans objet, et quatre pointaient vers une tâche **qui n'existe pas** ou
+qui est close. Neuf lignes sur 86, soit une sur dix, ne disaient plus la vérité. Le
+déclencheur avait été une trouvaille fortuite pendant `L5`.
+
+La relecture se fait **à chaque fin de palier**, jamais « plus tard ». Trois verdicts par
+ligne, et le troisième est celui qu'on oublie :
+
+- **résolue** → la rayer avec `~~…~~`, en nommant **ce qui** l'a résolue (commit ou tâche).
+  Ne pas la supprimer : une ligne rayée dit qu'on y a regardé, une ligne absente ne dit
+  rien ;
+- **toujours valable** → la garder, et **vérifier sa destination**. Une colonne
+  « Où ça se règle » qui nomme un numéro de prompt abandonné ou une tâche déjà close est
+  aussi trompeuse qu'un écart périmé ;
+- **devenue sans objet** → la retirer, mais **écrire pourquoi** dans le bloc de relecture
+  sous le tableau. Un retrait sans trace se relit comme un oubli, et quelqu'un la
+  réintroduira.
+
+Le piège de méthode : les lignes qui rouillent sont celles qui **nomment un symbole** -
+`startObservingMemoryPressure()`, `Typo.sectionTitle`, `Sidebar.swift`, `PosterCard`. Une
+ligne de doctrine (« les prédicats sont construits à la main, et voici pourquoi ») ne
+rouille pas. Commencer la relecture par un `grep` de chaque symbole cité est donc plus
+efficace que de relire dans l'ordre.
+
    > **Le hash s'inscrit dans un commit *suivant*, jamais par `--amend`.** Amender
    > change le hash : le tableau se met alors à désigner un commit qui n'existe
    > plus dans l'historique poussé, et il n'y paraît rien — c'est arrivé sur `L2`,

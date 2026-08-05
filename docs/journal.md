@@ -4638,3 +4638,97 @@ charge **tous** les identifiants de médias : correct, mesuré juste sur des cen
 mesuré sur des dizaines de milliers. Inscrit aux écarts.
 
 **Suite : `I10`**, la dernière du palier 2 à ne dépendre de rien.
+
+---
+
+## 2026-08-05 (4) — `I10` et `V1`, groupées : les états vides et la recherche
+
+Groupées parce que la recherche a besoin de l'état vide, et que les deux composants de `I10`
+se valident au catalogue d'un coup d'œil. `V2` et `V3` restent séparées, et pas pour une
+question de rigueur : ce sont les deux endroits du parcours restant où on ne sait pas ce
+qu'on va trouver.
+
+### `I10` — deux composants, deux écarts de jeton
+
+**`EmptyState`, bloc `9a`.** Cinq emplacements — titre, corps, action principale, action
+secondaire, indice — et **un seul obligatoire**, le titre. Les six écrans du bloc les
+remplissent tous, mais un écran qui n'a rien à proposer ne doit pas inventer une action : le
+cas nu est celui qu'on oublie de dessiner, et il est sur la planche du catalogue.
+
+*Ce qu'il remplace, et pourquoi ce n'était pas un renommage.* `StateView` prenait un `case`
+par situation — `noTitles`, `noResults`, `syncFailed` — donc son texte vivait dans
+`DesignSystem`. Un état vide sur six écrans avec six messages différents ne peut pas être une
+énumération fermée : seul l'écran sait qu'il y a « deux filtres actifs » ou « 1 284 titres au
+total ». `TitlesGrid` pose maintenant **deux** `EmptyState` distincts, ce que l'`enum` ne
+savait pas exprimer — « Importe un CSV » n'a aucun sens quand la collection est pleine mais
+que le filtre ne laisse rien passer.
+
+*La carte fantôme reste un aplat.* Le bloc rend un 2:3 en trame rayée à 45°, `oklch(0.185)`
+et `oklch(0.15)`. La bande claire tombe **exactement** sur `bg/surface` (mesuré `#131313`,
+soit 0,187) ; la sombre n'est aucun jeton. La trame demanderait d'en inventer un, et le
+§écart de la planche 7 dit lui-même de ses rayures qu'elles remplacent ce que l'app fera
+autrement. Ce qui compte est conservé : la forme est un **2:3**, l'affiche absente, et non un
+SF Symbol — un pictogramme dirait « voici une catégorie », le pavé dit « il devrait y avoir
+une affiche ici ».
+
+**`Banner`, bloc `9c`.** Sa légende porte la règle : « posés **sous la barre**, le contenu
+reste utilisable ». Ni modal, ni alerte, ni toast qui recouvre — il pousse le contenu, et la
+planche du catalogue le montre au-dessus d'une vraie grille pour que ça se voie. Le seul
+écran plein que la direction autorise est le verrouillage biométrique, et il appartient à
+`V7`.
+
+*Les quatre tons tombent sur les jetons existants*, ce qui n'était pas garanti : hors ligne =
+`bg/fill`, synchronisation = accent, quota = danger, import = success. Aucun jeton neuf, et
+la même palette que `StateBadge` — un badge « 417 en erreur » et un bandeau de quota parlent
+de la même chose. Les opacités du bloc divergent (12, 13, 11 %) sans règle qui les sépare :
+jamais contrôlées, donc **12 % pour les trois**, et l'écart s'inscrit.
+
+*La pastille est ronde, et ce n'est pas une entorse.* Le motif est « rien de photographique
+et rectangulaire n'a de coin arrondi » : un point de 8 pt n'est ni l'un ni l'autre — la même
+raison qui rend les personnes circulaires.
+
+### `V1` — la recherche, et une portée que le modèle ne peut pas servir
+
+**Les deux branches sont écrites, et le compilateur les a imposées.** `.idle` rend les
+recherches récentes — effaçables une à une, via le `RecentSearchStore` de `L2` — et `.results`
+vide rend l'`EmptyState` avec le terme dans le titre. Le premier lancement a son propre état
+vide, **sans action** : la seule issue est de taper, et le champ a déjà le focus.
+
+**L'anti-rebond est dans la vue, et il ne coûte aucun objet.** `.task(id:)` annule et relance
+à chaque frappe, donc le `sleep` de 250 ms n'aboutit qu'à la pause : pas de `Timer`, pas de
+`DispatchWorkItem` à invalider, rien à nettoyer. La clé combine le terme **et** la portée —
+changer d'onglet sans retaper doit relancer, et son séparateur est un caractère de contrôle
+pour que « portée `titles` + terme vide » et « portée vide + terme `titles` » ne collisionnent
+pas. C'est testé.
+
+**L'écart de couverture, et c'est la vraie trouvaille de la tâche.** Le bloc `5b` montre
+**six** portées, dont « Images · 21 ». `SearchScope` en a cinq, et ce n'est pas un oubli de
+`L2` : **`MediaAsset` n'a ni nom ni `searchText`**. Un checksum, un blurhash, des dimensions
+— rien qu'un terme puisse matcher. Les deux issues sont hors de `V1` : une légende sur
+`MediaAsset` touche le **schéma fermé** et exige une migration ; chercher dans le nom du
+propriétaire rendrait les images d'un titre que le terme trouve déjà. Cinq portées livrées, et
+la consigne inscrite : ne pas ajouter une portée qui rendrait toujours zéro.
+
+**Deux modèles de présentation créés au passage.** Ni `Person` ni `TitleCollection` n'en
+avaient — l'accueil et la grille ne rendent que des titres, et `V1` est le premier écran qui
+montre les quatre types côte à côte. Ils ne portent aucune trace de la recherche, donc `V4` et
+`V5b` les reprendront par un déplacement de fichier, pas une réécriture.
+
+| Commande | Résultat |
+|---|---|
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **461 · 64 · 54** |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **82 tests** (+7) |
+| `xcodebuild test -scheme CineShelfUITests -destination iOS Simulator` | ✅ **1 test** |
+| `xcodebuild test -scheme DesignSystemCatalog` · macOS et iOS | ✅ **65** et **64** |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 258 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| **Le rendu des deux composants à l'œil** | ❌ **non vérifié** — `screencapture` reste refusé sur cette machine (autorisation d'enregistrement d'écran). La planche « Vide · Bandeau · I10 » existe et compile ; je ne l'ai pas *regardée* |
+| **L'écran de recherche en usage** | ❌ **non essayé** — le build passe et la logique est testée, mais je n'ai pas tapé dans le champ. L'anti-rebond, le focus au premier affichage et le défilement des rangées ne sont pas constatés |
+| **Le seuil de 250 ms** | ❌ **non mesuré** — choisi par raisonnement. À confirmer sur appareil, où le coût des huit requêtes de la portée `.all` est réel |
+
+**Ce que ces deux tâches ne prouvent pas.** Le bandeau n'est posé sur **aucun** écran : ses
+quatre cas appartiennent à `V10` et `V8`. Et la porte de bloc, qui rend les écarts
+constatables, ne mord que si on ouvre le catalogue — ce que je n'ai pas pu faire.
+
+**Suite : `V2`**, seule — la première rencontre du pipeline d'images avec l'interface.

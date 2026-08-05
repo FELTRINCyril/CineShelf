@@ -4,9 +4,12 @@ import SwiftData
 /// Écritures sur les médias.
 ///
 /// `MediaAsset` n'a pas de dérivés textuels : il n'y a donc pas de
-/// `refreshDerived()` à appeler, seulement `updatedAt` à tenir à jour. Le
-/// rattachement à une entité (`MediaAttachment`) et le pipeline d'import
-/// (redimensionnement, HEIC, blurHash, checksum) arrivent avec `MediaKit`.
+/// `refreshDerived()` à appeler, seulement `updatedAt` à tenir à jour.
+///
+/// **Le rattachement arrive avec `V2`**, parce que c'est la tâche qui importe des images et
+/// qu'il n'y avait aucun moyen de les relier à quoi que ce soit. Il était inscrit à `L16`,
+/// qui garde l'autre moitié du sujet — la vérification de l'invariante à l'échelle du
+/// magasin, et la réparation des lignes qui l'auraient perdue.
 @MainActor
 public struct MediaRepository {
     let context: ModelContext
@@ -84,6 +87,118 @@ public struct MediaRepository {
         mutate(asset)
         asset.updatedAt = .now
         ActivityRecorder(context: context).record(.update, asset)
+    }
+
+    // MARK: - Rattachement
+
+    /// Rattache un média à un titre, à une personne ou à une collection.
+    ///
+    /// **Un seul propriétaire, et c'est structurel.** `MediaAttachment.hasExactlyOneOwner`
+    /// est l'invariante du modèle ; ces trois surcharges la rendent **impossible à violer
+    /// depuis l'appelant**, puisqu'aucune ne laisse passer deux propriétaires. Une méthode
+    /// unique à trois paramètres optionnels aurait permis d'en passer deux, et l'invariante
+    /// n'aurait plus été vérifiable qu'à l'exécution.
+    ///
+    /// - Parameters:
+    ///   - asset: le média, déjà créé et dédoublonné par `findOrCreate(_:)`.
+    ///   - title: le propriétaire.
+    ///   - slot: l'emplacement. `.gallery` par défaut : c'est le cas de loin le plus
+    ///     fréquent, et le seul qui accepte plusieurs médias.
+    /// - Returns: la pièce jointe créée.
+    @discardableResult
+    public func attach(
+        _ asset: MediaAsset, to title: Title, slot: MediaSlot = .gallery
+    ) -> MediaAttachment {
+        let attachment = makeAttachment(asset, slot: slot, in: title.attachments?.count ?? 0)
+        attachment.title = title
+        return attachment
+    }
+
+    @discardableResult
+    public func attach(
+        _ asset: MediaAsset, to person: Person, slot: MediaSlot = .gallery
+    ) -> MediaAttachment {
+        let attachment = makeAttachment(asset, slot: slot, in: person.attachments?.count ?? 0)
+        attachment.person = person
+        return attachment
+    }
+
+    @discardableResult
+    public func attach(
+        _ asset: MediaAsset, to collection: TitleCollection, slot: MediaSlot = .gallery
+    ) -> MediaAttachment {
+        let attachment = makeAttachment(
+            asset, slot: slot, in: collection.attachments?.count ?? 0)
+        attachment.collection = collection
+        return attachment
+    }
+
+    /// Détache un média de son propriétaire.
+    ///
+    /// **Le média n'est pas supprimé**, et c'est délibéré : il devient orphelin, ce que le
+    /// filtre de galerie de `L1 bis` sait montrer. Supprimer ici ferait perdre une image
+    /// qu'un autre écran est peut-être en train de recadrer, et le dédoublonnage la
+    /// retrouverait de toute façon au prochain import du même fichier.
+    public func detach(_ attachment: MediaAttachment) {
+        context.delete(attachment)
+    }
+
+    /// Un emplacement à média unique n'en accepte qu'un : le remplacer détache l'ancien.
+    ///
+    /// `.primary`, `.portrait` et `.backdrop` désignent **une** image. Sans ce remplacement,
+    /// un second import de jaquette laisserait deux pièces jointes `.primary` sur le même
+    /// titre, et `TitleFormat.primaryAsset` en choisirait une au hasard de l'ordre de
+    /// stockage — une jaquette qui change d'un lancement à l'autre.
+    @discardableResult
+    public func setSingle(
+        _ asset: MediaAsset, on title: Title, slot: MediaSlot
+    ) -> MediaAttachment {
+        for existing in title.attachments ?? [] where existing.slot == slot {
+            context.delete(existing)
+        }
+        return attach(asset, to: title, slot: slot)
+    }
+
+    private func makeAttachment(
+        _ asset: MediaAsset, slot: MediaSlot, in count: Int
+    ) -> MediaAttachment {
+        let attachment = MediaAttachment(slot: slot, orderIndex: count)
+        attachment.asset = asset
+        context.insert(attachment)
+        return attachment
+    }
+
+    // MARK: - Recadrage
+
+    /// Enregistre le recadrage d'un média pour un contexte donné.
+    ///
+    /// **Une ligne par contexte, mise à jour et non dupliquée.** `MediaCrop` porte un
+    /// `contextRaw`, et deux lignes pour le même couple `(média, contexte)` rendraient le
+    /// recadrage indéterminé — `CropDisplay.of(_:in:)` en prendrait une au hasard. C'est le
+    /// même défaut que deux pièces jointes sur un emplacement unique, et il se règle de la
+    /// même façon : on cherche avant d'insérer.
+    ///
+    /// - Returns: la ligne, créée ou mise à jour.
+    @discardableResult
+    public func setCrop(
+        _ values: CropValues, on asset: MediaAsset, in cropContext: CropContext
+    ) -> MediaCrop {
+        let existing = asset.crops?.first { $0.context == cropContext }
+        let crop =
+            existing
+            ?? {
+                let fresh = MediaCrop(context: cropContext)
+                fresh.asset = asset
+                context.insert(fresh)
+                return fresh
+            }()
+
+        crop.positionX = values.x
+        crop.positionY = values.y
+        crop.zoom = values.zoom
+        crop.updatedAt = .now
+        asset.updatedAt = .now
+        return crop
     }
 
     public func softDelete(_ asset: MediaAsset) {

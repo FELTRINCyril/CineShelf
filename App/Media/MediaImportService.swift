@@ -115,7 +115,7 @@ struct MediaImportService {
     ///
     /// Une phrase, pas un `localizedDescription` de `CoreGraphics` : « The operation couldn't
     /// be completed » n'aide personne à comprendre qu'il a déposé un PDF.
-    private static func reason(for error: Error) -> String {
+    private static func reason(for error: any Error) -> String {
         if error is MediaIngestionError { return "Format d'image non reconnu." }
         return "Lecture impossible."
     }

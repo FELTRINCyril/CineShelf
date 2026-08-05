@@ -44,11 +44,11 @@ enum AssetCatalog {
 }
 
 @Test(
-    "Les 19 Color Sets de la direction courante sont presents dans le catalogue compile",
+    "Les 20 Color Sets de la direction courante sont presents dans le catalogue compile",
     .enabled(if: AssetCatalog.isCompiled, AssetCatalog.skipReason)
 )
 func everyColorTokenResolves() {
-    #expect(ColorTokens.all.count == 19)
+    #expect(ColorTokens.all.count == 20)
 
     let missing = ColorTokens.all.filter { !AssetCatalog.contains($0) }
     #expect(missing.isEmpty, "Color Sets absents du .xcassets : \(missing.joined(separator: ", "))")
@@ -231,6 +231,7 @@ private let shapeStylePairs: [(String, Color?)] = [
     ("text/tertiary", viaShapeStyle(.textTertiary)),
     ("accent", viaShapeStyle(.accent)),
     ("accent/onAccent", viaShapeStyle(.accentOnAccent)),
+    ("rating/empty", viaShapeStyle(.ratingEmpty)),
     ("danger", viaShapeStyle(.danger)),
     ("success", viaShapeStyle(.success)),
     ("separator", viaShapeStyle(.separatorLine)),
@@ -289,11 +290,11 @@ func alphaProbeDetectsAMissingColorSet() throws {
 
 // Ces deux-la ne touchent pas au catalogue compile : ils tournent partout.
 
-@Test("Les 19 roles de la direction courante, et rien d'autre")
+@Test("Les 20 roles de la direction courante, et rien d'autre")
 func tokenListsHaveExpectedShape() {
     // Il n'y a plus de niveau « primitives » : la planche 8 ne fournit aucune
     // rampe, elle pose directement ces roles avec leurs quatre apparences.
-    #expect(ColorTokens.semantics.count == 19)
+    #expect(ColorTokens.semantics.count == 20)
     #expect(ColorTokens.all == ColorTokens.semantics)
     #expect(Set(ColorTokens.all).count == ColorTokens.all.count, "Nom de token en double")
 }

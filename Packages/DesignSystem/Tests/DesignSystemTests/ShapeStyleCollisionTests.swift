@@ -114,6 +114,7 @@ private struct ImplicitShapeStyleUsage: View {
             Text("x").foregroundStyle(.textTertiary)
             Text("x").foregroundStyle(.accent)
             Text("x").foregroundStyle(.accentOnAccent)
+            Text("x").foregroundStyle(.ratingEmpty)
             Text("x").foregroundStyle(.danger)
             Text("x").foregroundStyle(.success)
             Text("x").foregroundStyle(.separatorLine)
@@ -126,10 +127,10 @@ private struct ImplicitShapeStyleUsage: View {
     }
 }
 
-@Test("La garde de compilation couvre les 19 jeux")
+@Test("La garde de compilation couvre les 20 jeux")
 func compilationGuardCoversEveryToken() {
     // Si un jeu est ajoute au JSON sans etre ajoute a `ImplicitShapeStyleUsage`,
     // sa forme implicite n'est exercee nulle part : ce compte le signale.
-    #expect(ColorTokens.semantics.count == 19, "Ajouter le nouveau jeu a ImplicitShapeStyleUsage")
+    #expect(ColorTokens.semantics.count == 20, "Ajouter le nouveau jeu a ImplicitShapeStyleUsage")
     _ = ImplicitShapeStyleUsage()
 }

@@ -3,7 +3,15 @@ import SwiftUI
 // MARK: - I6 · La barre de notation
 //
 // Relevée sur la planche 6, blocs `8a` (le champ « Note » d'un formulaire dense) et `8c`
-// (« Ma note » sur une fiche) :
+// (« Ma note » sur une fiche). **L'étoile vide a son propre jeton, `rating/empty`** : elle
+// valait `bg/fill` jusqu'à l'écart 5 de la revue du 2026-08-04, soit oklch 0,289 en sombre
+// là où le bloc pose 0,34, et les étoiles non atteintes se lisaient moins que dessiné. Le
+// motif du jeton plutôt que d'une dérivation depuis `bg/fill` est dans
+// `colors.tokens.json` : la barre vit aussi sur les surfaces de gestion, qui suivent
+// l'apparence système, et « éclaircir le fond » y donnerait une étoile plus claire que sa
+// surface.
+//
+// Le relevé :
 //
 //     <span style="display:flex;gap:5px;font:400 20px/1 'Archivo Narrow';
 //                  color:oklch(0.8 0.14 66)">★ ★ ★ ★ <span
@@ -153,7 +161,7 @@ public struct RatingBar: View {
         let image = Image(systemName: Icon.ratingStar)
             .symbolVariant(isFilled ? .fill : .none)
             .font(.system(size: scale.size * typeScale))
-            .foregroundStyle(isFilled ? Color.accent : Color.bgFill)
+            .foregroundStyle(isFilled ? Color.accent : Color.ratingEmpty)
 
         if let onChange {
             Button {

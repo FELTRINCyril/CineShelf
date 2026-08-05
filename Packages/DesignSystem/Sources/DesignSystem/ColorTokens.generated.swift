@@ -6,7 +6,7 @@ import SwiftUI
 
 public enum ColorTokens {
 
-    /// Les 19 roles de la direction « 2a Plein cadre » — le seul
+    /// Les 20 roles de la direction « 2a Plein cadre » — le seul
     /// niveau qu'une vue lit, et le seul que du code neuf a le droit de lire.
     ///
     /// Il n'y a pas de niveau « primitives » : la planche 8 ne fournit aucune
@@ -23,6 +23,7 @@ public enum ColorTokens {
         "text/tertiary",
         "accent",
         "accent/onAccent",
+        "rating/empty",
         "danger",
         "success",
         "separator",
@@ -33,7 +34,7 @@ public enum ColorTokens {
         "chip/onImage"
     ]
 
-    /// Les 19 Color Sets de la direction courante.
+    /// Les 20 Color Sets de la direction courante.
     public static let all: [String] = semantics
 
     /// Le nom d'accesseur Swift de chaque jeu, dans le meme ordre que `semantics`.
@@ -53,6 +54,7 @@ public enum ColorTokens {
         "textTertiary",
         "accent",
         "accentOnAccent",
+        "ratingEmpty",
         "danger",
         "success",
         "separatorLine",
@@ -90,6 +92,7 @@ public enum ColorTokens {
         case "text/tertiary": Color.textTertiary
         case "accent": Color.accent
         case "accent/onAccent": Color.accentOnAccent
+        case "rating/empty": Color.ratingEmpty
         case "danger": Color.danger
         case "success": Color.success
         case "separator": Color.separatorLine
@@ -123,6 +126,7 @@ extension ColorTokens {
     static var textTertiary: Color { ColorTokens.color(for: "text/tertiary") }
     static var accent: Color { ColorTokens.color(for: "accent") }
     static var accentOnAccent: Color { ColorTokens.color(for: "accent/onAccent") }
+    static var ratingEmpty: Color { ColorTokens.color(for: "rating/empty") }
     static var danger: Color { ColorTokens.color(for: "danger") }
     static var success: Color { ColorTokens.color(for: "success") }
     static var separatorLine: Color { ColorTokens.color(for: "separator") }
@@ -164,6 +168,7 @@ extension ShapeStyle where Self == Color {
     public static var textTertiary: Color { ColorTokens.textTertiary }
     public static var accent: Color { ColorTokens.accent }
     public static var accentOnAccent: Color { ColorTokens.accentOnAccent }
+    public static var ratingEmpty: Color { ColorTokens.ratingEmpty }
     public static var danger: Color { ColorTokens.danger }
     public static var success: Color { ColorTokens.success }
     public static var separatorLine: Color { ColorTokens.separatorLine }
@@ -186,6 +191,7 @@ extension Color {
     public static var textTertiary: Color { ColorTokens.textTertiary }
     public static var accent: Color { ColorTokens.accent }
     public static var accentOnAccent: Color { ColorTokens.accentOnAccent }
+    public static var ratingEmpty: Color { ColorTokens.ratingEmpty }
     public static var danger: Color { ColorTokens.danger }
     public static var success: Color { ColorTokens.success }
     public static var separatorLine: Color { ColorTokens.separatorLine }

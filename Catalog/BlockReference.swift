@@ -321,7 +321,7 @@ extension BlockSpec {
             .init(
                 name: "Étoile vide",
                 expected: "oklch(0.34 0 0) (bloc 8a)",
-                verdict: .toFix(gap: 5, code: "bgFill, oklch 0.29 en sombre")),
+                verdict: .matches),
             .init(
                 name: "Tailles",
                 expected: "16 pt en panneau, 20 pt en formulaire, 30 pt sur une fiche",

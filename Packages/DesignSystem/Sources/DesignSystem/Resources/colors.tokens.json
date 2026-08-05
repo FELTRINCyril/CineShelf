@@ -132,6 +132,17 @@
       }
     },
     {
+      "name": "rating/empty",
+      "role": "etoile non atteinte de la barre de notation",
+      "comment": "Bloc 8a de la planche 6 : oklch(0.34 0 0), soit un cran plus clair que bg/fill (0.289 mesure en sombre). Le role n'est pas dans la planche 8, mais sa valeur est donnee par le design : deux occurrences a 0.34 et une a 0.32 dans la planche 6, aucune ailleurs. Ecart 5 de la revue du 2026-08-04. Un jeton plutot qu'une valeur derivee de bg/fill parce que la barre vit aussi sur les surfaces de gestion, qui suivent l'apparence systeme : eclaircir bg/fill donnerait une etoile plus claire que son fond en apparence claire. Seule l'apparence sombre est mesuree ; les trois autres sont deduites du meme rapport (7,5 % du chemin bg/fill -> text/primary), comme bg/inset l'a fait avant elle.",
+      "appearances": {
+        "any": { "hex": "#CDCDCD" },
+        "dark": { "hex": "#383838" },
+        "anyHighContrast": { "hex": "#BFBFBF" },
+        "darkHighContrast": { "hex": "#424242" }
+      }
+    },
+    {
       "name": "danger",
       "role": "suppression, echec",
       "comment": "Une colonne non reconnue a l'import n'est PAS une erreur : elle se rend en text/tertiary, pas ici. Arbitrage du 2026-08-04, voir PROMPTS.md.",

@@ -66,6 +66,7 @@ struct LayoutSheet: View {
                         }
                     }
                 }
+                BlockNote(.tileRail)
             }
         }
     }
@@ -94,6 +95,7 @@ struct LayoutSheet: View {
                         }
                     }
                 }
+                BlockNote(.adaptiveTileGrid)
             }
         }
     }
@@ -127,6 +129,7 @@ struct LayoutSheet: View {
                 }
                 .padding(Space.s4)
                 .background(.bgInset)
+                BlockNote(.tileSkeleton)
             }
         }
     }

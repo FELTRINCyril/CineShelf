@@ -34,15 +34,18 @@ struct CardTilesSheet: View {
 
     private var portraitScales: some View {
         section("Affiche · portrait 2:3", note: "Les six crans, à taille réelle.") {
-            HStack(alignment: .bottom, spacing: Space.s3) {
-                ForEach(PosterScale.allCases) { scale in
-                    VStack(spacing: Space.s1) {
-                        PosterTile(.sample, layout: .portrait, scale: scale) {}
-                        Text(scale.rawValue)
-                            .font(Typo.micro)
-                            .foregroundStyle(Color.textTertiary)
+            VStack(alignment: .leading, spacing: Space.s4) {
+                HStack(alignment: .bottom, spacing: Space.s3) {
+                    ForEach(PosterScale.allCases) { scale in
+                        VStack(spacing: Space.s1) {
+                            PosterTile(.sample, layout: .portrait, scale: scale) {}
+                            Text(scale.rawValue)
+                                .font(Typo.micro)
+                                .foregroundStyle(Color.textTertiary)
+                        }
                     }
                 }
+                BlockNote(.posterTile)
             }
         }
     }
@@ -106,6 +109,7 @@ struct CardTilesSheet: View {
                         PersonTile(person, scale: .m) {}
                     }
                 }
+                BlockNote(.personTile)
             }
         }
     }
@@ -169,10 +173,13 @@ struct CardSurfacesSheet: View {
                 Survol à 1,03 et non 1,06 — la collection est plus large.
                 """
         ) {
-            HStack(alignment: .top, spacing: Space.s4) {
-                ForEach(CollectionTileModel.samples) { collection in
-                    CollectionTile(collection, scale: .l) {}
+            VStack(alignment: .leading, spacing: Space.s4) {
+                HStack(alignment: .top, spacing: Space.s4) {
+                    ForEach(CollectionTileModel.samples) { collection in
+                        CollectionTile(collection, scale: .l) {}
+                    }
                 }
+                BlockNote(.collectionTile)
             }
         }
     }
@@ -186,20 +193,23 @@ struct CardSurfacesSheet: View {
                 Le compte de colonnes appartient à `I4`, pas à la vignette.
                 """
         ) {
-            HStack(alignment: .top, spacing: Space.s2) {
-                ForEach(0..<3, id: \.self) { column in
-                    VStack(spacing: Space.s2) {
-                        ForEach(
-                            MediaThumbnailModel.galleryRatios.enumerated()
-                                .filter { $0.offset % 3 == column }
-                                .map(\.element)
-                        ) { thumb in
-                            GalleryThumb(thumb) {}
+            VStack(alignment: .leading, spacing: Space.s4) {
+                HStack(alignment: .top, spacing: Space.s2) {
+                    ForEach(0..<3, id: \.self) { column in
+                        VStack(spacing: Space.s2) {
+                            ForEach(
+                                MediaThumbnailModel.galleryRatios.enumerated()
+                                    .filter { $0.offset % 3 == column }
+                                    .map(\.element)
+                            ) { thumb in
+                                GalleryThumb(thumb) {}
+                            }
                         }
                     }
                 }
+                .frame(width: 420)
+                BlockNote(.galleryThumb)
             }
-            .frame(width: 420)
         }
     }
 
@@ -225,6 +235,7 @@ struct CardSurfacesSheet: View {
                             .foregroundStyle(Color.textTertiary)
                     }
                 }
+                BlockNote(.profileAvatar)
             }
         }
     }

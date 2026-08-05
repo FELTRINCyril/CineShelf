@@ -55,6 +55,7 @@ struct IndicatorSheet: View {
                     StateBadge("771 prêtes", tone: .success)
                     StateBadge("417 en erreur", tone: .danger)
                 }
+                BlockNote(.stateBadge)
             }
         }
     }
@@ -103,6 +104,7 @@ struct IndicatorSheet: View {
                 labelled("éditable · touche l'étoile atteinte pour effacer") {
                     RatingBar(rating, scale: .detail) { rating = Double($0) }
                 }
+                BlockNote(.ratingBar)
             }
         }
     }
@@ -134,6 +136,7 @@ struct IndicatorSheet: View {
                 labelled("terminé") { ProgressTrack(value: 100, total: 100, role: .done) }
             }
             .frame(maxWidth: 460, alignment: .leading)
+            BlockNote(.progressTrack)
         }
     }
 

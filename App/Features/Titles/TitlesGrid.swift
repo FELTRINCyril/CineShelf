@@ -56,10 +56,12 @@ struct TitlesGrid: View {
     var body: some View {
         Group {
             if titles.isEmpty {
-                StateView(filter.isActive ? .noResults : .noTitles) {
-                    if filter.isActive { clearFilter() } else { onCreate() }
-                }
-                .frame(maxWidth: .infinity, minHeight: 320)
+                // `EmptyState` (`I10`) remplace `StateView`, de l'ancienne direction, dont
+                // les `case` portaient leur texte en dur dans `DesignSystem`. La copie
+                // appartient a l'ecran : lui seul sait qu'un filtre est actif, et lequel.
+                // C'etait l'ecart « l'etat vide de la grille utilise encore StateView ».
+                emptyState
+                    .frame(maxWidth: .infinity, minHeight: 320)
             } else {
                 AdaptiveTileGrid(cards, cardWidth: setting.scale(in: .titles).width) { card in
                     PosterTile(card, layout: setting.layout, scale: setting.scale(in: .titles)) {
@@ -71,6 +73,27 @@ struct TitlesGrid: View {
         }
         .task(id: filter.genreID) { discardFilterOnMissingGenre() }
         .task(id: filter.collectionID) { discardFilterOnMissingCollection() }
+    }
+
+    /// L'état vide, et il en existe deux : « rien du tout » et « rien ne correspond ».
+    ///
+    /// Le bloc `9a` les rend séparément, avec deux messages et deux actions différentes —
+    /// « Importe un CSV » n'a aucun sens quand la collection compte 1 284 titres dont aucun
+    /// ne passe le filtre. C'est exactement ce qu'un composant à `case` fermés ne savait pas
+    /// exprimer.
+    @ViewBuilder private var emptyState: some View {
+        if filter.isActive {
+            EmptyState(
+                title: "Aucun titre ne correspond",
+                message: "Les filtres actifs ne laissent rien passer. Retires-en un pour voir plus large.",
+                primary: .init("Réinitialiser les filtres") { clearFilter() })
+        } else {
+            EmptyState(
+                title: "Aucun titre pour l'instant",
+                message: "Ta collection est vide. Ajoute un premier film, ou importe un CSV.",
+                primary: .init("Nouveau titre") { onCreate() },
+                hint: "⇧⌘I pour l'import")
+        }
     }
 
     /// Les cartes, et la correspondance identifiant → titre.

@@ -299,66 +299,133 @@ struct ThumbnailCacheTests {
     }
 }
 
-/// Un cache branché sur un original en mémoire, avec un compteur de lectures.
-private struct Fixture {
-    let directory: URL
-    let cache: ThumbnailCache
-    let assetID = UUID()
-    let sourceReads = Counter()
-    let source: MediaDataProvider
-    private let originals = Originals()
+// MARK: - L5 · Préchargement
 
-    init(diskLimit: Int = ThumbnailCache.defaultDiskLimit) async throws {
-        directory = try TestImage.makeScratchDirectory()
-        let png = try TestImage.makePNGData(width: 2000, height: 3000)
-        let ingested = try MediaIngestor().ingest(data: png)
+extension ThumbnailCacheTests {
 
-        let originals = self.originals
-        let reads = sourceReads
-        await originals.register(assetID, data: ingested.data)
-        source = { assetID in
-            reads.increment()
-            return await originals.data(for: assetID)
+    /// La taille de la carte de grille, celle que `AssetPreset.card` demande.
+    static let cardSize = CGSize(width: 196, height: 294)
+
+    @Test("Le préchargement remplit le cache sans que personne n'attende")
+    func prefetchFillsTheCacheOffThePath() async throws {
+        let fixture = try await Fixture()
+        defer { fixture.tearDown() }
+
+        // `prefetch` ne rend rien : c'est un ordre. La vignette doit exister ensuite,
+        // alors qu'aucun appel à `thumbnail` n'a eu lieu avant.
+        await fixture.cache.prefetch([fixture.assetID], targetSize: Self.cardSize, scale: 2)
+        await fixture.cache.drainPrefetches()
+
+        #expect(
+            await fixture.cache.hasMemoryEntry(
+                for: fixture.assetID, targetSize: Self.cardSize, scale: 2))
+        #expect(fixture.sourceReads.value == 1)
+    }
+
+    @Test("Un affichage adopte le préchargement en vol plutôt que de le doubler")
+    func displayAdoptsAnInFlightPrefetch() async throws {
+        let fixture = try await Fixture(slowSourceBy: .milliseconds(150))
+        defer { fixture.tearDown() }
+
+        await fixture.cache.prefetch([fixture.assetID], targetSize: Self.cardSize, scale: 2)
+        let image = await fixture.cache.thumbnail(
+            for: fixture.assetID, targetSize: Self.cardSize, scale: 2)
+
+        #expect(image != nil)
+        // **La mesure qui porte le sens** : une seule lecture de l'original pour deux
+        // demandes concurrentes. Sans coalescence, l'affichage aurait redécodé par-dessus
+        // le préchargement — donc exactement le travail que le préchargement existe pour
+        // éviter.
+        #expect(fixture.sourceReads.value == 1)
+    }
+
+    @Test("L'annulation empêche le travail de se faire")
+    func cancellationStopsTheWork() async throws {
+        let fixture = try await Fixture(slowSourceBy: .milliseconds(200))
+        defer { fixture.tearDown() }
+
+        await fixture.cache.prefetch([fixture.assetID], targetSize: Self.cardSize, scale: 2)
+        await fixture.cache.cancelPrefetch([fixture.assetID], targetSize: Self.cardSize, scale: 2)
+        await fixture.cache.drainPrefetches()
+
+        #expect(
+            await fixture.cache.hasMemoryEntry(
+                for: fixture.assetID, targetSize: Self.cardSize, scale: 2) == false)
+    }
+
+    @Test("Ce qu'un affichage attend n'est plus annulable")
+    func adoptedWorkSurvivesCancellation() async throws {
+        let fixture = try await Fixture(slowSourceBy: .milliseconds(150))
+        defer { fixture.tearDown() }
+
+        await fixture.cache.prefetch([fixture.assetID], targetSize: Self.cardSize, scale: 2)
+
+        // L'affichage adopte, puis la vue qui avait préchargé sort de l'écran et annule.
+        async let displayed = fixture.cache.thumbnail(
+            for: fixture.assetID, targetSize: Self.cardSize, scale: 2)
+        await fixture.cache.cancelPrefetch([fixture.assetID], targetSize: Self.cardSize, scale: 2)
+
+        // Annuler ici laisserait la vue sans image, et rien ne le signalerait.
+        #expect(await displayed != nil)
+    }
+
+    @Test("La file d'attente borne les préchargements simultanés")
+    func prefetchConcurrencyIsBounded() async throws {
+        let fixture = try await Fixture(prefetchConcurrency: 2, slowSourceBy: .milliseconds(200))
+        defer { fixture.tearDown() }
+
+        var ids = [fixture.assetID]
+        for _ in 0..<7 {
+            let extra = UUID()
+            await fixture.register(extra)
+            ids.append(extra)
         }
-        cache = ThumbnailCache(source: source, directory: directory, diskLimit: diskLimit)
+
+        await fixture.cache.prefetch(ids, targetSize: Self.cardSize, scale: 2)
+        let load = await fixture.cache.prefetchLoad
+
+        #expect(load.running == 2, "8 demandes, 2 créneaux")
+        #expect(load.pending == 6)
+
+        await fixture.cache.cancelAllPrefetches()
+        await fixture.cache.drainPrefetches()
     }
 
-    func originalBytes() async -> Data? {
-        await originals.data(for: assetID)
+    @Test("Une clé déjà demandée n'entre pas deux fois dans la file")
+    func prefetchIgnoresDuplicates() async throws {
+        let fixture = try await Fixture(prefetchConcurrency: 1, slowSourceBy: .milliseconds(200))
+        defer { fixture.tearDown() }
+
+        let other = UUID()
+        await fixture.register(other)
+
+        // Trois fois la même paire de clés : appeler `prefetch` à chaque événement de
+        // défilement doit être sans conséquence.
+        for _ in 0..<3 {
+            await fixture.cache.prefetch(
+                [fixture.assetID, other], targetSize: Self.cardSize, scale: 2)
+        }
+        let load = await fixture.cache.prefetchLoad
+
+        #expect(load.running + load.pending == 2)
+
+        await fixture.cache.cancelAllPrefetches()
+        await fixture.cache.drainPrefetches()
     }
 
-    /// Ajoute un identifiant qui partage les mêmes octets : c'est le coût de
-    /// génération qu'on mesure, pas celui de fabriquer 200 images différentes.
-    func register(_ assetID: UUID) async {
-        await originals.register(assetID, data: await originals.data(for: self.assetID))
+    @Test("Le préchargement ne rejoue pas ce que la mémoire porte déjà")
+    func prefetchSkipsWhatIsAlreadyCached() async throws {
+        let fixture = try await Fixture()
+        defer { fixture.tearDown() }
+
+        _ = await fixture.cache.thumbnail(
+            for: fixture.assetID, targetSize: Self.cardSize, scale: 2)
+        let readsAfterDisplay = fixture.sourceReads.value
+
+        await fixture.cache.prefetch([fixture.assetID], targetSize: Self.cardSize, scale: 2)
+        await fixture.cache.drainPrefetches()
+
+        #expect(fixture.sourceReads.value == readsAfterDisplay)
     }
 
-    func tearDown() {
-        try? FileManager.default.removeItem(at: directory)
-    }
-}
-
-private actor Originals {
-    private var storage: [UUID: Data] = [:]
-
-    func register(_ assetID: UUID, data: Data?) {
-        storage[assetID] = data
-    }
-
-    func data(for assetID: UUID) -> Data? {
-        storage[assetID]
-    }
-}
-
-private final class Counter: @unchecked Sendable {
-    private let lock = NSLock()
-    private var count = 0
-
-    var value: Int {
-        lock.withLock { count }
-    }
-
-    func increment() {
-        lock.withLock { count += 1 }
-    }
 }

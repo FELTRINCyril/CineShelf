@@ -159,6 +159,30 @@ public enum MediaQuery {
     public static func asset(withID id: UUID) -> Predicate<MediaAsset> {
         #Predicate<MediaAsset> { $0.id == id }
     }
+
+    /// Ce que la galerie a le droit d'afficher — `V3`.
+    ///
+    /// Trois clauses, aucune traversée de relation : `deletedAt`, `isArchived` et `isPrivate`
+    /// sont des colonnes de `MediaAsset`. On reste donc très loin du plafond de cinq clauses,
+    /// et surtout **très loin du défaut de `L1 bis`** : c'est `attachments` qu'il ne faut pas
+    /// toucher ici, pas le nombre de clauses. Un `$0.attachments?.isEmpty` **tue le
+    /// processus** au premier `fetch` (KVC aggregate), et la source « orphelin » se calcule
+    /// donc ailleurs — voir `GalleryQuery.assetIDs(matching:in:)`.
+    ///
+    /// **L'archivage exclut de la galerie**, et c'est déduit du bloc `6f` : il propose
+    /// « Archiver » comme action de masse, donc archiver doit faire quelque chose de visible.
+    /// Aucun bloc ne dessine en revanche l'écran qui les retrouve — inscrit comme écart.
+    ///
+    /// - Parameter hidingPrivate: le réglage `hidesPrivateContent` du profil courant. Le
+    ///   masquage appartient au profil, `isPrivate` appartient à l'entité : c'est la
+    ///   distinction que `docs/04` §6 pose, et la fuite Spotlight que `L3` a fermée.
+    /// - Returns: le prédicat des médias affichables dans la galerie.
+    public static func galleryAssets(hidingPrivate: Bool) -> Predicate<MediaAsset> {
+        #Predicate<MediaAsset> {
+            $0.deletedAt == nil && $0.isArchived == false
+                && (hidingPrivate == false || $0.isPrivate == false)
+        }
+    }
 }
 
 // MARK: - Visibilité et recherche des collections et des signets

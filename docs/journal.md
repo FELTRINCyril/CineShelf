@@ -4485,3 +4485,45 @@ défilement : tant que la grille ne l'appelle pas, « le défilement ne saccade 
 intention. La ligne du tableau est donc en 🔶, et non ✅.
 
 **Suite : `L1 bis`**, ou `I10` — les deux suivantes du palier 2.
+
+**Post-scriptum du même jour — la CI, deux fois rouge, puis réparée.**
+
+Le premier rouge (`30985835698`, job `Catalogue iOS`) ressemblait à un flake : le même code
+a passé le run suivant, et je l'ai inscrit « à surveiller » avec la consigne explicite de ne
+pas corriger le spécificateur en réaction. **Le second est arrivé une heure plus tard**
+(`30989335077`, job `Build iOS`), et mon propre seuil — « deux occurrences suffiront à
+trancher » — était atteint.
+
+Cause commune, lisible dans les deux logs : le runner `macos-latest` arrive parfois sans
+**aucun** appareil simulé créé. La liste des destinations qu'`xcodebuild` imprime ne contient
+que des placeholders. Le runtime iOS est présent, les appareils ne le sont pas.
+
+Deux corrections, et elles ne sont pas de la même nature :
+
+- **Les builds n'avaient jamais eu besoin d'un appareil.** `generic/platform=iOS Simulator`
+  est le spécificateur correct pour compiler — un SDK suffit. Ce n'est pas un contournement,
+  c'est la suppression d'une dépendance qui n'aurait pas dû exister.
+- **Les tests en ont besoin.** `scripts/ci-destination.sh` résout la destination par
+  **identifiant** au lieu de nom + version, et crée l'appareil s'il manque. Il ne masque
+  rien : un runtime iOS réellement absent le fait sortir en erreur avec la liste de ce qui
+  existe.
+
+Et une correction de ma propre journée : la commande locale que j'avais inscrite dans
+`CLAUDE.md` omettait `OS=latest`, donc elle n'exerçait pas le chemin de résolution de la CI.
+C'est textuellement la règle « une preuve doit exercer le geste, pas seulement la valeur »,
+et je l'ai enfreinte le matin même où je citais son corollaire.
+
+| Commande | Résultat |
+|---|---|
+| `./scripts/ci-destination.sh 'platform=macOS'` | ✅ rendue inchangée |
+| `./scripts/ci-destination.sh 'generic/platform=iOS Simulator'` | ✅ rendue inchangée |
+| `./scripts/ci-destination.sh 'platform=iOS Simulator,name=iPhone 17,OS=latest'` | ✅ `id=812EA5E5-…` |
+| `./scripts/ci-destination.sh '…name=iPhone 99…'` | ✅ repli sur un iPhone existant, pas d'échec |
+| `xcodebuild build -destination 'generic/platform=iOS Simulator'` | ✅ `BUILD SUCCEEDED` |
+| `xcodebuild test -scheme DesignSystemCatalog -destination '…iPhone 17,OS=latest'` | ✅ **64 tests**, spécificateur exact de la CI |
+| `shellcheck scripts/ci-destination.sh` | ❌ **non lancée** — `shellcheck` n'est pas installé sur cette machine, malgré la liste d'outils de `CLAUDE.md` |
+| Validation YAML du workflow | ❌ **non lancée** — `pyyaml` absent ; la structure est relue à l'œil, la vraie preuve est le run |
+| **Branche « aucun appareil » du script** | ❌ **non exercée** — elle demanderait de supprimer tous mes simulateurs. Le repli sur modèle absent, lui, est exercé |
+
+**La seule preuve qui compte pour cette correction est le run lui-même**, puisque la panne
+n'est pas reproductible localement.

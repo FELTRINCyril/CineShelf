@@ -60,7 +60,10 @@ jobs:
       matrix:
         include:
           - platform: iOS
-            destination: platform=iOS Simulator,name=iPhone 17,OS=latest
+            # Aucun appareil nomme : compiler pour le simulateur demande un SDK, pas un
+            # iPhone. C'est le specificateur correct pour un build, et il retire d'un
+            # coup la dependance a un runner qui aurait des appareils crees.
+            destination: generic/platform=iOS Simulator
           - platform: macOS
             destination: platform=macOS
     steps:
@@ -104,12 +107,17 @@ jobs:
       - name: Generer le projet
         run: xcodegen generate
 
+      - name: Resoudre la destination
+        run: |
+          echo "DESTINATION=$(scripts/ci-destination.sh '${{ matrix.destination }}')" \
+            >> "$GITHUB_ENV"
+
       - name: Tests du catalogue
         run: |
           set -o pipefail
           xcodebuild test \
             -scheme DesignSystemCatalog \
-            -destination "${{ matrix.destination }}" \
+            -destination "$DESTINATION" \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO
 
@@ -138,11 +146,16 @@ jobs:
       - name: Générer le projet
         run: xcodegen generate
 
+      - name: Resoudre la destination
+        run: |
+          echo "DESTINATION=$(scripts/ci-destination.sh '${{ matrix.destination }}')" \
+            >> "$GITHUB_ENV"
+
       - name: Tests
         run: |
           set -o pipefail
           xcodebuild test \
             -scheme "${{ matrix.scheme }}" \
-            -destination "${{ matrix.destination }}" \
+            -destination "$DESTINATION" \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO

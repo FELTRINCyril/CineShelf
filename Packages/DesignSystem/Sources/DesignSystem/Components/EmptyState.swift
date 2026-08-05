@@ -124,11 +124,11 @@ public struct EmptyState: View {
         HStack(spacing: Space.s2 + 1) {
             if let primary {
                 Button(primary.label, action: primary.perform)
-                    .buttonStyle(EmptyStateButtonStyle(rank: .primary))
+                    .buttonStyle(ActionButtonStyle(rank: .primary))
             }
             if let secondary {
                 Button(secondary.label, action: secondary.perform)
-                    .buttonStyle(EmptyStateButtonStyle(rank: .secondary))
+                    .buttonStyle(ActionButtonStyle(rank: .secondary))
             }
         }
         .padding(.top, Space.s1)
@@ -144,16 +144,26 @@ public struct EmptyState: View {
 
 // MARK: - Les deux rangs d'action
 
-/// Le style des boutons de l'état vide.
+/// Le style des boutons d'action de la direction : aplat clair, ou fond translucide.
 ///
-/// Un `ButtonStyle` et non deux vues : le rang ne change que le remplissage et le poids,
-/// et deux composants auraient dupliqué la cible tactile et l'état pressé.
-struct EmptyStateButtonStyle: ButtonStyle {
-    enum Rank { case primary, secondary }
+/// Un `ButtonStyle` et non deux vues : le rang ne change que le remplissage et le poids, et
+/// deux composants auraient dupliqué la cible tactile et l'état pressé.
+///
+/// **Nommé `ActionButtonStyle` et public depuis `V2 bis`.** Il s'appelait
+/// `EmptyStateButtonStyle` et était interne, parce que l'état vide était son seul appelant.
+/// `CropEditor` en a besoin pour ses actions, et un second style aurait donné deux boutons
+/// primaires qui ne se ressemblent pas — c'est exactement le cas que « l'écran ne possède pas
+/// la forme » existe pour empêcher.
+public struct ActionButtonStyle: ButtonStyle {
+    public enum Rank: Sendable { case primary, secondary }
 
-    let rank: Rank
+    private let rank: Rank
 
-    func makeBody(configuration: Configuration) -> some View {
+    public init(rank: Rank) {
+        self.rank = rank
+    }
+
+    public func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(rank == .primary ? Typo.action : Typo.callout)
             .textCase(.uppercase)

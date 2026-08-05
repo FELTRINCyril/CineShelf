@@ -211,7 +211,19 @@ public struct MediaFill: View {
 
     @Environment(\.imageLoader) private var loader
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var loaded: Image?
+    @State private var phase: Phase = .loading
+
+    /// Trois états, et **le troisième existe parce que sans lui la porte est aveugle**.
+    ///
+    /// `MediaFill` n'avait pas d'état d'échec : un chargement en cours et un chargement raté
+    /// rendaient tous deux le placeholder, donc `catalogue-images` ne pouvait pas les
+    /// distinguer — exactement le défaut d'un cran plus haut, où une tuile sans image et une
+    /// tuile cassée rendaient le même aplat.
+    private enum Phase: Equatable {
+        case loading
+        case loaded(Image)
+        case failed
+    }
 
     public init(
         imageURL: URL?,
@@ -229,8 +241,8 @@ public struct MediaFill: View {
 
     public var body: some View {
         placeholder.overlay {
-            if let loaded {
-                loaded
+            if case .loaded(let image) = phase {
+                image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .scaleEffect(crop.zoom)
@@ -241,17 +253,36 @@ public struct MediaFill: View {
                     .transition(reduceMotion ? .identity : .opacity)
             }
         }
-        .dsAnimation(Motion.base, value: loaded == nil)
+        .dsAnimation(Motion.base, value: phase)
         .task(id: imageURL) { await load() }
     }
 
-    /// Ce qu'on voit avant l'image : le blurhash s'il existe, l'aplat sinon.
+    /// Ce qu'on voit avant l'image, et ce qu'on voit quand elle ne vient pas.
     ///
-    /// **Ni indicateur ni symbole.** Un spinner sur une grille de deux cents affiches ferait
-    /// clignoter tout l'écran au défilement, et le squelette de chargement est un composant à
-    /// part (`I4`).
+    /// **Pendant le chargement, ni indicateur ni symbole.** Un spinner sur une grille de deux
+    /// cents affiches ferait clignoter tout l'écran au défilement, et le squelette de
+    /// chargement est un composant à part (`I4`). Le blurhash suffit, et c'est ce que le bloc
+    /// `9b` demande.
+    ///
+    /// **En échec, un symbole discret.** Il ne s'agit pas de décorer : sans lui, un chargement
+    /// raté est indistinguable d'un chargement en cours, et d'une tuile qui n'a simplement
+    /// aucune image. Trois causes, une apparence — c'est le motif que `catalogue-images` a
+    /// existé pour casser.
+    ///
+    /// **Aucun bloc ne dessine cet état**, et c'est une question ouverte : la planche 7 traite
+    /// l'erreur de chargement **par rangée** (bloc `9c`, « cette rangée n'a pas pu se
+    /// charger », avec un « Réessayer »), jamais par tuile. `MediaThumbnail`, de l'ancienne
+    /// direction, posait déjà un symbole de repli ; c'est ce précédent qui est repris, en
+    /// `text.tertiary` pour qu'il s'efface au lieu d'attirer l'œil.
     @ViewBuilder private var placeholder: some View {
-        if let blurHash, let gradient = BlurHashPreview.gradient(from: blurHash) {
+        if phase == .failed {
+            background.overlay {
+                Image(systemName: Icon.error)
+                    .font(.system(.footnote))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.textTertiary)
+            }
+        } else if let blurHash, let gradient = BlurHashPreview.gradient(from: blurHash) {
             background.overlay { gradient }
         } else {
             background
@@ -259,14 +290,17 @@ public struct MediaFill: View {
     }
 
     private func load() async {
-        loaded = nil
+        phase = .loading
         guard let imageURL else { return }
         do {
             let image = try await loader(imageURL)
             guard !Task.isCancelled else { return }
-            loaded = image
+            phase = .loaded(image)
+        } catch is CancellationError {
+            // Vue partie ou URL changée : on ne touche à rien. Marquer `failed` ici ferait
+            // clignoter un symbole d'erreur à chaque défilement rapide.
         } catch {
-            // Un échec laisse le placeholder : c'est déjà l'aplat que la direction demande.
+            phase = .failed
         }
     }
 

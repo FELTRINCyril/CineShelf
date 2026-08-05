@@ -47,14 +47,14 @@ struct LayoutSheet: View {
             VStack(alignment: .leading, spacing: Space.s5) {
                 framed(720) {
                     TileRail("Ajoutés cette semaine") {
-                        ForEach(PosterCardModel.samples) { item in
+                        ForEach(PosterCardModel.artworkSamples) { item in
                             PosterTile(item, scale: .l) {}
                         }
                     }
                 }
                 framed(720) {
                     TileRail("Documentaires", action: .init("Tout voir") {}) {
-                        ForEach(PosterCardModel.samples) { item in
+                        ForEach(PosterCardModel.artworkSamples) { item in
                             PosterTile(item, layout: .landscape, scale: .l) {}
                         }
                     }
@@ -88,7 +88,7 @@ struct LayoutSheet: View {
                             .foregroundStyle(.textTertiary)
                         framed(width) {
                             AdaptiveTileGrid(
-                                PosterCardModel.samples, cardWidth: PosterScale.l.width
+                                PosterCardModel.artworkSamples, cardWidth: PosterScale.l.width
                             ) {
                                 PosterTile($0, scale: .l) {}
                             }

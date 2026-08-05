@@ -14,6 +14,12 @@ struct DesignSystemCatalogApp: App {
     var body: some Scene {
         WindowGroup {
             CatalogRootView()
+                // **Le chargeur d'échantillons, et c'est la correction de fond de
+                // `catalogue-images`.** Sans lui, le catalogue rendait toutes ses tuiles avec
+                // `imageURL: nil` : une tuile sans image y était indistinguable d'une tuile
+                // dont le chargement échoue, et la porte de bloc était aveugle sur le seul
+                // composant qui compte dans un catalogue de films.
+                .imageLoader(.catalogSamples())
         }
         #if os(macOS)
             .defaultSize(width: 1180, height: 860)

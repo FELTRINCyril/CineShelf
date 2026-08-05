@@ -1,6 +1,7 @@
 #if DEBUG
 
     import CineShelfCore
+    import DesignSystem
     import CoreGraphics
     import Foundation
     import ImageIO
@@ -248,7 +249,7 @@
         private static func attachPoster(
             to title: Title, in context: ModelContext, using generator: inout SeededGenerator
         ) {
-            guard let data = PosterArtwork.png(for: title.name, seed: generator.next(upTo: 360)) else {
+            guard let data = SampleArtwork.png(for: title.name, seed: generator.next(upTo: 360)) else {
                 return
             }
 
@@ -256,8 +257,8 @@
             asset.kindRaw = MediaKind.image.rawValue
             asset.data = data
             asset.mimeType = "image/png"
-            asset.pixelWidth = PosterArtwork.size.width
-            asset.pixelHeight = PosterArtwork.size.height
+            asset.pixelWidth = SampleArtwork.size.width
+            asset.pixelHeight = SampleArtwork.size.height
             asset.byteSize = data.count
             asset.checksum = "demo-\(title.id.uuidString)"
             context.insert(asset)
@@ -298,15 +299,15 @@
         private static func attachBackdrop(
             to title: Title, in context: ModelContext, using generator: inout SeededGenerator
         ) {
-            guard let data = PosterArtwork.png(for: "\(title.name) · large", seed: generator.next(upTo: 360))
+            guard let data = SampleArtwork.png(for: "\(title.name) · large", seed: generator.next(upTo: 360))
             else { return }
 
             let asset = MediaAsset()
             asset.kindRaw = MediaKind.image.rawValue
             asset.data = data
             asset.mimeType = "image/png"
-            asset.pixelWidth = PosterArtwork.size.width
-            asset.pixelHeight = PosterArtwork.size.height
+            asset.pixelWidth = SampleArtwork.size.width
+            asset.pixelHeight = SampleArtwork.size.height
             asset.byteSize = data.count
             asset.checksum = "demo-backdrop-\(title.id.uuidString)"
             context.insert(asset)

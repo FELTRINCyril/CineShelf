@@ -70,10 +70,10 @@ struct IndicatorSheet: View {
                 """
         ) {
             HStack(alignment: .top, spacing: Space.s3) {
-                PosterTile(.samples[1], scale: .l) {}
-                PosterTile(.samples[2], scale: .l) {}
-                PosterTile(.samples[7], scale: .l) {}
-                PosterTile(.samples[7], scale: .s) {}
+                PosterTile(PosterCardModel.artworkSamples[1], scale: .l) {}
+                PosterTile(PosterCardModel.artworkSamples[2], scale: .l) {}
+                PosterTile(PosterCardModel.artworkSamples[7], scale: .l) {}
+                PosterTile(PosterCardModel.artworkSamples[7], scale: .s) {}
             }
         }
     }

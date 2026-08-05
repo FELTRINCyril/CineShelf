@@ -24,10 +24,53 @@ struct CardTilesSheet: View {
                 """
         ) {
             VStack(alignment: .leading, spacing: Space.s6) {
+                loadStates
                 portraitScales
                 landscapeScales
                 states
                 people
+            }
+        }
+    }
+
+    /// **La section qui manquait, et son absence a coûté quatre sessions.**
+    ///
+    /// Les échantillons du catalogue avaient `imageURL: nil` : une tuile **sans** image y
+    /// rendait le même aplat qu'une tuile dont le chargement **échoue**, donc la porte de bloc
+    /// était aveugle sur le seul composant qui compte dans un catalogue de films. `MediaFill`
+    /// a chargé par `AsyncImage` — incapable de résoudre le schéma interne des assets — sans
+    /// qu'une seule affiche s'affiche, et rien ici ne pouvait le dire.
+    ///
+    /// Les quatre cas sont donc côte à côte, **et ils doivent se distinguer sans lire les
+    /// légendes**. Si deux d'entre eux se ressemblent, la porte est de nouveau aveugle sur
+    /// l'un des deux.
+    private var loadStates: some View {
+        section(
+            "Chargement · les quatre cas, et ils doivent se distinguer",
+            note: """
+                Chargée, en cours, en échec, et sans image du tout. Les images sont \
+                **dessinées par code** — aucun binaire au dépôt — et le chargeur du catalogue \
+                les sert avec un délai de 400 ms, sans lequel on ne verrait jamais le \
+                blurhash ni la transition.
+                """
+        ) {
+            VStack(alignment: .leading, spacing: Space.s4) {
+                HStack(alignment: .top, spacing: Space.s4) {
+                    ForEach(SampleLoadState.allCases) { state in
+                        labelled(state.label) {
+                            PosterTile(
+                                PosterCardModel.sample.exercising(state, seed: 140), scale: .l
+                            ) {}
+                        }
+                    }
+                    // Le quatrième cas, et c'est lui qui rendait les autres invisibles : une
+                    // tuile qui n'a **aucune** image. Il doit se distinguer de l'échec — l'un
+                    // dit « il n'y en a pas », l'autre « elle n'est pas venue ».
+                    labelled("aucune image") {
+                        PosterTile(.sample, scale: .l) {}
+                    }
+                }
+                BlockNote(.mediaFill)
             }
         }
     }
@@ -38,7 +81,7 @@ struct CardTilesSheet: View {
                 HStack(alignment: .bottom, spacing: Space.s3) {
                     ForEach(PosterScale.allCases) { scale in
                         VStack(spacing: Space.s1) {
-                            PosterTile(.sample, layout: .portrait, scale: scale) {}
+                            PosterTile(PosterCardModel.artworkSample, layout: .portrait, scale: scale) {}
                             Text(scale.rawValue)
                                 .font(Typo.micro)
                                 .foregroundStyle(Color.textTertiary)
@@ -61,7 +104,7 @@ struct CardTilesSheet: View {
         ) {
             HStack(alignment: .bottom, spacing: Space.s3) {
                 ForEach(PosterScale.allCases) { scale in
-                    PosterTile(.sample, layout: .landscape, scale: scale) {}
+                    PosterTile(PosterCardModel.artworkSample, layout: .landscape, scale: scale) {}
                 }
             }
         }
@@ -78,12 +121,12 @@ struct CardTilesSheet: View {
                 """
         ) {
             HStack(alignment: .top, spacing: Space.s3) {
-                labelled("vu") { PosterTile(.samples[1], scale: .l) {} }
-                labelled("à voir") { PosterTile(.samples[2], scale: .l) {} }
-                labelled("archivé") { PosterTile(.samples[7], scale: .l) {} }
-                labelled("privé") { PosterTile(.samples[6], scale: .l) {} }
-                labelled("sélectionné") { PosterTile(.sample, scale: .l, isSelected: true) {} }
-                labelled("privé · cran s") { PosterTile(.samples[6], scale: .s) {} }
+                labelled("vu") { PosterTile(PosterCardModel.artworkSamples[1], scale: .l) {} }
+                labelled("à voir") { PosterTile(PosterCardModel.artworkSamples[2], scale: .l) {} }
+                labelled("archivé") { PosterTile(PosterCardModel.artworkSamples[7], scale: .l) {} }
+                labelled("privé") { PosterTile(PosterCardModel.artworkSamples[6], scale: .l) {} }
+                labelled("sélectionné") { PosterTile(PosterCardModel.artworkSample, scale: .l, isSelected: true) {} }
+                labelled("privé · cran s") { PosterTile(PosterCardModel.artworkSamples[6], scale: .s) {} }
             }
         }
     }

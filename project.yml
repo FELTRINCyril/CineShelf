@@ -161,7 +161,6 @@ targets:
       # CineShelfCore et des frameworks système), donc compilable ici sans
       # entraîner de vue.
       - App/DemoData/DemoCatalog.swift
-      - App/DemoData/PosterArtwork.swift
       # Le pont entre le vocabulaire persiste (CineShelfCore) et le vocabulaire
       # visuel (DesignSystem) : c'est le seul endroit de l'app ou les deux jeux se
       # rencontrent, donc le seul depuis lequel un test peut affirmer qu'ils

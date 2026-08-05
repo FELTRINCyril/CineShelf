@@ -149,6 +149,38 @@ extension BlockSpec {
                 verdict: .matches)
         ])
 
+    static let mediaFill = BlockSpec(
+        component: "MediaFill",
+        source: "docs/04 §4 (la sequence) · planche 7 bloc 9b (le chargement)",
+        measures: [
+            .init(
+                name: "Sequence",
+                expected: "blurhash, puis cache disque, puis vignette generee",
+                verdict: .matches),
+            .init(
+                name: "Pendant le chargement",
+                expected: "le blurhash, ni indicateur ni symbole",
+                verdict: .matches),
+            .init(
+                name: "En echec",
+                expected: "aucun bloc ne le dessine : la planche 7 traite l'erreur par rangee (9c), jamais par tuile",
+                verdict: .keptAtToken(
+                    gap: 14, code: "aplat plus un symbole discret en text.tertiary",
+                    reason: """
+                        Sans rendu propre, un echec est indistinguable d'un chargement en \\
+                        cours et d'une absence d'image : trois causes, une apparence. Le \\
+                        precedent est MediaThumbnail, qui posait deja un symbole de repli
+                        """)),
+            .init(
+                name: "Sans image",
+                expected: "l'aplat de fond seul",
+                verdict: .matches),
+            .init(
+                name: "Remplissage",
+                expected: "remplit et recadre, jamais de bande noire",
+                verdict: .matches)
+        ])
+
     static let personTile = BlockSpec(
         component: "PersonTile",
         source: "planche 3 blocs 4b · 4c · 4d",

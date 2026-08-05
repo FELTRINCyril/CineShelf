@@ -122,7 +122,7 @@ struct StateSheet: View {
                     tone: .accent,
                     action: .init("Détails") {})
                 AdaptiveTileGrid(
-                    Array(PosterCardModel.samples.prefix(8)), cardWidth: PosterScale.m.width
+                    Array(PosterCardModel.artworkSamples.prefix(8)), cardWidth: PosterScale.m.width
                 ) {
                     PosterTile($0, scale: .m) {}
                 }

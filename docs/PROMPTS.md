@@ -371,12 +371,12 @@ de découpage sur sa fiche.
 | **Le verrou d'import protège un `ModelContainer`, pas une instance d'acteur.** Il était indexé sur `ObjectIdentifier(actor)` : deux `ImportActor` sur le même conteneur avaient deux verrous, et s'entrelaçaient — mesuré, **600 titres au lieu de 300**, sans qu'aucun `alreadyRunning` ne soit levé. Une propriété calculée qui fabrique un acteur par accès suffit à déclencher le cas. Et `ObjectIdentifier` est une adresse **recyclée** : cinq acteurs successifs donnaient deux identités, donc la clé n'identifiait pas un acteur. `NSMapTable` à clés faibles comparées par pointeur — pas `weakToStrongObjects()`, qui appelle `-hash` sur un `ModelContainer` qui n'est pas `Hashable` et le signale en console | permanent |
 | **Un helper de test qui construit un CSV doit échapper.** La première version de `csv(header:rows:)` joignait les champs par `;` sans rien échapper, pour « ne pas dépendre de l'écrivain qu'on éprouve ». Conséquence : **aucun** test l'employant ne pouvait exercer une valeur contenant le séparateur ou un guillemet, et une revue a cru y voir un bug de production qui n'existait pas. Il passe désormais par `CSVWriter` ; `rawCSV(_:)` reste pour les cas qu'un écrivain correct ne produit pas — une ligne trop courte, un encodage fautif — et le format brut est vérifié octet par octet par `CSVWriterTests`, qui n'utilise ni l'un ni l'autre | permanent |
 | Grille non navigable au clavier sur Mac (`PosterCard` ouvre par `onTapGesture`, sans `focusable()`) | `V12` |
-| `MediaEnvironment.displayScale` jamais alimenté : vignettes générées en @2x quelle que soit la dalle | `L5` |
+| ~~`MediaEnvironment.displayScale` jamais alimenté~~ **Réglé par `L5`.** Le modificateur `.displayScale(feeding:)` le renseigne depuis l'environnement SwiftUI, et `imageLoader()` **lit l'échelle à l'appel au lieu de la capturer** : une capture aurait figé la valeur de l'évaluation de la scène, donc déplacer la fenêtre vers un écran @1x aurait continué à produire du @2x sans que rien le signale | ✅ `L5` |
 | `DemoCatalog` hors des repositories : **décision actée** — une fixture n'est pas une action utilisateur, et on ne veut pas 300 `ActivityEntry` fictives dans le fil. L'invariant `refreshDerived()` tient et `DemoCatalogTests` le vérifie. Reste factice : `MediaAsset.checksum` et `blurHash` non calculés | — |
 | `Profile.requiresBiometry` affiché mais non appliqué | `L14` |
-| Préchargement de l'écran suivant | `L5` |
+| ~~Préchargement de l'écran suivant~~ **API livrée par `L5`, appel côté vue à faire.** `PrefetchWindow` calcule la tranche — asymétrique, 24 devant et 8 derrière : on défile vers le bas, donc une fenêtre symétrique dépenserait la moitié de son budget sur des vignettes déjà en cache. `ThumbnailCache.prefetch/cancelPrefetch` et `MediaEnvironment.prefetch(_:context:)` la servent. **Ce qui reste : appeler depuis la grille et la galerie**, qui seules savent où elles ont défilé | `V3` · `V6` |
 | `MediaRepository.attach` + invariante `hasExactlyOneOwner` | `L16` |
-| `Bootstrap` ne branche pas `startObservingMemoryPressure()` : le cache n'est instancié par personne tant qu'aucune vue n'affiche d'image | `L5` |
+| ~~`Bootstrap` ne branche pas `startObservingMemoryPressure()`~~ **Écart périmé, et il l'était avant `L5`.** Vérifié le 2026-08-05 : le cache est instancié dans `CineShelfApp.init()` et l'observation est branchée par `.task { media.startObservingMemoryPressure() }` sur `RootView` — le prompt 11 l'avait fait sans que la ligne soit retirée. **Un écart connu qui ne l'est plus est une fausse dette** : il envoie chercher un défaut qui n'existe pas, et il coûte le même temps qu'un vrai | ✅ prompt 11 |
 | Dédoublonnage médias : global au magasin (décision actée) | — |
 | Reprise d'import par lot de 200, pas par élément | `L11` · `L13` |
 | `⇧⌘I` / `⇧⌘E` présents mais grisés | `V8` |
@@ -651,7 +651,7 @@ saccade pas.
 
 | # | Tâche | Ce qu'elle débloque | Rigueur |
 |---|---|---|---|
-| 8 | `L5` — préchargement de vignettes, pression mémoire, échelle d'écran | Le défilement qui ne saccade pas. Branche `startObservingMemoryPressure()`, que personne n'appelle | légère |
+| 8 | `L5` — préchargement de vignettes, pression mémoire, échelle d'écran | Le défilement qui ne saccade pas | légère — ✅ **API et échelle faites** · **l'appel depuis les vues reste à `V3`/`V6`** |
 | 9 | `L1 bis` — filtres de galerie (source, mélange à graine stable) et store de préférences | La galerie ne peut pas s'écrire sans sa source de données | légère |
 | 10 | `I10` — vue vide paramétrée · notification temporaire | Chaque écran a un état vide ; sans lui ils sont muets quand il n'y a rien | légère |
 | 11 | `V1` — recherche : champ, portées, résultats groupés | `L2` et `L3` sont faites depuis longtemps et ne servent à rien sans écran | légère |
@@ -717,7 +717,7 @@ dépend. Utiles quand tu veux souffler ou avancer sur un autre front.
 |---|---|---|---|---|
 | `L1 bis` | Filtres de galerie (source, mélange à graine stable) et store de préférences d'affichage hors des vues | `02 §3.7 §3.10`, `04 §1 §3` | — | ⬜ |
 | `L20` | **Annulation de l'édition en masse et de la fusion** — journal inversable | `02 §3.9`, `03 §12` | `L8` `L10` | ⬜ **touche au schéma, voir sa fiche** |
-| `L5` | Préchargement de vignettes, pression mémoire, échelle d'écran | `04 §4` | — | ⬜ |
+| `L5` | Préchargement de vignettes, pression mémoire, échelle d'écran | `04 §4` | — | 🔶 |
 | `L6` | Génération d'une couverture en mosaïque | `03 §6`, `04 §4` | `L4` | ⬜ |
 | `L7` | Aperçu de lien : `LPMetadataProvider`, délai, repli, libellé déduit | `03 §8` | — | ⬜ |
 | `L8` | Détection de doublons et exécuteur de fusion | `03 §5`, `02 §3.4` | — | ⬜ |

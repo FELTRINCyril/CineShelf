@@ -4415,3 +4415,73 @@ je n'ai pas pu la voir : la seule vérification qui compte vraiment pour elle re
 en ouvrant le catalogue.
 
 **Suite : `I7`–`I9`**, qui débloquent l'éditeur de `V0 bis`.
+
+---
+
+## 2026-08-05 (2) — `L5` : le préchargement, l'échelle, et un écart connu qui n'existait plus
+
+**Deux règles inscrites dans `CLAUDE.md`, symétriques.** Le `git pull --ff-only` entre dans
+la routine d'ouverture — le cas normal est un dépôt en retard, trois fois sur trois — et le
+`git push` clôt la session sans qu'il faille le demander : un dépôt local en avance n'est
+pas un état, c'est un travail qui n'existe que sur une machine. Quatrième oubli.
+
+**`L5`, en trois morceaux.**
+
+*Le préchargement.* `PrefetchWindow` calcule la tranche, hors de toute vue — c'est la
+troisième fois que le motif « l'arithmétique sort de la `View` » sert. La fenêtre est
+**asymétrique** (24 devant, 8 derrière) : c'est le correctif noté depuis le prompt `13a`, on
+défile vers le bas, et une fenêtre symétrique dépenserait la moitié de son budget sur des
+vignettes déjà en cache. Côté `ThumbnailCache`, un registre de travail par clé donne
+« jamais deux fois le même travail » **pour de vrai** : un affichage qui tombe sur un
+préchargement en vol l'**adopte** au lieu de le doubler, et cesse alors de le rendre
+annulable. La file borne à deux préchargements simultanés — déclarer une priorité basse ne
+suffit pas quand vingt décodages tournent.
+
+*Un défaut trouvé par son test, et il ne se voyait pas sans course.* « Ce qu'un affichage
+attend n'est plus annulable » a échoué au premier jet : un affichage **adoptait une tâche
+déjà annulée** et n'obtenait jamais d'image. La correction retire l'entrée du registre au
+moment de l'annulation, ce qui laisse l'affichage en démarrer une neuve — et impose de
+donner une identité à chaque travail, sinon la fin de l'ancienne tâche efface l'entrée de la
+nouvelle.
+
+*L'échelle d'écran.* `.displayScale(feeding:)` la renseigne depuis l'environnement, et
+`imageLoader()` la **lit à l'appel au lieu de la capturer**. Une capture aurait figé la
+valeur de l'évaluation de la scène : déplacer la fenêtre vers un écran @1x aurait continué à
+produire du @2x sans que rien le signale.
+
+*La couleur dominante.* Un décodeur d'une vingtaine de lignes, comme annoncé : la composante
+continue d'un blurhash **est** la moyenne du signal, quatre caractères base 83 suffisent, et
+les trois octets sont déjà en sRGB. Aucun champ, donc rien à migrer — c'est ce qui permet de
+l'ajouter après la fermeture du schéma. `TileSkeleton` n'est pas touché : le paramètre de
+couleur appartient au travail d'interface.
+
+**Un écart connu était périmé, et c'est une fausse dette.** « `Bootstrap` ne branche pas
+`startObservingMemoryPressure()` » : vérifié, le cache est instancié dans
+`CineShelfApp.init()` et l'observation est branchée par `.task` sur `RootView` depuis le
+prompt 11. La ligne n'avait pas été retirée. Un écart qui n'existe plus envoie chercher un
+défaut absent et coûte le même temps qu'un vrai.
+
+**Trois règles de lint et de format ont mordu, toutes utiles.** `no_literal_color` a refusé
+un type nommé `RGBColor` — `…Color(red:` contient à la lettre le motif qu'elle cherche, y
+compris dans un commentaire — et elle avait raison sur le fond : `MediaKit` ne produit pas
+de couleurs mais trois nombres, d'où `RGBComponents`. `file_length` a refusé un fichier de
+tests à 551 lignes, scindé en trois. `orphaned_doc_comment` a attrapé la docstring de
+`Fixture` restée derrière quand le décor a déménagé.
+
+| Commande | Résultat |
+|---|---|
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **450 · 64 · 54** (+16 sur MediaKit) |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **67 tests** |
+| `xcodebuild test -scheme CineShelfUITests -destination iOS Simulator` | ✅ **1 test** |
+| `xcodebuild test -scheme DesignSystemCatalog` · macOS et iOS Simulator | ✅ **65** et **64** |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 250 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| **Mesure des budgets de `docs/04` §4** | ❌ **non lancée** — ils se vérifient avec Instruments sur appareil, et le simulateur donne des chiffres rassurants qui ne disent rien du matériel (écart connu) |
+| **Préchargement en situation réelle** | ❌ **non vérifié** — aucune vue ne l'appelle encore, c'est `V3` et `V6` |
+
+**Ce que `L5` ne prouve pas.** Le préchargement est exercé par ses tests, pas par un
+défilement : tant que la grille ne l'appelle pas, « le défilement ne saccade plus » reste une
+intention. La ligne du tableau est donc en 🔶, et non ✅.
+
+**Suite : `L1 bis`**, ou `I10` — les deux suivantes du palier 2.

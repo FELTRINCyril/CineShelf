@@ -4838,3 +4838,89 @@ test, build — mais la seule vérification qui compte pour une image est de la 
 reste à faire en ouvrant l'app.
 
 **Suite : `V2 bis`** (`CropEditor`), ou `V3`.
+
+---
+
+## 2026-08-05 (6) — `catalogue-images` et `V2 bis` : rendre la porte voyante
+
+### La leçon d'abord, parce qu'elle dépasse le cas
+
+**Deux états qui rendent la même chose rendent toute porte aveugle.** C'est dans `CLAUDE.md`.
+Les échantillons du catalogue avaient `imageURL: nil` : une tuile **sans** image et une tuile
+dont le chargement **échoue** rendaient le même aplat, donc la porte de bloc était aveugle sur
+les deux — et elle passait au vert, ce qui est pire que de ne pas exister.
+
+La règle : **tout échantillon exerce le chemin réel, jamais le cas nul.** Et son corollaire,
+qui a coûté une correction de plus : **compter les apparences, pas les états.** Trois états qui
+donnent deux apparences valent deux états pour une porte visuelle.
+
+### `catalogue-images`
+
+**Un seul générateur, pas deux.** `PosterArtwork` vivait dans `App/DemoData`, invisible depuis
+le catalogue. Il devient `SampleArtwork` dans `DesignSystem`, aux côtés de
+`PosterCardModel.samples` et `ImageLoader.stubbed` — le package portait déjà tout le matériel
+d'échantillon, il lui manquait la seule chose qui compte dans un catalogue de films. `DemoCatalog`
+l'utilise désormais, et l'ancien fichier est supprimé : deux générateurs auraient divergé, et le
+catalogue aurait fini par valider des images que l'app ne produit pas.
+
+**Dessinées, jamais embarquées.** Aucun binaire au dépôt, et une image déterministe — la même
+graine donne le même pixel, donc deux captures se comparent.
+
+**Les quatre cas, côte à côte sur la planche `I2`** : chargée, en cours, en échec, sans image.
+Le chargeur du catalogue les sert avec 400 ms de délai, sans lequel on ne verrait jamais le
+blurhash ni la transition.
+
+**Il a fallu ajouter un rendu d'échec à `MediaFill`**, et c'est le corollaire en action : sans
+lui, « en cours » et « en échec » restaient indistinguables, et la porte serait restée à moitié
+aveugle après correction. Un symbole discret en `text.tertiary` — **aucun bloc ne le dessine**,
+la planche 7 traitant l'erreur par rangée et jamais par tuile. Le précédent repris est
+`MediaThumbnail`, de l'ancienne direction. Inscrit comme question ouverte au design.
+
+**Les personnes n'ont pas d'image, et c'est délibéré.** Le §11 du handoff : « Portraits de
+personnes : aucun. » Les habiller ici ferait valider un rendu que l'app ne produira jamais.
+
+### `V2 bis` — `CropEditor`
+
+**Il ne calcule rien.** Toute la géométrie est `CropGeometry`, écrite et testée par `L4` six
+tâches plus tôt, sans rendu. L'écran montre, transmet le geste, enregistre.
+
+**Deux cadres côte à côte**, 16:9 et 2:3. La même image sert aux deux, et un réglage qui va bien
+dans l'un coupe souvent mal dans l'autre : les voir ensemble est la seule façon de s'en
+apercevoir. C'est aussi pourquoi `MediaCrop` est stocké par contexte.
+
+**Les neuf cas de `CropContext` sont couverts sans `default`, et le compilateur l'a exigé.**
+J'en avais écrit quatre. La garde a mordu : un contexte oublié aurait pris le ratio du
+`default` et produit un recadrage qu'aucun écran ne sait afficher.
+
+**Un défaut de ma première version, trouvé en relisant pour l'inscrire.** `DragGesture` et
+`MagnifyGesture` rendent des valeurs **cumulées** depuis le début du geste ; je repartais du
+recadrage courant, donc le mouvement se composait — le doigt avance de 10 pt et l'image de 10,
+puis 30, puis 60. Le champ `gestureStart` existait et n'était pas lu. J'allais l'inscrire comme
+écart ; il était corrigible en dix lignes, donc il est corrigé, et `CropGestureTests` le
+verrouille — y compris un test qui **démontre le défaut inverse**, sans quoi le premier ne
+prouverait rien.
+
+**`ActionButtonStyle` devient public.** Il s'appelait `EmptyStateButtonStyle` et était interne :
+`CropEditor` a besoin des mêmes boutons, et un second style aurait donné deux boutons primaires
+qui ne se ressemblent pas. C'est le corollaire de la règle du jour — l'écran ne possède pas la
+forme.
+
+| Commande | Résultat |
+|---|---|
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **461 · 64 · 54** |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **99 tests** (+3) |
+| `xcodebuild test -scheme CineShelfUITests -destination iOS Simulator` | ✅ **1 test** |
+| `xcodebuild test -scheme DesignSystemCatalog` · macOS et iOS | ✅ **65** et **64** |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 267 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| **Les quatre cas de chargement vus à l'œil** | ❌ **non vérifié** — c'est le cœur de `catalogue-images` et je ne peux pas le constater : `screencapture` reste refusé. La planche existe, compile et les quatre cas y sont posés côte à côte ; qu'ils se **distinguent** reste à confirmer en ouvrant le catalogue |
+| **`CropEditor` essayé au doigt ou à la souris** | ❌ **non essayé** — le calcul est testé, la sensation ne l'est pas : latence, vitesse, pincement au trackpad |
+| **Le préchargement** | ❌ toujours aucun appelant de vue |
+
+**Ce que ces deux tâches ne prouvent pas.** Que les quatre cas se distinguent. C'est
+précisément ce que la tâche existe pour rendre vérifiable, et la vérification est à toi — ce
+qui est déjà mieux qu'avant, où il n'y avait rien à regarder.
+
+**Suite : `V3`**, la galerie — où le préchargement devra trouver son foyer, et où
+`PrefetchWindow` devra apprendre à connaître sa tranche visible.

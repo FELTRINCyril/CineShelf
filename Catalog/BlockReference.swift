@@ -289,6 +289,81 @@ extension BlockSpec {
 
     // MARK: I6
 
+    // MARK: I10
+
+    static let emptyState = BlockSpec(
+        component: "EmptyState",
+        source: "planche 7 bloc 9a",
+        measures: [
+            .init(name: "Titre", expected: "Bebas Neue 400, 30 pt", verdict: .matches),
+            .init(
+                name: "Corps",
+                expected: "Archivo Narrow 300, 14 pt, largeur bornee a 400 pt",
+                verdict: .matches),
+            .init(
+                name: "Action principale",
+                expected: "aplat clair, texte sombre, Archivo Narrow 600, 12 pt",
+                verdict: .matches),
+            .init(
+                name: "Action secondaire",
+                expected: "fond translucide, Archivo Narrow 400, 12 pt",
+                verdict: .matches),
+            .init(name: "Indice", expected: "IBM Plex Mono, 10 pt", verdict: .matches),
+            .init(
+                name: "Carte fantome",
+                expected: "2:3 de 70 pt, trame rayee a 45 degres (oklch 0.185 / 0.15)",
+                verdict: .keptAtToken(
+                    gap: 11, code: "aplat bg.surface",
+                    reason: """
+                        La bande claire tombe pile sur bg.surface (0,187) mais la sombre \\
+                        (0,15) n'est aucun jeton : la trame demanderait d'en inventer un
+                        """)),
+            .init(name: "Rayon d'angle", expected: "aucun", verdict: .matches)
+        ])
+
+    static let banner = BlockSpec(
+        component: "Banner",
+        source: "planche 7 bloc 9c",
+        measures: [
+            .init(
+                name: "Place",
+                expected: "sous la barre, pleine largeur, le contenu reste utilisable",
+                verdict: .matches),
+            .init(
+                name: "Pastille",
+                expected: "cercle de 8 pt, a la couleur du ton",
+                verdict: .matches),
+            .init(
+                name: "Libelle de genre",
+                expected: "Archivo Narrow 600, 11 pt, +0.16em, capitales, couleur du ton",
+                verdict: .keptAtToken(
+                    gap: 12, code: "Typo.label, 11 pt, +0.12em",
+                    reason: """
+                        Meme motif que l'ecart 8 : une taille et un interlettrage par usage \\
+                        rouvriraient la porte que Typo a fermee
+                        """)),
+            .init(
+                name: "Rembourrage",
+                expected: "14 pt vertical, 24 pt horizontal",
+                verdict: .matches),
+            .init(
+                name: "Fond",
+                expected: "neutre bg.fill, accent 12 %, danger 13 %, success 11 %",
+                verdict: .keptAtToken(
+                    gap: 13, code: "12 % pour les trois teintes",
+                    reason: """
+                        Trois opacites pour un meme role, sans regle qui les separe : \\
+                        jamais controlees
+                        """)),
+            .init(name: "Rayon d'angle", expected: "aucun", verdict: .matches),
+            .init(
+                name: "Fermeture",
+                expected: "croix a droite, cible de 44 pt",
+                verdict: .matches)
+        ])
+
+    // MARK: I6
+
     static let stateBadge = BlockSpec(
         component: "StateBadge",
         source: "planche 3 bloc 4a · planche 7 bloc 9d",

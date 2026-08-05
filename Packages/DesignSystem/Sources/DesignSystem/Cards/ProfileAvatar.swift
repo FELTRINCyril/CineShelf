@@ -15,9 +15,10 @@ import SwiftUI
 //
 // Trois autres relevés :
 //
-// - **L'initiale est en Bebas Neue**, pas dans la police de texte. C'est la police
-//   d'affichage du système (`Typo.title2`), et elle donne la lettre condensée qu'on voit
-//   dans le prototype.
+// - **L'initiale est en Bebas Neue sur le carré de 46**, pas dans la police de texte :
+//   c'est la police d'affichage du système (`Typo.title2`), et elle donne la lettre
+//   condensée qu'on voit dans le prototype. Dans la barre, en revanche, le bloc `3a` pose
+//   Archivo Narrow 600 à 11 pt — voir `Size.font`, qui porte le relevé des deux blocs.
 // - **Le texte est sombre sur le fond de couleur** (`oklch(0.14 0 0)`), donc
 //   `accent.onAccent` — jamais du blanc, qui ne passerait pas sur l'ambre.
 // - **Le fond est la couleur du profil**, pas un token fixe. `ProfileAccent` vit dans
@@ -38,8 +39,30 @@ public struct ProfileAvatar: View {
 
         public var side: CGFloat {
             switch self {
-            case .toolbar: 28
+            case .toolbar: 26
             case .card: 46
+            }
+        }
+
+        /// La police de l'initiale, et **elle change avec la taille** — ce n'est pas une
+        /// mise à l'échelle.
+        ///
+        /// Le prototype pose deux choses différentes : `font:400 20px/46px 'Bebas Neue'`
+        /// sur le carré de 46 (bloc `7f`) et `font:600 11px/26px 'Archivo Narrow'` sur
+        /// celui de la barre (bloc `3a`). Bebas est une capitale étroite qui tient un
+        /// grand carré ; à 11 pt elle devient un trait. Les deux blocs sont d'accord
+        /// chacun sur le sien, donc les rendus font foi.
+        ///
+        /// C'est l'écart 1 de la revue du 2026-08-04 : une valeur relevée sur un bloc
+        /// avait été généralisée à l'autre, comme la forme de `PersonTile` avant elle.
+        var font: Font {
+            switch self {
+            // Archivo Narrow 600 à 11 pt : exactement le bloc `3a`.
+            case .toolbar: Typo.label
+            // Bebas Neue, à 22 pt et non 20 : aucun rôle de `Typo` n'est Bebas à 20, et
+            // en ajouter un rouvrirait la porte que `Typo` a fermée — même motif que
+            // l'écart 8. Les 2 pt sont inscrits aux écarts connus.
+            case .card: Typo.title2(.large)
             }
         }
     }
@@ -78,9 +101,7 @@ public struct ProfileAvatar: View {
             .frame(width: size.side, height: size.side)
             .overlay {
                 Text(initials)
-                    .font(Typo.title2(.large))
-                    // Le prototype pose 20 pt pour un carré de 46 : le rapport est repris
-                    // pour que l'avatar de barre d'outils garde la même densité de lettre.
+                    .font(size.font)
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
                     .padding(.horizontal, 2)

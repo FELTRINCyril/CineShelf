@@ -200,19 +200,21 @@ extension BlockSpec {
         source: "planche 2 bloc 3a (barre) · planche 5 bloc 7f (fiche)",
         measures: [
             .init(name: "Forme", expected: "carré, aucun rayon", verdict: .matches),
-            .init(
-                name: "Côté dans la barre",
-                expected: "26 pt (bloc 3a)",
-                verdict: .toFix(gap: 2, code: "28 pt")),
+            .init(name: "Côté dans la barre", expected: "26 pt (bloc 3a)", verdict: .matches),
             .init(
                 name: "Police dans la barre",
                 expected: "Archivo Narrow 600, 11 pt (bloc 3a)",
-                verdict: .toFix(gap: 1, code: "Typo.title2, Bebas Neue 22 pt")),
+                verdict: .matches),
             .init(name: "Côté sur la fiche", expected: "46 pt (bloc 7f)", verdict: .matches),
             .init(
                 name: "Police sur la fiche",
                 expected: "Bebas Neue 400, 20 pt (bloc 7f)",
-                verdict: .toFix(gap: 1, code: "Typo.title2, Bebas Neue 22 pt")),
+                verdict: .keptAtToken(
+                    gap: 1, code: "Typo.title2, Bebas Neue 22 pt",
+                    reason: """
+                        Aucun rôle de Typo n'est Bebas à 20, et en ajouter un rouvrirait la \
+                        porte que Typo a fermée — même motif que l'écart 8
+                        """)),
             .init(
                 name: "Texte sur la couleur",
                 expected: "sombre (oklch 0.14), donc accent.onAccent",

@@ -31,6 +31,7 @@ struct TitleDetailView: View {
     @Query private var titles: [Title]
 
     @State private var isEditorPresented = false
+    @State private var importReport: MediaImportOutcome?
 
     init(titleID: UUID) {
         self.titleID = titleID
@@ -69,6 +70,15 @@ struct TitleDetailView: View {
         .sheet(isPresented: $isEditorPresented) {
             if let title { TitleEditor(title: title) }
         }
+        // La surface d'import est posée sur **tout** l'écran, et c'est ce que le bloc `9a`
+        // demande : « glisser-deposer accepte partout ». Une zone de depot dediee serait un
+        // element d'interface que la direction ne dessine nulle part.
+        //
+        // `.gallery` et non `.primary` : deposer une image sur une fiche l'ajoute a sa
+        // galerie. Remplacer la jaquette est un geste **nomme**, il ne se fait pas par
+        // accident — c'est le menu de l'editeur qui le portera.
+        .modifier(OptionalImportSurface(title: title) { importReport = $0 })
+        .overlay(alignment: .bottom) { MediaImportBanner(report: $importReport) }
     }
 
     @ViewBuilder
@@ -93,6 +103,7 @@ struct TitleDetailView: View {
         return ZStack(alignment: .bottomLeading) {
             MediaFill(
                 imageURL: AssetURL.backdrop(for: title) ?? AssetURL.poster(for: title),
+                blurHash: (backdrop ?? poster)?.blurHash,
                 crop: CropDisplay.of(backdrop ?? poster, in: backdrop == nil ? .card : .hero),
                 targetAspect: CardLayout.landscape.aspectRatio,
                 background: Color.bgSurface
@@ -370,4 +381,23 @@ struct TitleDetailView: View {
                 }
         }
     #endif
+}
+
+// MARK: - La surface d'import quand le titre peut ne pas exister
+
+/// `mediaImportSurface(for:)` demande un `Title` ; la fiche peut n'en avoir aucun — un titre
+/// supprime depuis un autre appareil. Ce modificateur absorbe l'optionnel plutot que de
+/// laisser chaque appelant ecrire un `if let` autour de son propre corps de vue, ce qui
+/// obligerait a dupliquer l'arbre.
+private struct OptionalImportSurface: ViewModifier {
+    let title: Title?
+    let onOutcome: (MediaImportOutcome) -> Void
+
+    func body(content: Content) -> some View {
+        if let title {
+            content.mediaImportSurface(for: title, onOutcome: onOutcome)
+        } else {
+            content
+        }
+    }
 }

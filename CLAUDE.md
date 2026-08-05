@@ -80,7 +80,7 @@ React + Express retirée. **Aucun backend.** SwiftData + CloudKit privé.
   sauvegarde est lui-même le sujet (dédoublonnage intra-lot d'import), le dire
   dans le nom du test et couvrir le chemin SQL ailleurs.
 
-## Reprise de session — le dépôt existe déjà
+## Reprise de session — le dépôt existe déjà, et il est en retard
 
 **Avant toute autre chose, et avant même `xcodegen generate` :**
 
@@ -88,7 +88,19 @@ React + Express retirée. **Aucun backend.** SwiftData + CloudKit privé.
 git fetch origin
 git log --oneline origin/main..main   # ce que j'ai en local et qui n'est pas poussé
 git log --oneline main..origin/main   # ce qui est poussé et que je n'ai pas
+git pull --ff-only                    # puis tirer : c'est la normale, pas un cas
 ```
+
+**Le `pull` fait partie de l'ouverture, ce n'est pas une précaution.** J'alterne entre
+deux machines, donc **le cas normal est un dépôt local en retard** : 13 commits le
+2026-08-04, 34 le 2026-08-05, et une fois avant. Trois fois sur trois, la question
+n'était pas « faut-il tirer ? » mais « de combien étais-je en retard ? ». Le `pull` se
+lance donc systématiquement, et ce qui mérite un commentaire est le cas où il ne ramène
+rien.
+
+Si `--ff-only` échoue, c'est qu'un commit local a été posé sur la base périmée : c'est
+`git rebase origin/main`, pas un `git pull` simple - sans quoi la fusion masque le
+décalage au lieu de le résoudre.
 
 **Les deux, pas seulement le premier.** Le second est celui qu'on oublie, et c'est le
 dangereux : **un dépôt en retard se travaille sans rien signaler.** Tout compile, tous
@@ -97,13 +109,26 @@ a quatre jours. On rédige alors des décisions contre un plan périmé, et le s
 est une phrase qui sonne faux à la relecture (« `L1` reste en tête du chemin critique »
 alors que `L1` à `L4` étaient faites et poussées).
 
-Si `main..origin/main` n'est pas vide : tirer **avant** d'écrire quoi que ce soit. Si
-un commit local a déjà été posé sur la base périmée, c'est `git rebase origin/main`,
-pas un simple `git pull` - sans quoi la fusion masque le décalage au lieu de le
-résoudre.
-
 C'est arrivé le 2026-08-04 : treize commits de retard, dont la fermeture du schéma et
-la livraison de `docs/design/`, plus un commit local posé par-dessus.
+la livraison de `docs/design/`, plus un commit local posé par-dessus. Et le 2026-08-05 :
+trente-quatre, dont la revue visuelle du catalogue et l'arbitrage de ses dix écarts.
+
+### Et une session se termine par un `git push`, sans que j'aie à le demander
+
+**Symétrique de la règle d'ouverture, et pour la même raison : je change de machine.** Un
+dépôt local en avance n'est pas un état, c'est un risque - le travail n'existe que sur
+une machine, et la CI ne l'a jamais vu. La session suivante rouvre alors le dépôt sur
+l'autre machine et se croit à jour.
+
+**C'est arrivé quatre fois.** À chaque fois les commits étaient propres, les tests verts,
+et le rapport annonçait honnêtement « non poussés » - ce qui ne les rendait pas moins
+absents du dépôt distant.
+
+En pratique, après le commit qui coche le tableau d'état : `git push origin main`. Pas de
+question préalable ; le push fait partie de la livraison, comme le journal et le tableau.
+Ce qui se demande, c'est l'inverse : **si une raison existe de ne *pas* pousser, la dire
+et attendre.** Et comme une CI rouge bloque la tâche suivante (voir plus bas), le push
+est aussi ce qui donne le droit de commencer la suivante.
 
 ## Les documents de design contraignent le rendu, jamais le modèle
 
@@ -471,6 +496,8 @@ fonctionne. Lire une valeur n'est pas exécuter un chemin.
 7. Cocher la ligne du prompt dans le **tableau d'état de `docs/PROMPTS.md`**,
    avec le hash du commit. C'est le seul endroit où se suit l'avancement.
    Y reporter aussi les nouveaux écarts, dans « Écarts connus ».
+8. **`git push origin main`.** Sans le demander - voir la règle d'ouverture et de
+   clôture de session plus haut.
 
    > **Le hash s'inscrit dans un commit *suivant*, jamais par `--amend`.** Amender
    > change le hash : le tableau se met alors à désigner un commit qui n'existe
@@ -478,6 +505,11 @@ fonctionne. Lire une valeur n'est pas exécuter un chemin.
    > `L3` et `L4`. Vérification en une ligne, quand un doute existe :
    > `grep -oE '\`[0-9a-f]{7}\`' docs/PROMPTS.md | tr -d '\`' | while read h; do`
    > `git merge-base --is-ancestor $h HEAD || echo "$h orphelin"; done`
+   >
+   > **Amender après avoir inscrit le hash impose de réécrire le tableau.** C'est arrivé
+   > le 2026-08-05 : un `--amend` sur le commit de l'écart 5 (pour recompacter un JSON
+   > reformaté par mégarde) a fait de `d8acdda` un orphelin, et c'est la commande de
+   > vérification ci-dessus qui l'a attrapé - pas moi.
    >
    > **Un seul faux positif attendu : `56ed7a7`.** C'est le commit de l'app **web**, cité
    > sur la fiche du prompt 2 ; il vit dans `CineShelf_old`, pas ici, et il sera donc

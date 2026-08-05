@@ -164,6 +164,46 @@ appliquée au mauvais niveau.
 Un test qui encode une intention fausse est pire qu'un test absent : il transforme le bug
 en comportement attendu, et il faut le remplacer par son contraire. C'est arrivé deux fois.
 
+## Le composant possède la forme, l'écran possède le texte
+
+**Même famille que la règle précédente : une erreur de couche.** Là, c'était le rendu
+confondu avec le modèle ; ici, c'est la copie confondue avec le composant. Et le symptôme
+se ressemble : ça compile, ça s'affiche, et c'est faux à un endroit qu'on ne regarde pas.
+
+`DesignSystem` possède la **géométrie, la typographie, les états, le comportement**. L'écran
+possède **les mots**. Un composant qui porte sa propre copie a l'air plus pratique - un
+appel plus court, rien à passer - et il devient faux dès le deuxième appelant.
+
+**Le cas mesuré, à `I10`.** `StateView` prenait un `case` par situation : `noTitles`,
+`noResults`, `syncFailed`. Le texte vivait donc dans le package. Or la grille des titres a
+**deux** états vides qui demandent deux messages différents - « Ta collection est vide,
+importe un CSV » quand il n'y a rien, « Les filtres ne laissent rien passer » quand 1 284
+titres existent. Le second message est impossible à écrire dans `DesignSystem` : le package
+ne sait pas qu'un filtre est actif, ni lequel, ni combien de titres il masque. Avec
+l'énumération fermée, l'un des deux écrans mentait forcément.
+
+`EmptyState` prend donc `title`, `message`, deux actions et un indice - **des paramètres,
+pas des cas**. Le même composant sert les six écrans du bloc `9a` et les deux états de la
+grille, sans qu'aucun texte n'entre dans le package.
+
+Le test, en une question : **est-ce que deux appelants pourraient légitimement vouloir des
+mots différents ?** Si oui, les mots sont un paramètre. Trois indices qu'on a franchi la
+frontière :
+
+- un `enum` de cas dans `DesignSystem` dont chaque cas correspond à **une situation
+  métier** plutôt qu'à une variante de dessin (`noTitles` est une situation, `.compact` est
+  une variante) ;
+- un composant qui a besoin de savoir **pourquoi** on l'affiche, pas seulement quoi
+  afficher ;
+- une chaîne de caractères en français dans `Packages/`, hors d'une preview ou d'une
+  planche du catalogue.
+
+**Le corollaire, et il coupe dans l'autre sens.** L'écran ne possède pas la forme : il ne
+choisit pas un rembourrage, une taille de police ni une couleur. `PosterCardModel` est la
+frontière correcte - l'écran remplit des champs nommés, le composant décide de tout le
+reste. Un écran qui passe une `CGFloat` de marge à un composant a franchi la même frontière
+dans le sens inverse, et c'est ainsi qu'on obtient deux écrans qui ne s'alignent plus.
+
 ## Une garde à la compilation se prouve en cassant le build
 
 Quand un filet est une **erreur de compilation** — une ambiguïté de nom, un `switch`

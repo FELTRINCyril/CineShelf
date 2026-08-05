@@ -4732,3 +4732,109 @@ quatre cas appartiennent à `V10` et `V8`. Et la porte de bloc, qui rend les éc
 constatables, ne mord que si on ouvre le catalogue — ce que je n'ai pas pu faire.
 
 **Suite : `V2`**, seule — la première rencontre du pipeline d'images avec l'interface.
+
+---
+
+## 2026-08-05 (5) — `V2` : quatre sessions sans qu'une seule affiche s'affiche
+
+**Une règle d'abord.** « Le composant possède la forme, l'écran possède le texte » entre dans
+`CLAUDE.md`, juste après « les documents de design contraignent le rendu, jamais le modèle » :
+même famille, même symptôme — ça compile, ça s'affiche, et c'est faux là où on ne regarde pas.
+
+### Le défaut, et pourquoi rien ne pouvait le montrer
+
+**`MediaFill` chargeait ses images avec `AsyncImage(url:)`.** C'est le point de passage des
+sept composants d'image de la nouvelle direction — tuile d'affiche, personne, collection,
+galerie, accueil, fiche, recherche. Or `AssetURL` fabrique des URL au schéma interne
+`cineshelf-asset://`, une convention qui porte un `UUID` du modèle jusqu'au `ThumbnailCache`.
+
+Sonde, hors dépôt, trois minutes :
+
+```
+URLSession.shared.dataTask(with: "cineshelf-asset://<uuid>?preset=card")
+-> ERREUR : unsupported URL
+```
+
+`phase.image` était donc **toujours `nil`**. Depuis `I2`, c'est-à-dire depuis quatre sessions,
+**aucune affiche ne s'est jamais affichée** : tout rendait l'aplat de fond.
+
+**Ce qui a permis à ça de durer est plus intéressant que le défaut.** Les échantillons du
+catalogue ont `imageURL: nil` — une tuile **sans** image y rend exactement le même aplat
+qu'une tuile dont le chargement **échoue**. Deux causes, une apparence. La porte de bloc
+validait la forme d'une tuile vide et ne pouvait rien dire du chargement ; le journal notait
+« lancement réel sur Mac, processus vivant », ce qui était vrai et ne prouvait rien.
+`MediaThumbnail`, lui, lisait bien `\.imageLoader` depuis le prompt 11 — c'est en réécrivant
+la direction que le chemin s'est perdu, et le composant correct est resté là, sans appelant.
+
+**Le test verrouille la propriété, pas le composant** : une URL d'asset n'est pas chargeable
+par le réseau. Un test de rendu n'aurait rien attrapé, puisque le rendu était « correct » : un
+aplat.
+
+### Le reste de `V2`
+
+**`MediaRepository` gagne le rattachement et le recadrage.** `attach` en **trois surcharges**
+— titre, personne, collection — plutôt qu'une méthode à trois optionnels : l'invariante
+`hasExactlyOneOwner` devient impossible à violer depuis l'appelant. `setSingle` remplace au
+lieu d'ajouter sur `.primary`, `.portrait` et `.backdrop`, sans quoi deux pièces jointes
+rendraient `TitleFormat.primaryAsset` indéterminé — une jaquette qui change d'un lancement à
+l'autre. `setCrop` cherche avant d'insérer : une ligne par couple (média, contexte).
+
+**Les quatre gestes d'import convergent sur un seul chemin.** PhotosPicker, `.fileImporter`,
+dépôt et collage rendent tous des octets, et `MediaImportService` fait le reste une fois pour
+les quatre. Le dédoublonnage est gratuit et global — même image depuis Photos puis depuis le
+Finder, un seul asset — et le rapport **distingue** l'ajout du doublon retrouvé, sans quoi
+l'écran annoncerait des images que l'utilisateur n'a pas ajoutées.
+
+**Le bandeau de `I10` a trouvé son premier appelant réel** : un import est bien une
+interruption qui laisse le contenu utilisable. Il nomme les fichiers refusés un par un — « 2
+refusées » ne dit pas quoi refaire.
+
+### Les deux questions posées, répondues
+
+**1. `CropContext.hero` est-il enfin emprunté ? Oui.** `DemoCatalog` crée un `backdrop` sur un
+titre sur quatre et des `MediaCrop` réels pour `card` et `hero`. Aucun n'est neutre : un
+`50/50/100` serait indistinguable du repli, donc ne prouverait rien. `DemoCropCoverageTests`
+refuse que l'un des chemins redevienne mort, **et** que le repli cesse d'être majoritaire —
+`V0 bis` l'a tranché, il doit rester visible.
+
+**2. Le préchargement trouve-t-il son foyer ici ? Non, et j'ai trouvé pourquoi c'est plus
+gênant que prévu.** Un import est une image immédiate, et la galerie d'un titre compte une
+poignée d'entrées : rien à précharger. Mais en cherchant le foyer, un défaut d'API est
+apparu — `PrefetchWindow.indices(visible:count:)` demande une `Range<Int>`, et **aucun
+conteneur paresseux de SwiftUI ne rapporte cette tranche**. `LazyVGrid` ne notifie qu'élément
+par élément, par `onAppear`. `V3` devra soit ajouter une variante pilotée par `onAppear`, soit
+dériver la tranche d'un `ScrollPosition`. Inscrit.
+
+| Commande | Résultat |
+|---|---|
+| Sonde `URLSession` sur le schéma d'asset | ✅ « unsupported URL » — le défaut prouvé, puis retirée |
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **461 · 64 · 54** |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **96 tests** (+14) |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 265 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| **`CropEditor`** | ❌ **non livré** — voir plus bas |
+| **Les quatre gestes essayés à la main** | ❌ **non essayés** — le code compile et le service est testé de bout en bout, mais je n'ai déposé aucun fichier, collé aucune image, ouvert aucun sélecteur. `PhotosPicker` en particulier n'a jamais été présenté |
+| **L'affiche vue à l'écran** | ❌ **non vérifié** — c'est la correction la plus importante de la session et je ne peux pas la constater : `screencapture` reste refusé sur cette machine. Le chemin est prouvé par la sonde et par le test, pas par l'œil |
+| **Le préchargement en situation** | ❌ toujours aucun appelant de vue |
+
+**Un troisième défaut, trouvé par le build iOS.** `onPasteCommand` est **indisponible sur
+iOS** : le build macOS passait, le build iOS non. C'est bien ainsi — sur iOS le collage passe
+par le menu d'édition du système, pas par un raccourci capté par une vue. Le geste reste offert
+sur les deux plateformes, par deux chemins : `⌘V` capté sur Mac, et une action explicite du
+déclencheur sur iOS, qui lit `UIPasteboard`. Un `PasteButton` aurait uniformisé au prix d'un
+bouton visible que la direction ne dessine nulle part. **La routine des deux builds a servi** —
+c'est la troisième fois cette journée qu'un build de plateforme attrape ce qu'un seul aurait
+laissé passer.
+
+**`CropEditor` n'est pas livré, et `V2` est donc partielle.** L'écriture des `MediaCrop`
+existe, est testée, et la fiche les applique — ce qui manque est le **geste** : l'écran qui
+laisse déplacer et agrandir une image dans son cadre, avec ses deux ratios. C'est un écran à
+lui seul, et je préfère le dire que le bâcler à la fin d'une tâche déjà large. Inscrit en
+`V2 bis`.
+
+**Ce que `V2` ne prouve pas.** Que les images s'affichent. Le chemin est correct — sonde,
+test, build — mais la seule vérification qui compte pour une image est de la voir, et elle
+reste à faire en ouvrant l'app.
+
+**Suite : `V2 bis`** (`CropEditor`), ou `V3`.

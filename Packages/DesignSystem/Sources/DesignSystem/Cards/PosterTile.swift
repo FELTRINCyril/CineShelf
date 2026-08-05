@@ -111,6 +111,7 @@ public struct PosterTile: View {
     private var image: some View {
         MediaFill(
             imageURL: model.imageURL,
+            blurHash: model.blurHash,
             crop: model.crop,
             targetAspect: layout.aspectRatio,
             background: Color.bgSurface
@@ -164,6 +165,33 @@ public struct PosterTile: View {
 
 // MARK: - Remplissage et recadrage
 
+// MARK: - V2 · MediaFill passe par l'`ImageLoader` injecté, plus par `AsyncImage`
+//
+// **C'était le défaut le plus grave du dépôt, et il était muet depuis quatre sessions.**
+// `MediaFill` chargeait ses images avec `AsyncImage(url:)`, donc par `URLSession`. Or les
+// URL d'assets de l'app portent le schéma **`cineshelf-asset://`**, une convention interne
+// que `AssetURL` fabrique pour porter un `UUID` du modèle jusqu'au `ThumbnailCache`.
+//
+// Mesuré par une sonde le 2026-08-05 :
+//
+//     URLSession.shared.dataTask(with: "cineshelf-asset://<uuid>?preset=card")
+//     -> ERREUR : unsupported URL
+//
+// `phase.image` était donc **toujours `nil`**, et les sept appelants de `MediaFill` — la
+// tuile d'affiche, la personne, la collection, la galerie, l'accueil, la fiche, la recherche
+// — rendaient un aplat. **Aucune affiche ne s'est jamais affichée dans la nouvelle
+// direction.**
+//
+// **Pourquoi personne ne l'a vu, et c'est la leçon.** Les échantillons du catalogue ont
+// `imageURL: nil` : une tuile sans image y rend le même aplat qu'une tuile dont le
+// chargement échoue. Deux causes différentes, une apparence identique — la planche validait
+// la forme d'une tuile vide et ne pouvait pas révéler la panne. `MediaThumbnail`, lui, lisait
+// bien `\.imageLoader` depuis le prompt 11 ; c'est en réécrivant la direction que le chemin
+// s'est perdu.
+//
+// La séquence est désormais celle de `docs/04` §4 : **blurhash → cache disque → vignette
+// générée**, et c'est `MediaImageLoader` côté app qui la sert.
+
 /// Une image qui **remplit** son cadre en respectant un recadrage, sans jamais laisser de
 /// bande.
 ///
@@ -176,43 +204,69 @@ public struct PosterTile: View {
 /// étirée dans une bande 16:9.
 public struct MediaFill: View {
     let imageURL: URL?
+    let blurHash: String?
     let crop: MediaCropDisplay
     let targetAspect: CGFloat
     let background: Color
 
+    @Environment(\.imageLoader) private var loader
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var loaded: Image?
+
     public init(
         imageURL: URL?,
+        blurHash: String? = nil,
         crop: MediaCropDisplay,
         targetAspect: CGFloat,
         background: Color
     ) {
         self.imageURL = imageURL
+        self.blurHash = blurHash
         self.crop = crop
         self.targetAspect = targetAspect
         self.background = background
     }
 
     public var body: some View {
-        background.overlay {
-            if let imageURL {
-                AsyncImage(url: imageURL) { phase in
-                    if let image = phase.image {
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .scaleEffect(crop.zoom)
-                            // `UnitPoint` de recadrage : `MediaCropDisplay.focus` est déjà
-                            // exprimé en pourcentage du jeu restant (`L4`), donc il se
-                            // passe tel quel à l'alignement.
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
-                    } else {
-                        // Ni indicateur ni symbole : un aplat. Un spinner sur une grille de
-                        // deux cents affiches ferait clignoter tout l'écran au défilement,
-                        // et le squelette de chargement est un composant à part (`I4`).
-                        Color.clear
-                    }
-                }
+        placeholder.overlay {
+            if let loaded {
+                loaded
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .scaleEffect(crop.zoom)
+                    // `UnitPoint` de recadrage : `MediaCropDisplay.focus` est déjà exprimé
+                    // en pourcentage du jeu restant (`L4`), donc il se passe tel quel à
+                    // l'alignement.
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+                    .transition(reduceMotion ? .identity : .opacity)
             }
+        }
+        .dsAnimation(Motion.base, value: loaded == nil)
+        .task(id: imageURL) { await load() }
+    }
+
+    /// Ce qu'on voit avant l'image : le blurhash s'il existe, l'aplat sinon.
+    ///
+    /// **Ni indicateur ni symbole.** Un spinner sur une grille de deux cents affiches ferait
+    /// clignoter tout l'écran au défilement, et le squelette de chargement est un composant à
+    /// part (`I4`).
+    @ViewBuilder private var placeholder: some View {
+        if let blurHash, let gradient = BlurHashPreview.gradient(from: blurHash) {
+            background.overlay { gradient }
+        } else {
+            background
+        }
+    }
+
+    private func load() async {
+        loaded = nil
+        guard let imageURL else { return }
+        do {
+            let image = try await loader(imageURL)
+            guard !Task.isCancelled else { return }
+            loaded = image
+        } catch {
+            // Un échec laisse le placeholder : c'est déjà l'aplat que la direction demande.
         }
     }
 

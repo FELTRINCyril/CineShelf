@@ -61,6 +61,8 @@ struct HomeView: View {
         ZStack(alignment: .bottomLeading) {
             MediaFill(
                 imageURL: AssetURL.backdrop(for: title) ?? AssetURL.poster(for: title),
+                blurHash: (TitleFormat.backdropAsset(of: title)
+                    ?? TitleFormat.primaryAsset(of: title))?.blurHash,
                 crop: CropDisplay.of(
                     TitleFormat.backdropAsset(of: title) ?? TitleFormat.primaryAsset(of: title),
                     in: TitleFormat.backdropAsset(of: title) == nil ? .card : .hero),

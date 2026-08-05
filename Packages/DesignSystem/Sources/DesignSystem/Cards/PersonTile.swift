@@ -85,6 +85,7 @@ public struct PersonTile: View {
             } else {
                 MediaFill(
                     imageURL: model.imageURL,
+                    blurHash: model.blurHash,
                     crop: model.crop,
                     targetAspect: 1,
                     background: Color.bgSurface

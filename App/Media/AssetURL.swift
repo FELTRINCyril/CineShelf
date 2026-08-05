@@ -17,16 +17,6 @@ enum AssetURL {
 
     static let scheme = "cineshelf-asset"
 
-    /// L'URL de la jaquette d'un titre, ou `nil` s'il n'en a pas.
-    static func poster(for title: Title) -> URL? {
-        TitleFormat.primaryAsset(of: title).map { url(for: $0.id, preset: .card) }
-    }
-
-    /// L'URL de l'image d'en-tête d'un titre.
-    static func backdrop(for title: Title) -> URL? {
-        TitleFormat.backdropAsset(of: title).map { url(for: $0.id, preset: .hero) }
-    }
-
     static func url(for assetID: UUID, preset: AssetPreset) -> URL {
         var components = URLComponents()
         components.scheme = scheme

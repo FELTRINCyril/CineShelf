@@ -53,6 +53,7 @@ public struct GalleryThumb: View {
         } label: {
             MediaFill(
                 imageURL: model.imageURL,
+                blurHash: model.blurHash,
                 crop: model.crop,
                 targetAspect: model.aspect,
                 background: Color.bgSurface

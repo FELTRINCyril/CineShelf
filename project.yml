@@ -167,6 +167,15 @@ targets:
       # rencontrent, donc le seul depuis lequel un test peut affirmer qu'ils
       # s'accordent. Il n'importe aucune vue, comme les fichiers ci-dessus.
       - App/Preferences/DisplayVocabulary.swift
+      # La convention d'URL d'asset : le schema `cineshelf-asset://` n'est pas
+      # chargeable par le reseau, et c'est le piege qui a rendu toutes les affiches
+      # invisibles pendant quatre sessions. Le test verrouille la propriete, donc il
+      # a besoin du type. Aucune vue ici non plus.
+      - App/Media/AssetURL.swift
+      # Le service d'import : il n'importe que CineShelfCore et MediaKit, aucune vue.
+      # C'est le point de convergence des quatre gestes d'import, donc le seul endroit
+      # ou le dedoublonnage et le rattachement se testent.
+      - App/Media/MediaImportService.swift
     dependencies:
       - package: CineShelfCore
         product: CineShelfCore

@@ -4527,3 +4527,114 @@ et je l'ai enfreinte le matin même où je citais son corollaire.
 
 **La seule preuve qui compte pour cette correction est le run lui-même**, puisque la panne
 n'est pas reproductible localement.
+
+---
+
+## 2026-08-05 (3) — La relecture des écarts, shellcheck, et `L1 bis`
+
+**`shellcheck` installé, et le seul script du dépôt est propre.** `brew install shellcheck`
+puis `shellcheck scripts/ci-destination.sh` : **zéro violation**. Un script de CI jamais
+linté était bien le seul endroit du dépôt sans filet ; il coûtait une commande, pas une
+correction.
+
+### La relecture des 86 écarts — neuf lignes ne disaient plus la vérité
+
+| Verdict | Compte |
+|---|---:|
+| Lignes relues | **86** |
+| **Résolues**, trouvées par cette relecture | **2** |
+| Résolues aux sessions précédentes, déjà rayées | 6 |
+| **Devenues sans objet**, retirées | **3** |
+| **Toujours valables** | **75** |
+| dont **destination périmée**, corrigée | **4** |
+
+**Les deux résolues qui traînaient.** « Grille non navigable au clavier sur Mac » nommait
+`PosterCard` et son `onTapGesture` — mais `TitlesGrid` pose des `PosterTile` depuis `V0 bis`,
+et `PosterTile` est un `Button` avec `.focusable(action != nil)`. Et « Réalisation,
+Distribution et Ajouté le ne s'importent pas encore » : `L11b` a livré `attachCredits` pour
+les deux rôles, `added_at` restant ignoré volontairement.
+
+**Les trois sans objet nommaient des symboles disparus** : `Typo.sectionTitle`, passé dans
+`Legacy/`, et deux lignes qui décrivaient `Sidebar.swift`, supprimée par `V0`. Leur motif est
+conservé sous le tableau — un retrait sans trace se relit comme un oubli.
+
+**Les quatre destinations périmées sont l'angle mort que je n'avais pas vu.** La ligne est
+vraie, mais sa colonne « Où ça se règle » pointe vers rien : deux vers « 11 bis », un
+découpage par numéro de prompt remplacé par les tâches `V` ; une vers `L11b`, close — elle a
+bien livré une clé de doublon, **mais à l'écriture seulement**, l'aperçu ne compte toujours
+rien ; une vers `L5`, close aussi, donc les vignettes Spotlight ne sont plus bloquées, juste
+pas faites. **Un écart valable dont le pointeur est mort est aussi trompeur qu'un écart
+périmé**, et c'est plus fréquent.
+
+Le motif utile pour la prochaine fois : **les lignes qui rouillent sont celles qui nomment un
+symbole**. Une ligne de doctrine ne rouille pas. Commencer par un `grep` de chaque symbole
+cité, plutôt que relire dans l'ordre. Inscrit dans `CLAUDE.md`, à faire à chaque fin de
+palier.
+
+### `L1 bis` — les deux moitiés
+
+**Le magasin de préférences.** `DisplayPreferenceStore` vit dans `CineShelfCore`, avec les
+huit contextes **de la v1** — `movies`, `actors`, `collections`, `social`, `home_movies`,
+`home_actors`, `home_collections`, `home_social`. Le jeu que portait l'intégration comptait
+bien huit entrées mais inventait `gallery`, `bookmarks`, `genre`, `filmography` et perdait
+les quatre rails d'accueil : ce n'était pas une reprise. Charge utile `layout` + `size`
+seulement.
+
+*Une collision de clés trouvée avant de livrer.* Trois jeux de clés ont existé pour la même
+préférence : `display.` au prompt 11, `poster.` à `I1`, et celui-ci. **Deux se recouvrent** —
+`CardDisplaySetting` et `DisplayPreference` ont les mêmes noms de champs *et* les mêmes
+`rawValue`, et `collections` appartient aux trois jeux de contextes. Un
+`display.<profil>.collections` laissé par un ancien build se serait décodé **sans erreur**.
+Les valeurs auraient été équivalentes par chance ; le préfixe est donc versionné en
+`display.v1.`, qui dit quel vocabulaire la valeur parle.
+
+*Le test d'accord des vocabulaires* vit dans la cible de test de l'app, le seul endroit qui
+voit les deux paquets. Il assène quatre choses qu'aucun `switch` ne peut porter : les huit
+`rawValue` persistés, la bijection dans les **deux** sens (deux tables exhaustives peuvent se
+contredire), l'égalité des `rawValue` de disposition et de taille — ce qui rend le repli
+`?? .portrait` du pont inatteignable —, et l'égalité des **défauts** des deux côtés.
+
+**Le filtre de galerie, et une mesure qui contredit la fiche.** La fiche annonçait que
+« orphelin » écrit `asset.attachments?.isEmpty ?? true` ferait sauter le budget de
+vérification de types, et demandait de trancher par la mesure. La sonde a trouvé autre chose,
+et de pire :
+
+| Route | Compile ? | Type-check | Au `fetch` |
+|---|---|---|---|
+| `#Predicate<MediaAsset>` sur `attachments` | **oui** | **sous 200 ms** | **tue le processus** |
+| `MediaAttachment` puis différence d'ensembles | oui | négligeable | 50 orphelins sur 50 attendus |
+
+`Keypath containing KVC aggregate where there shouldn't be one; failed to handle
+attachments.@count`, puis **signal 6**. Le `do/catch` de la sonde n'a jamais été atteint. Le
+piège annoncé ne se reproduit pas ; celui qui existe est invisible à la compilation, au lint
+et au type-check. **C'est le cas le plus dur de la règle « tout `#Predicate` passe par le
+magasin »** — et le seul de ce dépôt où la preuve d'un défaut ne peut pas devenir un test,
+puisque le test tuerait la suite au lieu d'échouer.
+
+*Le mélange à graine stable* utilise un SplitMix64 écrit à la main : la bibliothèque standard
+n'a pas de générateur reproductible, et c'est la graine qui est la fonctionnalité.
+
+**Une affirmation de ma part corrigée par ma propre sonde.** J'avais écrit « ne compile pas »
+dans un commentaire avant de vérifier. C'est exactement l'affirmation déguisée en constat que
+`CLAUDE.md` interdit, et la sonde l'a démentie en trois minutes.
+
+| Commande | Résultat |
+|---|---|
+| `brew install shellcheck` puis `shellcheck scripts/ci-destination.sh` | ✅ **0 violation** |
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **461 · 64 · 54** (+11 sur Core) |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **75 tests** (+8) |
+| `xcodebuild test -scheme CineShelfUITests -destination iOS Simulator` | ✅ **1 test** |
+| `xcodebuild test -scheme DesignSystemCatalog` · macOS et iOS | ✅ **65** et **64** |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 254 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| Sonde des deux routes d'orphelin, via le magasin | ✅ mesurée, puis retirée |
+| **Budget de requête sur une galerie de 10 000 médias** | ❌ **non mesuré** — les tests portent sur des centaines de lignes, pas des milliers. La route retenue fait deux `fetch` complets pour les orphelins, ce qui est linéaire et non indexé |
+| **Le filtre et le magasin en situation** | ❌ **non vérifié** — aucune vue ne les appelle : la galerie est `V3`, et le magasin n'est branché que sur la grille des titres |
+
+**Ce que `L1 bis` ne prouve pas.** La galerie n'existe pas encore comme écran, donc le filtre
+est exercé par ses tests et par rien d'autre. Et la différence d'ensembles des orphelins
+charge **tous** les identifiants de médias : correct, mesuré juste sur des centaines, non
+mesuré sur des dizaines de milliers. Inscrit aux écarts.
+
+**Suite : `I10`**, la dernière du palier 2 à ne dépendre de rien.

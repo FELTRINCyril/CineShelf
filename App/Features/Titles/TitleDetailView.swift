@@ -33,6 +33,8 @@ struct TitleDetailView: View {
     @State private var isEditorPresented = false
     @State private var importReport: MediaImportOutcome?
     @State private var croppedAsset: MediaAsset?
+    /// L'index de l'image ouverte dans la visionneuse, `nil` quand elle est fermée.
+    @State private var viewerIndex: Int?
 
     init(titleID: UUID) {
         self.titleID = titleID
@@ -86,6 +88,9 @@ struct TitleDetailView: View {
         .sheet(item: $croppedAsset) { asset in
             CropEditor(asset: asset, contexts: [.hero, .card])
         }
+        // La visionneuse de `V3`, sur la galerie du titre. C'est par elle que les images de
+        // galerie deviennent recadrables : jusqu'ici seul le hero l'était.
+        .mediaViewer(index: $viewerIndex, assets: galleryAssets(of: title)) { croppedAsset = $0 }
         .overlay(alignment: .bottom) { MediaImportBanner(report: $importReport) }
     }
 
@@ -290,30 +295,37 @@ struct TitleDetailView: View {
         }
     }
 
+    /// La galerie du titre — complétée par `V3`.
+    ///
+    /// **Trois défauts corrigés d'un coup, et ils venaient tous de la même cause** : la section
+    /// avait été écrite avant qu'un écran de galerie existe, donc elle imitait une grille.
+    ///
+    /// 1. Elle rendait ses images en `PosterTile` **paysage**, c'est-à-dire dans un cadre 16:9
+    ///    imposé : un scan de dos de boîtier y perdait le haut et le bas. Les images de galerie
+    ///    ont des proportions mêlées, et c'est `GalleryThumb` qui les respecte (`I3`) ;
+    /// 2. elle en montrait **cinq au plus**, sans dire qu'il en existait d'autres ni offrir de
+    ///    les voir. Le compte affiché disait « 12 images » et la rangée en montrait cinq ;
+    /// 3. elles n'étaient **pas cliquables** : ni visionneuse, ni recadrage. C'est l'écart
+    ///    « `CropEditor` n'est atteignable que depuis la fiche, et sur une seule image ».
+    ///
+    /// Le rail défile donc, et un clic ouvre la visionneuse — d'où le recadrage est atteignable.
+    /// Relevé sur l'addendum 2 bloc `13b`, qui nomme le cran : « second rail (galerie du titre,
+    /// paysage 16:9, `poster.l`) ». Le cran est repris, le **cadre imposé ne l'est pas** : c'est
+    /// la largeur qui vaut `poster.l`, la hauteur restant celle de l'image.
     @ViewBuilder
     private func gallery(of title: Title) -> some View {
-        let images = galleryAttachments(of: title)
-        if !images.isEmpty {
-            VStack(alignment: .leading, spacing: Space.s3) {
-                Text("Galerie · \(images.count) images")
-                    .labelStyle()
-                    .foregroundStyle(Color.textPrimary)
-                HStack(spacing: Space.s3) {
-                    ForEach(Array(images.prefix(5)), id: \.persistentModelID) { attachment in
-                        PosterTile(
-                            PosterCardModel(
-                                id: attachment.id.uuidString,
-                                title: title.name,
-                                imageURL: attachment.asset.map { AssetURL.url(for: $0.id, preset: .card) },
-                                crop: CropDisplay.of(attachment.asset, in: .card)
-                            ),
-                            layout: .landscape,
-                            scale: .l
-                        )
+        let assets = galleryAssets(of: title)
+        if !assets.isEmpty {
+            TileRail("Galerie · \(assets.count) images") {
+                ForEach(assets, id: \.persistentModelID) { asset in
+                    GalleryThumb(
+                        GalleryFormat.thumbnail(for: asset, preset: .card),
+                        width: PosterScale.l.width
+                    ) {
+                        viewerIndex = assets.firstIndex { $0.id == asset.id }
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -342,10 +354,17 @@ struct TitleDetailView: View {
 
     // MARK: Aides
 
-    private func galleryAttachments(of title: Title) -> [MediaAttachment] {
-        (title.attachments ?? [])
+    /// Les médias de la galerie du titre, dans l'ordre voulu.
+    ///
+    /// Rend des `MediaAsset` et non des `MediaAttachment` : la visionneuse et `GalleryFormat`
+    /// travaillent sur le média, et c'est la pièce jointe qui porte l'ordre. Faire la
+    /// conversion ici évite que chaque appelant la refasse — et qu'un `compactMap` oublié
+    /// laisse passer une pièce jointe sans média, qui rendrait une tuile vide.
+    private func galleryAssets(of title: Title?) -> [MediaAsset] {
+        (title?.attachments ?? [])
             .filter { $0.slot == .gallery }
             .sorted { $0.orderIndex < $1.orderIndex }
+            .compactMap(\.asset)
     }
 
     private func currentFlag(for title: Title) -> TitleFlag? {

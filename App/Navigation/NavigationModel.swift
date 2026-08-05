@@ -44,6 +44,15 @@ final class NavigationModel {
     /// dans l'instantané ci-dessous.
     var titleFilter = TitleFilter()
 
+    /// Les filtres de la galerie — source et graine de mélange.
+    ///
+    /// Ici pour la même raison que `titleFilter`, et `GalleryFilter` a été rendu `Codable` par
+    /// `L1 bis` dans cette intention : « une galerie qui perd son filtre au relancement est un
+    /// filtre qu'on ne pose pas ». La **graine** traverse donc aussi le redémarrage, ce qui est
+    /// le sens même d'une graine stable — un mélange qui se rejouerait au lancement ne serait
+    /// pas un mélange mémorisé.
+    var galleryFilter = GalleryFilter()
+
     /// Demande de création en attente, posée par ⌘N et consommée par la vue.
     ///
     /// La barre de menus n'a ni `ModelContext` ni bibliothèque courante : elle
@@ -170,6 +179,7 @@ extension NavigationModel {
         var paths: [String: [AppRoute]]
         var isInspectorPresented: Bool
         var titleFilter: TitleFilter?
+        var galleryFilter: GalleryFilter?
     }
 
     /// La restauration est **par profil** : deux profils sur le même Mac n'ont
@@ -183,7 +193,8 @@ extension NavigationModel {
             section: section,
             paths: Dictionary(uniqueKeysWithValues: paths.map { ($0.key.storageKey, $0.value) }),
             isInspectorPresented: isInspectorPresented,
-            titleFilter: titleFilter
+            titleFilter: titleFilter,
+            galleryFilter: galleryFilter
         )
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         defaults.set(data, forKey: Self.storageKey(profileID: profileID))
@@ -213,6 +224,7 @@ extension NavigationModel {
         )
         isInspectorPresented = snapshot.isInspectorPresented
         titleFilter = snapshot.titleFilter ?? TitleFilter()
+        galleryFilter = snapshot.galleryFilter ?? GalleryFilter()
     }
 
     private func reset() {
@@ -220,5 +232,6 @@ extension NavigationModel {
         paths = [:]
         isInspectorPresented = false
         titleFilter = TitleFilter()
+        galleryFilter = GalleryFilter()
     }
 }

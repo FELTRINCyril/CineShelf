@@ -15,7 +15,10 @@ public enum BlurHash {
     /// taille, les coefficients ne bougent plus et le coût grimpe en O(pixels).
     static let samplingSide = 64
 
-    private static let alphabet = Array(
+    /// Interne et non privé : le décodeur de couleur dominante vit dans un autre fichier,
+    /// et il doit lire le **même** alphabet — un second exemplaire recopié serait la faute
+    /// de frappe qui rend une couleur plausible mais fausse.
+    static let alphabet = Array(
         "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~"
     )
 

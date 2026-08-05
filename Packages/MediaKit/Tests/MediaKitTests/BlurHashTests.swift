@@ -123,3 +123,60 @@ private enum Base83 {
         return value
     }
 }
+
+// MARK: - L5 · La couleur dominante
+
+@Suite("Couleur dominante d'un blurhash")
+struct BlurHashDominantColorTests {
+
+    @Test("La couleur dominante d'une image uniforme est cette couleur")
+    func dominantColourOfAFlatImageIsThatColour() throws {
+        // Un aplat n'a aucune structure : toutes ses composantes alternantes sont nulles, et
+        // la composante continue vaut exactement la couleur. C'est le seul cas où l'on peut
+        // asséner une égalité, et c'est pour ça qu'il sert de test d'ancrage.
+        let image = try TestImage.makeSolid(red: 0.2, green: 0.6, blue: 0.9)
+        let hash = try BlurHash.encode(image)
+
+        let colour = try #require(BlurHash.dominantColor(of: hash))
+
+        // Tolérance d'un cran de quantification : la composante continue est stockée sur
+        // 8 bits par canal, donc 1/255 est le pas, et l'échantillonnage à 64 px du côté
+        // long ajoute son propre arrondi.
+        #expect(abs(colour.red - 0.2) < 0.02)
+        #expect(abs(colour.green - 0.6) < 0.02)
+        #expect(abs(colour.blue - 0.9) < 0.02)
+    }
+
+    @Test("La couleur ne lit que la composante continue, pas la structure")
+    func dominantColourIgnoresTheAlternatingComponents() throws {
+        let image = try TestImage.makeSolid(red: 0.5, green: 0.5, blue: 0.5)
+        let hash = try BlurHash.encode(image)
+
+        // Les six premiers caractères portent la taille, le maximum et la composante
+        // continue. Tout ce qui suit décrit la structure : le remplacer ne doit rien changer
+        // à la couleur.
+        let truncated = String(hash.prefix(6))
+
+        #expect(BlurHash.dominantColor(of: truncated) == BlurHash.dominantColor(of: hash))
+    }
+
+    @Test("Une chaîne inexploitable ne rend pas de couleur de secours")
+    func unusableHashesYieldNil() {
+        // Rendre nil plutôt qu'un gris : fabriquer une couleur ici rendrait un hash corrompu
+        // indistinguable d'une image réellement grise, donc impossible à diagnostiquer.
+        #expect(BlurHash.dominantColor(of: "") == nil)
+        #expect(BlurHash.dominantColor(of: "L6PZf") == nil, "cinq caractères, un de trop peu")
+        // « I » et « l » n'appartiennent pas à l'alphabet base 83 aux positions utiles.
+        #expect(BlurHash.dominantColor(of: "L6PZ f") == nil, "espace hors alphabet")
+    }
+
+    @Test("Un blurhash réel se décode en une couleur plausible")
+    func realHashDecodesToSomethingPlausible() throws {
+        // Le hash utilisé par les données de démonstration du catalogue.
+        let colour = try #require(BlurHash.dominantColor(of: "L6PZfSjE.A"))
+
+        #expect((0...1).contains(colour.red))
+        #expect((0...1).contains(colour.green))
+        #expect((0...1).contains(colour.blue))
+    }
+}

@@ -204,6 +204,44 @@ frontière correcte - l'écran remplit des champs nommés, le composant décide 
 reste. Un écran qui passe une `CGFloat` de marge à un composant a franchi la même frontière
 dans le sens inverse, et c'est ainsi qu'on obtient deux écrans qui ne s'alignent plus.
 
+## Deux états qui rendent la même chose rendent toute porte aveugle
+
+**Une porte d'acceptation ne voit que ce que ses entrées font varier.** Si l'absence et
+l'échec produisent le même pixel, la porte est aveugle sur les deux - et elle continue de
+passer au vert, ce qui est pire que de ne pas exister : on la croit.
+
+**Mesuré, et le coût était de quatre sessions.** Les échantillons du catalogue avaient
+`imageURL: nil`. Une tuile **sans** image et une tuile dont le chargement **échoue**
+rendaient donc exactement le même aplat de fond. Pendant ce temps `MediaFill` chargeait par
+`AsyncImage`, incapable de résoudre le schéma interne `cineshelf-asset://` — donc **aucune
+affiche ne s'est affichée depuis `I2`**, sur la grille, les rails, le hero, la fiche et la
+recherche. Le catalogue validait la forme d'une tuile vide et le journal notait « lancement
+réel sur Mac, processus vivant » : les deux étaient vrais, aucun ne prouvait quoi que ce
+soit.
+
+**La règle : tout échantillon exerce le chemin réel, jamais le cas nul.** Un `nil`, une
+chaîne vide, un tableau vide, une closure qui ne fait rien - ce sont des cas à couvrir *en
+plus*, jamais le cas par défaut d'un échantillon. Le cas nul court-circuite précisément le
+code qu'on cherche à valider.
+
+Le corollaire, quand on ajoute un état : **compter les apparences, pas les états.** Trois
+états qui donnent deux apparences valent deux états pour une porte visuelle. `MediaFill` a
+donc gagné un rendu d'échec - un symbole discret - parce que sans lui « en cours » et « en
+échec » étaient indistinguables, et la porte serait restée à moitié aveugle après
+correction.
+
+Trois questions avant de déclarer une porte utile :
+
+- **qu'est-ce que cet échantillon ne peut pas révéler ?** Si la réponse est « le chargement »
+  sur un composant d'image, la porte ne sert à rien ;
+- **deux états différents donnent-ils deux apparences différentes ?** Sinon en ajouter une ;
+- **le chemin réel est-il emprunté ?** Un `ImageLoader` injecté qui n'est jamais appelé
+  parce qu'aucune URL n'existe est un chemin mort qui a l'air branché.
+
+C'est la même famille que « une propriété invisible depuis l'environnement de test n'est
+protégée que par le lint » : dans les deux cas, la vérification passe au vert sans avoir
+exercé ce qu'elle prétend couvrir.
+
 ## Une garde à la compilation se prouve en cassant le build
 
 Quand un filet est une **erreur de compilation** — une ambiguïté de nom, un `switch`

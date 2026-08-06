@@ -546,6 +546,40 @@ En pratique, à la fin d'une tâche `V` ou `I` : au moins une assertion de non-v
 la tâche dessine. Le tableau de vérification porte alors une ligne verte au lieu d'un « non
 vu », et le « non vu » qui reste ne concerne plus que l'esthétique.
 
+## Une étiquette ne dit rien de ce qui dépend de quoi
+
+**Réordonner un plan d'après une étiquette — rigueur, priorité, taille — ignore le seul
+classement qui ne se discute pas : les dépendances.** Une étiquette décrit une tâche ; une
+dépendance décrit un ordre. Les confondre produit un plan qui a l'air bien rangé et qu'on ne
+peut pas exécuter.
+
+**Mesuré le 2026-08-06**, sur la compression du palier 3. « Les quatre tâches à rigueur
+maximale passent en fin de palier » est une consigne raisonnable — et elle envoyait `L20` et
+`L14` **après** `V6` et `V7`, qui ne se livrent pas sans elles. Le tableau se serait lu comme
+cohérent jusqu'à la première tâche impossible à commencer.
+
+Trois autres erreurs de la même passe ont la même forme — **une propriété affirmée sans être
+vérifiée contre la source** :
+
+- « `V8` est un doublon de `V3` » : `V3` est la galerie, `V8` l'import et l'export. La retirer
+  laissait trois tâches faites sans écran, dont deux à rigueur maximale ;
+- « `L15` est à rigueur maximale dans le palier 3 » : elle est reportée en v1.1, donc absente ;
+- « `L14` est à rigueur maximale » : le classement dit « légère **sauf** la portée du
+  déverrouillage ».
+
+C'est le même motif que **comparer des nombres hors contexte** — 3 colonnes contre 2 sans
+vérifier que les deux blocs rendent la même largeur. Dans les deux cas, une valeur est lue
+correctement et rapprochée d'une autre qui ne parle pas de la même chose.
+
+**Le geste, avant tout réordonnancement : relire la colonne « Ce qu'elle débloque » et les
+« Ne pas livrer sans », pas la colonne « Rigueur ».** Et avant de retirer une ligne : chercher
+ce qui pointe vers elle. `grep -n 'V8' docs/PROMPTS.md` répondait en une seconde — sept écarts
+inscrits y menaient.
+
+Corollaire, et il vaut pour moi : **quand une consigne repose sur une propriété du plan, la
+vérifier avant de l'appliquer, et dire ce qu'on a trouvé.** Appliquer en silence une prémisse
+fausse produit un document faux qui porte une signature de validation.
+
 ## Une règle qui entre ici se propage à ce qui existait avant elle
 
 **Une règle écrite mais jamais propagée ne protège que le code écrit après elle**, et c'est la

@@ -5314,3 +5314,95 @@ allure, deux gestes différents, et deux relevés différents.
 | **Preuve d'échec de la sonde** | ✅ faute historique réinjectée, substitution vérifiée, deux tests rouges, restauration vérifiée |
 | `xcodebuild test -scheme CineShelfUITests` | ❌ **non lancée** — rien de cette session ne touche la navigation, mais ça ne se déduit pas |
 | **Les planches vues à l'œil** | ❌ **non vues** — `screencapture` abandonné. Ce qui a changé : ce n'est plus le seul recours, et les cinq points aveugles de `V3` sont désormais assénés au pixel |
+
+## 2026-08-06 (3) — `L18` : le hero se choisit, et le fil trouve son premier lecteur
+
+### Une étiquette ne dit rien de ce qui dépend de quoi
+
+La règle entre dans `CLAUDE.md`, et son motif est celui de « comparer des nombres hors
+contexte » : **une valeur lue correctement, rapprochée d'une autre qui ne parle pas de la même
+chose.** Réordonner un plan d'après la colonne « Rigueur » ignore le seul classement qui ne se
+discute pas — les dépendances. Le geste ajouté à la routine : avant tout réordonnancement,
+relire « Ce qu'elle débloque » et les « Ne pas livrer sans » ; avant tout retrait, `grep` sur le
+nom de la ligne.
+
+### `HomeSelection` descend de la vue, et le premier test dément mon raisonnement
+
+**Trois raisons de la descendre, et la troisième est la vraie** : pas de test possible dans une
+vue ; la règle n'était pas éditoriale mais une rotation ; et surtout **le widget et l'App Intent
+de `L19` ne peuvent pas importer une vue**. « Prochain à voir » doit rendre le même titre dans
+l'app, dans le widget et dans Siri.
+
+**Le choix éditorial se déduit de ce que l'écran affiche.** Le hero est une image large floutée
+sur toute la hauteur (planche 1, bloc `2a`) : un titre qui en a une passe donc devant, puis
+celui qui a un synopsis, puis le mieux noté. La rotation quotidienne reste, mais **sur les sept
+candidats de tête** — l'accueil change chaque jour sans jamais tomber sur un titre sans image
+tant qu'il en existe un.
+
+**Et le premier test a démenti ma justification du jour.** J'avais écrit le quotient d'époque —
+« minuit UTC change partout au même instant, donc l'app et le widget s'accordent » — et
+l'assertion « le hero ne change pas dans la journée » est tombée : mon instant de référence
+tombe à 22 h 13 UTC, donc « huit heures plus tard » changeait de jour.
+
+Le test avait raison, et pour une raison plus profonde que le calcul : **« stable dans la
+journée » parle de la journée de l'utilisateur.** À UTC−8, minuit UTC tombe à seize heures
+locales — le hero changerait au milieu de l'après-midi. Quant à l'argument du widget, il ne
+tient pas : l'app et son widget tournent sur **le même appareil**, donc dans le même fuseau. Ce
+que l'époque protégeait est un cas qui n'existe pas ; ce qu'elle cassait arrive tous les jours.
+
+**Ce qui a rendu le test capable de le trouver** : avoir pris un instant **quelconque** du jour,
+pas minuit. Un instant rond aurait passé, et laissé le bug.
+
+Curiosité utile : `ActivityFeed.group(_:)`, écrit vingt minutes plus tôt, était **déjà** en
+calendrier local — parce que j'y avais écrit « le fil dit ce qu'on a fait aujourd'hui ». Le bon
+raisonnement était disponible ; je ne l'ai pas appliqué au hero.
+
+### Le fil d'activité — première lecture depuis le prompt 6
+
+`ActivityRecorder` écrit depuis le prompt 6 et **rien n'avait jamais relu** : aucun `fetch`
+d'`ActivityEntry` dans le dépôt avant ce fichier. Une piste d'audit qu'on ne lit jamais est une
+piste d'audit qu'on n'a pas.
+
+**Quatre décisions, chacune avec sa raison :**
+
+- **la fenêtre est posée sur le `fetch`**, pas après. Un `fetch` complet suivi d'un `prefix`
+  matérialiserait tout — 248 ms pour 5 000 objets rendus, mesuré à `L1` ;
+- **un curseur de date, pas un décalage.** Un `offset` se décale dès qu'une entrée s'écrit
+  entre deux pages, et le fil saute une ligne. Sur un journal qui s'écrit en continu, ce n'est
+  pas un cas rare, c'est le cas. Un test le joue ;
+- **le filtre s'applique après le `fetch`**, et c'est assumé : sur une fenêtre de cent lignes la
+  différence n'est pas mesurable, sur la lisibilité si. La conséquence est dite — une fenêtre
+  filtrée peut rendre moins que `limit` ;
+- **`summary` est figé à l'écriture, jamais résolu à la lecture.** C'est ce qui rend lisible
+  l'entrée d'un titre supprimé, c'est-à-dire précisément ce qu'on vient consulter après une
+  suppression.
+
+Une action inconnue dit « Opération », pas un repli plausible : `action` est déjà `nil` sur un
+`rawValue` inconnu, et une piste d'audit dit « je ne sais pas ».
+
+### Les statistiques — trois omissions, toutes comptées
+
+Le fil rouge est : **un chiffre incomplet doit s'annoncer incomplet.** Les titres sans date sont
+omis des décennies (« 0 » se lirait comme une décennie sur un axe), les sans-note omis des
+étoiles (« pas noté » n'est pas une note basse), et **les séries sont hors du total de durée** —
+elles portent `episodeCount` mais aucune durée d'épisode, donc l'estimer produirait un chiffre
+plausible et faux. `runtimeExclusions` rend ce que le total ne couvre pas, pour que l'écran
+puisse le dire.
+
+Les genres, eux, comptent chaque association : la somme dépasse le nombre de titres, ce qui est
+correct pour « combien de drames ai-je ? » et faux pour « quelle part de ma bibliothèque est du
+drame ? ». La seconde n'a pas de réponse honnête tant qu'un titre a plusieurs genres, donc on ne
+la rend pas.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **484 · 85 · 64** (+23 sur Core) |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **115 tests** |
+| `xcodebuild test -scheme DesignSystemCatalog` · macOS et iOS | ✅ **86** et **85** |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 302 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| `xcodebuild test -scheme CineShelfUITests` | ❌ **non lancée** |
+| **Le fil et les statistiques vus à l'écran** | ❌ **aucun écran** — c'est `V5b` (fil) et `V11` (statistiques). `L18` livre les séries, pas les graphiques, et la fiche le dit |

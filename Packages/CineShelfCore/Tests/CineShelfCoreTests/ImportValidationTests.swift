@@ -197,7 +197,7 @@ struct ImportValidatorTests {
     @Test("Une cellule multivaleur dit laquelle de ses valeurs est inconnue")
     func multiValueNamesTheOffendingValue() throws {
         let document = CSVReader().read(
-            csv(header: ["Nom", "Rôles"], rows: [["Villeneuve", "realisation/plombier"]]))
+            csv(header: ["Nom", "Rôles"], rows: [["Villeneuve", "realisation|plombier"]]))
         let columns = ColumnMatcher(schema: .person).analyze(header: document.header)
         let analysis = ImportValidator(schema: .person)
             .analyze(document: document, columns: columns)

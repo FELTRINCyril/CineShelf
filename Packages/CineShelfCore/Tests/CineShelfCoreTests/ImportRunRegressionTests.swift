@@ -76,7 +76,7 @@ struct ImportDuplicateKeyRegressionTests {
         _ = try await fixture.actor.importRows(
             importRows(
                 header: ["Titre", "Distribution"],
-                rows: [["Dune", "Denis Villeneuve/denis villeneuve"]]),
+                rows: [["Dune", "Denis Villeneuve|denis villeneuve"]]),
             fileName: "f.csv", libraryID: fixture.library.id)
 
         #expect(try fixture.people().count == 1)
@@ -224,7 +224,7 @@ struct ImportEnrichmentTests {
         let result = try await actor.importRows(
             importRows(
                 header: ["Titre", "Année", "Genres", "Distribution"],
-                rows: [["Dune", "2021", "sci-fi/thriller", "A B/C D"]]),
+                rows: [["Dune", "2021", "sci-fi|thriller", "A B|C D"]]),
             fileName: "2.csv", libraryID: fixture.library.id)
 
         #expect(result.completedTitleIDs.count == 1)
@@ -241,7 +241,7 @@ struct ImportEnrichmentTests {
         let actor = fixture.actor
         let rows = importRows(
             header: ["Titre", "Année", "Genres", "Distribution"],
-            rows: [["Dune", "2021", "sci-fi/thriller", "A B/C D"]])
+            rows: [["Dune", "2021", "sci-fi|thriller", "A B|C D"]])
 
         _ = try await actor.importRows(rows, fileName: "1.csv", libraryID: fixture.library.id)
         let second = try await actor.importRows(rows, fileName: "2.csv", libraryID: fixture.library.id)
@@ -269,7 +269,7 @@ struct ImportEnrichmentTests {
         _ = try await actor.importRows(
             importRows(
                 header: ["Titre", "Année", "Genres", "Distribution"],
-                rows: [["Dune", "2021", "sci-fi/thriller", "A B"]]),
+                rows: [["Dune", "2021", "sci-fi|thriller", "A B"]]),
             fileName: "2.csv", libraryID: fixture.library.id)
 
         let entries = try fixture.batchEntries().sorted { $0.createdAt < $1.createdAt }

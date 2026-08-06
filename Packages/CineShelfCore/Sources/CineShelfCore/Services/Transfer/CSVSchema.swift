@@ -322,7 +322,21 @@ extension CSVSchema {
 
 extension CSVSchema {
     /// Sépare les valeurs multiples à l'intérieur d'une cellule.
-    public static let multiValueSeparator: Character = "/"
+    /// Le séparateur de valeurs multiples dans une cellule.
+    ///
+    /// > **Corrigé le 2026-08-06 : c'était `/`, et l'aller-retour détruisait des genres.**
+    /// > Mesuré par une sonde d'import de bout en bout — la première à jouer la couture entre
+    /// > l'export et l'import : un genre nommé `Action/Aventure` s'exportait dans une liste
+    /// > jointe par `/` et se réimportait en **deux** genres, `Action` et `Aventure`. Le genre
+    /// > d'origine disparaissait, sans un mot, et rien ne pouvait le voir — les deux moitiés
+    /// > étaient cohérentes **entre elles**.
+    /// >
+    /// > La barre verticale est aussi ce que l'échantillon d'export de la planche 5 écrit :
+    /// > `"Science-fiction|Aventure"`. Elle n'apparaît pratiquement jamais dans un nom de
+    /// > genre, là où la barre oblique y est courante — « Action/Aventure », « Science-fiction
+    /// > / Fantastique ». Un séparateur qui existe dans les données qu'il sépare n'en est pas
+    /// > un.
+    public static let multiValueSeparator: Character = "|"
 
     /// Découpe une cellule multivaleur, en retirant les vides et les espaces de bord.
     public static func splitMultiValue(_ text: String) -> [String] {

@@ -6103,3 +6103,63 @@ entre `ImportMapping` du magasin et `ColumnMapping` décodé n'existe pas encore
 | `xcodebuild test -scheme CineShelf -destination macOS` | ❌ **non relancée** depuis `V8` |
 | `swift test` DesignSystem · MediaKit · `DesignSystemCatalog` | ❌ **non relancés** |
 | **Un import réel de bout en bout** | ❌ **non joué** — il demande un `fileImporter`, donc un clic. Les transitions sont couvertes par `ImportFlowTests`, l'écriture par `L11b` ; ce qui n'est pas exercé est la **couture** entre les deux |
+
+## 2026-08-06 (12) — La couture d'import, et un genre détruit en silence
+
+### La porte de la console : abandonnée, règle d'arrêt appliquée
+
+Autorisation accordée à Switchboard — `UI elements enabled` rend enfin **`true`** — et l'arbre
+reste **vide** : `windows=0`, `groups=0`, `root=false`. **La permission était nécessaire et pas
+suffisante**, et la cause reste inconnue. Les trois tests sont **retirés**, avec leur
+échafaudage, plutôt que laissés en faux positifs verts. Les identifiants d'accessibilité
+restent : ils servent l'accessibilité réelle.
+
+### La CI : variance, pas régression
+
+Deux échecs identiques sur « Timed out while launching application via Xcode » ressemblaient à
+une régression. Mesuré : le lancement varie d'un **facteur 3,3 sur le même code** — 18,6 s et
+28,5 s à chaud, **61 s à froid**. Chaque runner CI est froid. Le job préchauffe donc le
+simulateur et tolère une reprise.
+
+### La couture d'import — et elle a détruit un genre
+
+**Ta priorité était la bonne.** La sonde de bout en bout — lire un vrai fichier, rapprocher,
+analyser, écrire, **relire depuis le magasin** — a tourné pour la première fois. Le parcours
+tient : 8 lignes lues, 4 prêtes, 4 refusées en 4 causes nommées, 4 titres écrits, relus, et le
+rejeu du même fichier rend « 4 inchangés » sans créer de doublon. Le rapport des écartées se
+redépose, avec sa colonne `cineshelf_erreur`.
+
+**Et l'aller-retour détruisait des données.** `CSVSchema.multiValueSeparator` valait `/`. Un
+genre nommé **« Action/Aventure »** — un nom parfaitement ordinaire — s'exportait dans une liste
+jointe par `/` et se réimportait en **deux** genres, `Action` et `Aventure`. Le genre d'origine
+disparaissait, sans un mot.
+
+**Aucune moitié ne pouvait le voir** : l'export joignait sur `/`, l'import coupait sur `/`, et
+les deux étaient cohérents **entre eux**. C'est exactement le motif de `MediaFill` et de
+`PosterCardModel(_ person:)` — deux parties justes, un joint absent. **Le défaut est antérieur
+à cette session** : il vient de `L12`, à rigueur maximale, et douze tests verrouillaient le
+format destructeur.
+
+Corrigé en `|`, qui est aussi ce que l'échantillon d'export de la planche 5 écrit
+(`"Science-fiction|Aventure"`). **Un séparateur qui existe dans les données qu'il sépare n'en
+est pas un.** Neuf assertions de tests réécrites — un test qui encode un format destructeur est
+pire qu'un test absent — et deux tests de non-régression, dont un qui **nomme la limite** au lieu
+de la nier : une valeur contenant une barre verticale ne survit pas davantage, et c'est accepté.
+
+**Une erreur de méthode au passage, à ne pas refaire** : ma première substitution était une
+expression régulière large, qui a touché des dates et des chemins d'archive. Dix fichiers
+modifiés, quatre tests cassés pour rien. Revenu en arrière et ciblé à la main.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| **Sonde d'import de bout en bout** | ✅ hors dépôt — **1 défaut de corruption trouvé, antérieur à la session** |
+| `swift test` CineShelfCore | ✅ **566 tests** (+2) |
+| `xcodebuild build -scheme CineShelf -destination macOS` | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 335 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| `xcodebuild test -scheme CineShelfUITests -destination macOS` | ✅ **1 test** — les trois sautés sont retirés |
+| `xcodebuild test -scheme CineShelfUITests -destination iOS` | ✅ **1 test**, 18,6 s à chaud |
+| `xcodebuild build` iOS · suite app macOS · sondes d'écran · `DesignSystemCatalog` · paquets | ❌ **non relancés après la correction du séparateur** — le format touche l'archive, donc `swift test` de Core couvre l'essentiel, mais les autres cibles ne se déduisent pas |
+| **`11f` et `11g`** | ❌ **non commencés** — la couture était la priorité et elle a livré un défaut de données à corriger. C'est le second jalon |

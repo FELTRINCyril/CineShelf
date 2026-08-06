@@ -50,15 +50,17 @@ struct CSVSchemaTests {
         #expect(header == ["Titre", "Année"])
     }
 
-    @Test("Les valeurs multiples se coupent sur la barre oblique, pas sur la virgule")
+    @Test("Les valeurs multiples se coupent sur la barre verticale, pas sur la virgule")
     func multiValueSeparator() {
         // La virgule est le séparateur décimal en locale française, le point-virgule est
-        // déjà le séparateur de colonnes.
-        #expect(CSVSchema.splitMultiValue("action/thriller") == ["action", "thriller"])
-        #expect(CSVSchema.splitMultiValue(" action / thriller ") == ["action", "thriller"])
-        #expect(CSVSchema.splitMultiValue("action//thriller") == ["action", "thriller"])
+        // déjà le séparateur de colonnes — et la **barre oblique**, essayée d'abord, apparaît
+        // dans les noms de genres eux-mêmes : « Action/Aventure » se coupait en deux à
+        // l'aller-retour, mesuré le 2026-08-06. La barre verticale n'a pas ce défaut.
+        #expect(CSVSchema.splitMultiValue("action|thriller") == ["action", "thriller"])
+        #expect(CSVSchema.splitMultiValue(" action | thriller ") == ["action", "thriller"])
+        #expect(CSVSchema.splitMultiValue("action||thriller") == ["action", "thriller"])
         #expect(CSVSchema.splitMultiValue("").isEmpty)
-        #expect(CSVSchema.joinMultiValue(["action", "thriller"]) == "action/thriller")
+        #expect(CSVSchema.joinMultiValue(["action", "thriller"]) == "action|thriller")
     }
 }
 
@@ -159,7 +161,7 @@ struct CSVExportTests {
         #expect(exporter.value(of: person, forKey: "last_name") == "Bertolucci")
         // Triés : sans ça, deux exports du même catalogue différeraient selon l'ordre
         // d'itération de l'ensemble.
-        #expect(exporter.value(of: person, forKey: "roles") == "actor/director")
+        #expect(exporter.value(of: person, forKey: "roles") == "actor|director")
     }
 
     // MARK: L'aller-retour
@@ -228,7 +230,7 @@ struct CSVCreditColumnsTests {
 
     private let exporter = CSVExporter()
 
-    @Test("La réalisation et la distribution s'exportent, séparées par une barre oblique")
+    @Test("La réalisation et la distribution s'exportent, séparées par une barre verticale")
     func creditsAreExported() throws {
         let (context, library) = try makeTestLibrary()
         let titles = TitleRepository(context: context)
@@ -247,7 +249,7 @@ struct CSVCreditColumnsTests {
         #expect(exporter.value(of: title, forKey: "director") == "Denis Villeneuve")
         // Trié par `orderIndex` et non par nom : une distribution alphabétique mettrait la
         // doublure avant la tête d'affiche, alors que `Credit` porte l'ordre du générique.
-        #expect(exporter.value(of: title, forKey: "cast") == "Timothée Chalamet/Rebecca Ferguson")
+        #expect(exporter.value(of: title, forKey: "cast") == "Timothée Chalamet|Rebecca Ferguson")
     }
 
     @Test("L'ordre du générique est celui du fichier, même si les crédits sont ajoutés à l'envers")
@@ -263,7 +265,7 @@ struct CSVCreditColumnsTests {
         titles.addCredit(person: first, role: .cast, orderIndex: 0, to: title)
         try context.save()
 
-        #expect(exporter.value(of: title, forKey: "cast") == "John David Washington/Robert Pattinson")
+        #expect(exporter.value(of: title, forKey: "cast") == "John David Washington|Robert Pattinson")
     }
 
     @Test("Un titre sans crédit exporte une cellule vide, pas un séparateur solitaire")
@@ -304,5 +306,36 @@ struct CSVCreditColumnsTests {
 
         #expect(analysis.matches.map(\.fieldKey) == ["title", "director", "cast", "added_at"])
         #expect(analysis.ignoredColumnNames.isEmpty)
+    }
+}
+
+// MARK: - V8 · L'aller-retour, trouvé par une sonde d'import de bout en bout
+
+@Suite("Aller-retour du séparateur multivaleur")
+struct MultiValueRoundTripTests {
+
+    /// **Le défaut que la couture a révélé, et qu'aucune moitié ne pouvait voir.**
+    ///
+    /// Le séparateur était `/`. Un genre nommé « Action/Aventure » — un nom parfaitement
+    /// ordinaire — s'exportait dans une liste jointe par `/`, et se réimportait en **deux**
+    /// genres. Le genre d'origine disparaissait sans un mot.
+    ///
+    /// Les deux moitiés étaient correctes **entre elles** : l'export joignait sur `/`, l'import
+    /// coupait sur `/`. C'est exactement le motif de `MediaFill` et de `PosterCardModel(_
+    /// person:)` — deux parties justes, un joint absent.
+    @Test("Une valeur qui contient une barre oblique survit à l'aller-retour")
+    func slashInValueSurvives() {
+        let joined = CSVSchema.joinMultiValue(["Action/Aventure", "Science-fiction"])
+        #expect(CSVSchema.splitMultiValue(joined) == ["Action/Aventure", "Science-fiction"])
+    }
+
+    /// Le cas symétrique : une valeur qui contiendrait le **nouveau** séparateur ne survit pas
+    /// davantage. Ce n'est pas une régression, c'est la limite du format — et elle est
+    /// acceptable parce qu'aucun nom de genre ne porte de barre verticale, là où la barre
+    /// oblique y est courante.
+    @Test("La limite du format est nommée, pas niée")
+    func pipeInValueIsTheKnownLimit() {
+        let joined = CSVSchema.joinMultiValue(["A|B"])
+        #expect(CSVSchema.splitMultiValue(joined) == ["A", "B"])
     }
 }

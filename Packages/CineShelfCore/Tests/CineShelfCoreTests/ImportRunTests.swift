@@ -73,7 +73,7 @@ struct ImportRunTests {
         let fixture = try makeImportFixture()
         let rows = importRows(
             header: ["Titre", "Année", "Genres", "Collection", "Réalisation", "Distribution"],
-            rows: [["Dune", "2021", "sci-fi/thriller", "Saga Dune", "Denis Villeneuve", "Timothée Chalamet"]])
+            rows: [["Dune", "2021", "sci-fi|thriller", "Saga Dune", "Denis Villeneuve", "Timothée Chalamet"]])
 
         let result = try await fixture.actor.importRows(
             rows, fileName: "f.csv", libraryID: fixture.library.id)

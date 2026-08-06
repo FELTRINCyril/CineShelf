@@ -256,7 +256,7 @@ struct ImportDuplicateRuleTests {
         _ = try await fixture.actor.importRows(
             importRows(
                 header: ["Titre", "Distribution"],
-                rows: [["Dune", "Timothée Chalamet/Rebecca Ferguson/Josh Brolin"]]),
+                rows: [["Dune", "Timothée Chalamet|Rebecca Ferguson|Josh Brolin"]]),
             fileName: "f.csv", libraryID: fixture.library.id)
 
         let title = try #require(try fixture.titles().first)

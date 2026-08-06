@@ -20,14 +20,26 @@ extension PosterCardModel {
 
     /// Construit la carte d'une personne.
     ///
-    /// **Aucun portrait n'existe encore** : le §11 du handoff dit « Portraits de personnes :
-    /// aucun. Les fiches personne utilisent une affiche recadrée. » `PersonTile` se replie
-    /// donc sur les initiales, ce qui est son comportement prévu et non un manque.
+    /// **Le §11 du handoff dit « Portraits de personnes : aucun »**, et c'est vrai des
+    /// *échantillons* du paquet de design — pas du modèle. `MediaAttachment` porte un
+    /// `person`, donc une personne peut parfaitement avoir une image, et `V2` en attache
+    /// depuis le glisser-déposer.
+    ///
+    /// > **Corrigé par `V4`, et c'était un chemin mort.** Cet initialiseur ne passait aucune
+    /// > `imageURL` : une personne dont l'utilisateur avait attaché un portrait rendait quand
+    /// > même ses initiales, partout — recherche, casting, grille. Le repli de `PersonTile`
+    /// > est prévu pour l'absence d'image, pas pour la masquer. C'est la même famille que
+    /// > « tout échantillon exerce le chemin réel » : ici c'était le code de production qui
+    /// > court-circuitait le chemin qu'on croyait couvert.
     init(_ person: Person) {
         self.init(
             id: person.id.uuidString,
             title: person.displayName,
+            kind: .person,
             meta: PersonFormat.creditCount(of: person),
+            imageURL: AssetURL.portrait(for: person),
+            blurHash: PersonFormat.primaryAsset(of: person)?.blurHash,
+            crop: CropDisplay.of(PersonFormat.primaryAsset(of: person), in: .card),
             isPrivate: person.isPrivate,
             isArchived: person.isArchived
         )
@@ -67,6 +79,58 @@ enum PersonFormat {
         let count = person.credits?.count ?? 0
         guard count > 0 else { return nil }
         return count == 1 ? "1 titre" : "\(count) titres"
+    }
+
+    /// Le portrait d'une personne, s'il en existe un.
+    ///
+    /// Même règle de choix que `TitleFormat.primaryAsset` : l'emplacement `primary` d'abord,
+    /// sinon la pièce jointe de plus petit rang. Une personne n'a pas d'emplacement
+    /// `backdrop` — sa fiche ne pose pas de hero, le bloc `4d` montre un portrait à côté du
+    /// nom, pas une image large derrière.
+    static func primaryAsset(of person: Person) -> MediaAsset? {
+        let attachments = person.attachments ?? []
+        let primary =
+            attachments
+            .filter { $0.slot == .primary }
+            .min { $0.orderIndex < $1.orderIndex }
+        return (primary ?? attachments.min { $0.orderIndex < $1.orderIndex })?.asset
+    }
+
+    /// Les rôles d'une personne, dans l'ordre du bloc `4d` : « Interprétation · Réalisation ».
+    static func roleLine(of person: Person) -> String? {
+        let ordered: [PersonRole] = [.actor, .director, .writer, .crew, .social]
+        let names = ordered.filter(person.roles.contains).map(label(for:))
+        return names.isEmpty ? nil : names.joined(separator: " · ")
+    }
+
+    static func label(for role: PersonRole) -> String {
+        switch role {
+        case .actor: "Interprétation"
+        case .director: "Réalisation"
+        case .writer: "Écriture"
+        case .crew: "Équipe"
+        case .social: "Compte"
+        }
+    }
+
+    /// « Né le 25 mai 1976 », « 50 ans », et le cas du décès.
+    ///
+    /// **L'âge d'un vivant se calcule, celui d'un défunt se lit.** `Person.ageAtDeath` est
+    /// dénormalisé sans risque parce qu'il est immuable ; l'âge d'un vivant ne l'est pas, et
+    /// le dénormaliser le rendrait faux dès le lendemain. C'est le même raisonnement que les
+    /// tranches d'âge de `PersonFilter`, et il doit rendre la même réponse.
+    static func lifeParts(of person: Person, now: Date = .now) -> [String] {
+        var parts: [String] = []
+        if let birth = person.birthDate {
+            parts.append("Né le \(birth.formatted(.dateTime.day().month(.wide).year()))")
+        }
+        if let death = person.deathDate {
+            parts.append("Mort le \(death.formatted(.dateTime.day().month(.wide).year()))")
+            if let age = person.ageAtDeath { parts.append("\(age) ans au décès") }
+        } else if let age = person.age {
+            parts.append("\(age) ans")
+        }
+        return parts
     }
 }
 

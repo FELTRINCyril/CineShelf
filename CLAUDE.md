@@ -513,6 +513,47 @@ l'environnement le plus lent où il tourne, qui n'attrapent qu'un ordre de grand
 Les budgets de `docs/04` §4 se vérifient avec Instruments sur appareil, comme ce
 document le dit lui-même.
 
+**Et la mesure s'imprime à côté du plafond.** Un plafond calé sur le pire environnement ne
+dit plus rien du confort réel : il ne reste que le chiffre imprimé pour le dire, et c'est lui
+qu'on compare d'une session à l'autre. Un test de perf sans `print` ne mesure plus rien, il
+surveille seulement l'effondrement.
+
+## Une règle qui entre ici se propage à ce qui existait avant elle
+
+**Une règle écrite mais jamais propagée ne protège que le code écrit après elle**, et c'est la
+même famille que la fausse dette : dans les deux cas le document dit vrai, et le dépôt dit
+autre chose. La différence est qu'ici personne ne le découvre avant que ça casse.
+
+**Mesuré, deux fois, sur la même règle.** Le corollaire ci-dessus est né le 2026-08-04 d'un
+test qui échouait — les 200 vignettes, 15 ms en local contre 266 ms sur le runner. Il a été
+écrit, et **il n'a été appliqué qu'au test qui l'avait provoqué**. Deux seuils calés sur une
+mesure locale sont restés en place :
+
+- `SearchPerformanceTests`, plafond à 40 ms — « quatre fois la mesure haute », locale. Il a
+  rougi la CI le 2026-08-05, à 80,5 ms ;
+- `TitleFilterPerformanceTests`, plafond à 25 ms — « cinq fois la mesure », locale aussi.
+  Trouvé par l'audit du 2026-08-06, **avant** qu'il rougisse. Il devait rendre ~40 ms sur le
+  runner, donc il aurait rougi.
+
+Le second est le plus instructif : il était vert, donc rien ne le signalait, et il l'était par
+chance. Un test vert n'est pas une preuve de conformité à une règle qu'il enfreint.
+
+**Ce que ça ajoute à la routine, en une ligne : quand une règle entre dans ce fichier, chercher
+ce qui l'enfreint déjà, et le dire — même sans le corriger.** Le geste est un `grep` sur le
+motif que la règle interdit, pas une relecture. Pour les seuils de performance, c'était :
+
+```bash
+grep -rn "#expect(.*\(duration\|elapsed\|milliseconds\|seconds\)" Packages/*/Tests Tests
+```
+
+Corriger tout de suite n'est pas obligatoire — inscrire l'écart suffit, et c'est mieux que de
+rouvrir trois fichiers au milieu d'une autre tâche. **Ce qui n'est pas acceptable est de ne pas
+regarder** : la règle s'écrit alors comme une intention, et la prochaine occurrence coûtera une
+CI rouge et une session de diagnostic.
+
+Le même geste vaut pour les règles de lint : une règle neuve se lance sur tout le dépôt avant
+d'être ajoutée, jamais seulement sur le fichier qui l'a motivée.
+
 ## Un tableau de vérification ne porte que des commandes réellement passées
 
 **C'est la règle la plus importante du fichier, parce que c'est le seul risque que tu ne

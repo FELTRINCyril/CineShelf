@@ -136,12 +136,20 @@ struct TitleFilterPerformanceTests {
         // sur 5 itérations, 32 titres retenus sur 5 000). Le budget de `docs/04` §4
         // est de 50 ms, soit près de dix fois la mesure.
         //
-        // Le seuil est posé à 25 ms — cinq fois la mesure, et non le budget. Un seuil
-        // au budget laisserait passer une régression d'un facteur neuf sans rien dire ;
-        // un seuil à 6 ms clignoterait sur un runner partagé. 25 ms attrape « cinq
-        // fois plus lent » et rien d'autre.
+        // MARK: Le seuil était à 25 ms, et il était calé sur la machine locale
+        //
+        // **Relevé par l'audit du 2026-08-06**, qui a suivi le rouge de la veille sur
+        // `SearchPerformanceTests`. Celui-ci n'avait pas encore rougi — de la chance, pas une
+        // preuve : 25 ms, c'est « cinq fois la mesure **locale** », exactement la calibration
+        // que `CLAUDE.md` interdit. Avec le rapport runner / local mesuré la veille (7 à 8 sur
+        // le chemin de recherche), ce test devait rendre ~40 ms sur le runner, donc échouer.
+        //
+        // **150 ms** : environ 3,7 fois la valeur attendue sur le runner, et 28 fois la mesure
+        // locale — la même marge que celle retenue pour la recherche. Il n'attrape plus qu'un
+        // effondrement, ce qui est tout ce qu'un seuil peut honnêtement attraper ici.
+        print("[perf] prédicat complet sur \(Self.titleCount) titres : \(duration)")
         #expect(
-            duration < .milliseconds(25),
+            duration < .milliseconds(150),
             "Prédicat complet sur \(Self.titleCount) titres : \(duration) — mesure de référence 5,3 ms"
         )
     }
@@ -178,6 +186,9 @@ struct TitleFilterPerformanceTests {
         // durée, et ce qu'on veut attraper ici est catégorique — le retour à la
         // lecture complète ramènerait le rapport à 1.
         let ratio = "sélectif \(selective.duration) contre tout \(everything.duration)"
+        // Imprimée comme les autres : c'est le rapport qui porte le sens, et une régression
+        // s'y lit avant de franchir le seuil.
+        print("[perf] filtre sélectif contre catalogue entier : \(ratio)")
         #expect(
             selective.duration * 5 < everything.duration,
             "Rapport insuffisant (\(ratio)) : le catalogue est probablement relu en entier"

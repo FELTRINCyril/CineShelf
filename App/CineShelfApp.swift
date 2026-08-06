@@ -46,7 +46,14 @@ struct CineShelfApp: App {
 
     var body: some Scene {
         WindowGroup {
+            // **`lockGate()` avant `.environment(appLock)`, et l'ordre est le sujet.** Un
+            // modificateur lit l'environnement posé *au-dessus* de lui : appliqué après
+            // `.environment(appLock)`, il enveloppe la vue qui porte la valeur, donc il ne la
+            // voit pas — et SwiftUI **tue le processus** au lancement, « No Observable object
+            // of type AppLock found ». Mesuré : la suite de rendu a rendu zéro test, l'app
+            // hôte n'ayant jamais démarré.
             RootView()
+                .lockGate()
                 .environment(navigation)
                 .environment(session)
                 .environment(appLock)

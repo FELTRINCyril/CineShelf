@@ -5819,3 +5819,86 @@ compte qui a bougé.
 | **Une vraie authentification Face ID / Touch ID** | ❌ **jamais jouée** — aucun test ne peut en déclencher une. `LocalAuthenticationEvaluator` n'a donc **jamais tourné** : sa traduction d'erreurs est écrite contre la documentation, pas contre le système. À vérifier à la main à `V7` |
 | `swift test` DesignSystem · MediaKit · `DesignSystemCatalog` | ❌ **non relancés** — rien de cette passe ne les touche, mais ça ne se déduit pas |
 | `xcodebuild test -scheme CineShelfUITests` | ❌ **non lancée** |
+
+## 2026-08-06 (8) — Face ID simulé, la règle sur l'âge des défauts, `V6` + `V7`
+
+### La biométrie simulée : ce qui a été joué, et ce qui n'a pas pu
+
+Inscription posée par `notifyutil -s com.apple.BiometricKit.enrollmentChanged 1`, iPhone 17 /
+iOS 26.5.
+
+| Ce qui a été joué | Résultat réel |
+|---|---|
+| `canEvaluate()` | ✅ `true` — le vrai `LAContext` |
+| `biometryKind()` | ✅ `.faceID` — ce qui **valide le détail non évident** : `biometryType` n'est renseigné qu'après `canEvaluatePolicy` |
+| `evaluate` sans réponse | ✅ `.cancelled` |
+| `evaluate` + `fingerTouch.nomatch` | ✅ `.failed("Échec d'authentification.")` |
+| `evaluate` + `pearl.match` | ✅ `.failed("L'authentification a expiré.")` |
+| **un succès** | ❌ **non reproductible sans app hôte** — le dialogue attend indéfiniment, commande tuée à 170 s |
+| `.lockedOut` | ❌ non atteint |
+
+**Ce que ça change quand même** : le chemin atteint le système, et la traduction rend des
+`AuthError`. Ce qu'il restait à couvrir — la correspondance **code par code**, qui est le vrai
+risque — l'est par cinq tests sur de **vrais `LAError`**, dont le balayage « aucun code ne se
+traduit en succès ».
+
+### La règle sur l'âge des défauts
+
+Elle entre dans `CLAUDE.md` : **dire si un défaut trouvé est de la session ou antérieur.** Le
+premier dit que je me relis, le second que la passe sert. Avec son corollaire, qui vient du
+même incident : une tâche dont la moitié du domaine n'est exercée par aucun test peut être
+déclarée finie sans que rien ne proteste — donc relire la fiche **phrase par phrase** et
+pointer le test qui couvre chacune.
+
+### `V6` — la console, et l'édition en masse dans l'inspecteur
+
+**L'édition en masse n'est pas un écran.** Le bloc `7b` montre la même colonne de droite que
+le `7a`. En faire une feuille demanderait de perdre la sélection des yeux pendant qu'on décide.
+
+**Une mutation à la fois, et c'est une contrainte de `L10`, pas un choix d'écran.**
+`BulkEditor.apply` prend une mutation et écrit un diff — c'est ce qui rend le lot annulable
+d'un bloc. Appliquer trois champs d'un coup produirait trois lots, donc trois annulations
+séparées, et un état intermédiaire que personne n'a voulu.
+
+**Les bascules sont à trois états.** Un `Bool` n'a pas de position « ne pas toucher » : il
+affiche forcément vrai ou faux, donc « Appliquer » écrirait toujours — et qui ne voulait
+changer que la note passerait cinq titres en « non privé ».
+
+### `V7` — le verrou, les réglages, les profils
+
+**Trois capacités lues et jamais écrites, trouvées par le balayage que tu demandes.**
+`requiresBiometry`, `hidesPrivateContent` et `accentRaw` étaient lus — le troisième
+cinquante-trois fois — et `ProfileRepository` n'avait **aucun** chemin d'écriture. Trois
+réglages que l'utilisateur ne pouvait pas changer, dont deux qui décident de ce qu'il voit.
+`ProfileColorPicker`, livré par `I9`, trouve du même coup son premier appelant.
+
+**Un défaut d'ordre de modificateur, attrapé par la porte de rendu.** `.lockGate()` posé
+**après** `.environment(appLock)` enveloppe la vue qui porte la valeur, donc ne la voit pas :
+SwiftUI tue le processus au lancement. La suite de rendu a rendu « 0 test », l'app hôte n'ayant
+jamais démarré. Sans cette porte, le défaut serait apparu au premier lancement réel.
+
+### Deux anomalies mesurées et **non expliquées**, inscrites plutôt que masquées
+
+- **La console rend le même compte de couleurs vide et peuplée** (30 · 30).
+- **Les réglages rendent un aplat** (1 couleur).
+
+**Ce n'est pas la limite connue des conteneurs paresseux** : mesuré, un `Table` nu rend 9
+couleurs sous `ImageRenderer` et un `Form` nu 3. La cause n'est pas trouvée. Les assertions
+correspondantes ont donc été **retirées plutôt que rendues fausses** — affirmer « la table se
+peuple » serait affirmer ce que je n'ai pas constaté. Deux écarts inscrits, avec leur mesure.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `swift test` CineShelfCore | ✅ **559 tests** (+5) |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **121 tests** |
+| `xcodebuild test -scheme CineShelfScreenTests -destination macOS` | ✅ **10 tests** (+2) |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 332 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| **Biométrie réelle sur simulateur** | ✅ capacité et chemins d'échec · ❌ succès et `.lockedOut` non atteints |
+| **Balayage des capacités lues sans écriture** | ✅ cinq propriétés vérifiées, trois corrigées |
+| `swift test` DesignSystem · MediaKit · `DesignSystemCatalog` | ❌ **non relancés** |
+| `xcodebuild test -scheme CineShelfUITests` | ❌ **non lancée** |
+| **La console et les réglages vus à l'œil** | ❌ **non vus** — et deux mesures de la sonde restent inexpliquées, voir ci-dessus |

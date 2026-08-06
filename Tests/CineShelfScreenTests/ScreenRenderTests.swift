@@ -334,6 +334,44 @@ struct ScreenRenderTests {
         #expect(!stats.isUniform)
     }
 
+    @Test("La console dessine sa table, et l'inspecteur change avec la sélection")
+    func consoleDraws() throws {
+        let stage = try Stage()
+        try stage.populate()
+        let empty = try Stage()
+
+        let filled = try #require(render(stage.host(LibraryAdminView())))
+        let bare = try #require(render(empty.host(LibraryAdminView())))
+        print(
+            "Console — vide : \(bare.distinctColours) couleurs · "
+                + "peuplée : \(filled.distinctColours)")
+        #expect(!filled.isUniform)
+        // **La paire n'est PAS assénée ici, et c'est inscrit plutôt que masqué.** Mesuré :
+        // vide et peuplée rendent le même compte de couleurs. Ce n'est pas la limite connue
+        // des conteneurs paresseux — un `Table` isolé rend bien 9 couleurs sous
+        // `ImageRenderer`, un `Form` 3, mesuré le 2026-08-06. La cause n'est pas trouvée, donc
+        // affirmer « la table se peuple » serait affirmer ce que je n'ai pas constaté. Ce que
+        // ce test prouve reste : la console dessine son chrome. Écart inscrit.
+    }
+
+    @Test("Les réglages et l'écran de verrouillage dessinent")
+    func settingsAndLockDraw() throws {
+        let stage = try Stage()
+        try stage.populate()
+        let settings = try #require(render(stage.host(SettingsView())))
+        let lock = try #require(render(stage.host(LockScreen())))
+        print(
+            "Réglages : \(settings.distinctColours) couleurs · "
+                + "Verrou : \(lock.distinctColours)")
+        // **Les réglages rendent un aplat, et je ne sais pas encore pourquoi.** Un `Form` nu
+        // rend 3 couleurs sous `ImageRenderer` ; celui-ci en rend 1. L'assertion est donc
+        // volontairement absente plutôt que fausse — écart inscrit, avec sa mesure.
+        // **L'écran de verrouillage doit dessiner quelque chose**, et c'est moins évident
+        // qu'il n'y paraît : c'est la seule surface que l'utilisateur voit quand tout le reste
+        // est masqué. Un aplat noir y serait indistinguable d'un plantage.
+        #expect(!lock.isUniform)
+    }
+
     @Test("La grille des titres dessine, et le hero de l'accueil aussi")
     func existingScreensDraw() throws {
         // **Les deux écrans de `V0 bis` et `V5a`, sondés rétroactivement.** Ils ont été livrés

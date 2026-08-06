@@ -19,6 +19,21 @@ public struct ProfileRepository {
         return profile
     }
 
+    /// Une écriture quelconque sur un profil, journalisée.
+    ///
+    /// **Écrit par `V7`, et il manquait — c'est la classe de défaut de `V4`/`V5b`.**
+    /// `requiresBiometry`, `hidesPrivateContent` et `accentRaw` étaient **lus** — le premier par
+    /// `PrivacyScope` depuis `L14`, le troisième cinquante-trois fois par le chrome — et
+    /// **aucun chemin ne les écrivait**. Trois réglages que l'utilisateur ne pouvait pas
+    /// changer, dont deux qui décident de ce qu'il voit.
+    public func update(_ profile: Profile, _ mutate: (Profile) -> Void) {
+        mutate(profile)
+        // **Pas de `refreshDerived()` ici, et ce n'est pas un oubli** : `Profile` n'a aucune
+        // valeur dénormalisée — ni `sortName`, ni `searchText`, ni `filterKeys`. Il n'en porte
+        // pas parce qu'on ne cherche pas un profil, on le choisit dans une liste de trois.
+        ActivityRecorder(context: context).record(.update, profile)
+    }
+
     public func rename(_ profile: Profile, to name: String) {
         profile.name = name
         profile.updatedAt = .now

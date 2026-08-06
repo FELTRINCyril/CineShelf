@@ -105,7 +105,10 @@ struct LocalAuthenticationMappingTests {
             let mapped = LocalAuthenticationEvaluator.mapped(LAError(code))
             #expect(
                 [.cancelled, .lockedOut, .unavailable].contains(mapped)
-                    || { if case .failed = mapped { return true } else { return false } }(),
+                    || {
+                        guard case .failed = mapped else { return false }
+                        return true
+                    }(),
                 "\(code) tombe hors des cas connus")
         }
     }

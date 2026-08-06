@@ -239,7 +239,13 @@ public struct BulkEditUndoer {
                 plan.refusals.append(.init(entityID: entry.entityID, reason: .entityNotFound))
                 continue
             }
-            guard subject.deletedAt == nil else {
+            // **La corbeille n'est un refus que si le lot ne l'a pas causée.** Une fusion met
+            // le perdant à la corbeille : son diff porte alors un changement sur `deletedAt`, et
+            // l'annuler consiste précisément à l'en sortir. Refuser ici rendait **toute fusion
+            // inannulable** — mesuré par la sonde, et c'était le défaut le plus grave de `L20`,
+            // parce qu'il ne se voyait sur aucun cas d'édition en masse.
+            let restoresFromTrash = entry.fields.contains { $0.field == "deletedAt" }
+            guard subject.deletedAt == nil || restoresFromTrash else {
                 plan.refusals.append(.init(entityID: entry.entityID, reason: .entityInTrash))
                 continue
             }
@@ -260,7 +266,11 @@ public struct BulkEditUndoer {
                 restored[change.field] = change.before
             }
 
-            let related = Set(subject.relatedIDs(of: diff.field))
+            // **Le nom de la relation vient de l'entrée quand elle en donne un.** Une édition
+            // en masse touche une seule relation, donc celle du lot suffit ; une fusion en
+            // touche une par entité, et `diff.field` y vaut « merge ».
+            let relationField = entry.relationField ?? diff.field
+            let related = Set(subject.relatedIDs(of: relationField))
             // Ce que le lot avait rattaché doit encore l'être, et ce qu'il avait détaché doit
             // encore être absent. Sinon quelqu'un a retouché la relation depuis.
             let missing = entry.attached.filter { !related.contains($0) }
@@ -270,7 +280,7 @@ public struct BulkEditUndoer {
                     .init(
                         entityID: entry.entityID,
                         reason: .relationChangedSince(
-                            field: diff.field, missing: missing, unexpected: unexpected)))
+                            field: relationField, missing: missing, unexpected: unexpected)))
                 diverged = true
             }
 

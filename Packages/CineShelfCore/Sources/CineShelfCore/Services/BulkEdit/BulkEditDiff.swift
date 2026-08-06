@@ -56,6 +56,21 @@ public struct BulkEditDiff: Codable, Sendable, Hashable {
         public let entityType: ActivityEntityType
         /// Les changements de valeur scalaire.
         public let fields: [FieldChange]
+        /// La relation que `attached` et `detached` désignent, quand ce n'est pas celle du
+        /// lot entier.
+        ///
+        /// **Ajouté par `L20`, et sans changer `currentVersion`.** Une édition en masse touche
+        /// une seule relation, donc `BulkEditDiff.field` suffisait — « genres », « collection ».
+        /// Une **fusion** n'a pas de champ unique : son `field` vaut « merge », et chaque entité
+        /// touchée peut bouger sur une relation différente. Sans ce nom par entrée, l'annulation
+        /// cherchait la relation « merge » sur un titre, n'en trouvait aucune, et refusait la
+        /// fusion entière en croyant que tout avait bougé — mesuré.
+        ///
+        /// **Pourquoi la version ne change pas** : un `payload` déjà en base n'a pas cette clé,
+        /// `decodeIfPresent` rend `nil`, et `nil` veut dire « la relation du lot ». Les anciens
+        /// diffs se relisent donc **à l'identique**. Le numéro de version existe pour les
+        /// changements qu'on ne saurait pas interpréter ; celui-ci s'interprète exactement.
+        public let relationField: String?
         /// Les identifiants rattachés à une relation par l'opération.
         public let attached: [UUID]
         /// Les identifiants détachés d'une relation par l'opération.
@@ -65,12 +80,14 @@ public struct BulkEditDiff: Codable, Sendable, Hashable {
             entityID: UUID,
             entityType: ActivityEntityType,
             fields: [FieldChange] = [],
+            relationField: String? = nil,
             attached: [UUID] = [],
             detached: [UUID] = []
         ) {
             self.entityID = entityID
             self.entityType = entityType
             self.fields = fields
+            self.relationField = relationField
             self.attached = attached
             self.detached = detached
         }

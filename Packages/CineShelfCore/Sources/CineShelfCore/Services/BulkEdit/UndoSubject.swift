@@ -46,17 +46,34 @@ enum UndoSubject {
         }
     }
 
+    /// Découpé en deux par famille, comme l'écriture inverse plus bas et pour la même raison :
+    /// `cyclomatic_complexity` refuse la table d'un bloc, et une suite de dix `case` sans
+    /// regroupement se relit mal.
     private static func titleValue(_ title: Title, _ field: String) -> String? {
+        titleScalarValue(title, field) ?? titleOtherValue(title, field)
+    }
+
+    private static func titleScalarValue(_ title: Title, _ field: String) -> String? {
         switch field {
-        case "kind": title.kindRaw
         case "rating": BulkValueCoding.encode(title.rating)
         case "runtimeMinutes": BulkValueCoding.encode(title.runtimeMinutes)
         case "releaseDate": BulkValueCoding.encode(title.releaseDate)
-        case "releasePrecision": title.releasePrecisionRaw
         case "summary": BulkValueCoding.encode(title.summary)
         case "isArchived": BulkValueCoding.encode(title.isArchived)
         case "isPrivate": BulkValueCoding.encode(title.isPrivate)
+        default: nil
+        }
+    }
+
+    private static func titleOtherValue(_ title: Title, _ field: String) -> String? {
+        switch field {
+        case "kind": title.kindRaw
+        case "releasePrecision": title.releasePrecisionRaw
         case "collection": title.collection?.id.uuidString
+        // **`deletedAt` est lisible parce qu'une fusion le déplace.** Sans lui, `value(of:)`
+        // rendait `nil`, la comparaison avec `after` échouait, et la fusion était refusée pour
+        // « champ modifié depuis » alors que rien n'avait bougé.
+        case "deletedAt": BulkValueCoding.encode(title.deletedAt)
         default: nil
         }
     }
@@ -67,6 +84,7 @@ enum UndoSubject {
         case "bio": BulkValueCoding.encode(person.bio)
         case "isArchived": BulkValueCoding.encode(person.isArchived)
         case "isPrivate": BulkValueCoding.encode(person.isPrivate)
+        case "deletedAt": BulkValueCoding.encode(person.deletedAt)
         default: nil
         }
     }
@@ -140,6 +158,7 @@ enum UndoSubject {
         case "summary": title.summary = BulkValueCoding.decodeString(value)
         case "isArchived": title.isArchived = BulkValueCoding.decodeBool(value) ?? false
         case "isPrivate": title.isPrivate = BulkValueCoding.decodeBool(value) ?? false
+        case "deletedAt": title.deletedAt = BulkValueCoding.decodeDate(value)
         default: return false
         }
         return true
@@ -186,6 +205,7 @@ enum UndoSubject {
             case "bio": person.bio = BulkValueCoding.decodeString(value)
             case "isArchived": person.isArchived = BulkValueCoding.decodeBool(value) ?? false
             case "isPrivate": person.isPrivate = BulkValueCoding.decodeBool(value) ?? false
+            case "deletedAt": person.deletedAt = BulkValueCoding.decodeDate(value)
             default:
                 assertionFailure("Champ de personne sans écriture inverse : \(field)")
             }

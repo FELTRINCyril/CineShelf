@@ -326,8 +326,7 @@ targets:
     settings:
       base:
         # cf. bloc SUPPORTED_PLATFORMS ci-dessus (bug XcodeGen 2.46.0).
-        # iOS seul ici : cette cible ne tourne pas sur macOS.
-        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator macosx"
         TARGETED_DEVICE_FAMILY: "1,2"
         PRODUCT_BUNDLE_IDENTIFIER: fr.feltrin.CineShelf.UITests
         GENERATE_INFOPLIST_FILE: YES

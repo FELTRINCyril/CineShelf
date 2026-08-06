@@ -86,7 +86,13 @@ struct LibraryAdminView: View {
             header
             ConsoleTable(
                 entity: entity, scope: scope, libraryID: session.current?.library?.id,
-                search: search, selection: $selection)
+                search: search, selection: $selection
+            )
+            // **L'identifiant est ce qui rend la porte possible.** `ImageRenderer` ne
+            // capture pas un `Table` — il est adossé à `NSTableView` sur macOS — donc la
+            // seule porte qui voie ses lignes est l'arbre d'accessibilité, et l'arbre se
+            // désigne par identifiant.
+            .accessibilityIdentifier("console.table")
         }
         .padding(Space.s4)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -100,6 +106,7 @@ struct LibraryAdminView: View {
             Text(selectionLabel)
                 .numericStyle()
                 .foregroundStyle(Color.textTertiary)
+                .accessibilityIdentifier("console.selectionLabel")
             Spacer(minLength: Space.s4)
             TextField("Filtrer les lignes…", text: $search)
                 .textFieldStyle(.plain)
@@ -145,6 +152,7 @@ struct LibraryAdminView: View {
         .frame(width: 320)
         .padding(Space.s4)
         .background(Color.bgSurface)
+        .accessibilityIdentifier("console.inspector")
     }
 
     // MARK: Le bandeau d'annulation

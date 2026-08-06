@@ -5902,3 +5902,62 @@ peuple » serait affirmer ce que je n'ai pas constaté. Deux écarts inscrits, a
 | `swift test` DesignSystem · MediaKit · `DesignSystemCatalog` | ❌ **non relancés** |
 | `xcodebuild test -scheme CineShelfUITests` | ❌ **non lancée** |
 | **La console et les réglages vus à l'œil** | ❌ **non vus** — et deux mesures de la sonde restent inexpliquées, voir ci-dessus |
+
+## 2026-08-06 (9) — L'angle mort de la porte de rendu, mesuré
+
+### Tu avais raison, et le chiffre invariant est la preuve
+
+**`ImageRenderer` ne capture pas les vues adossées à AppKit.** Le test décisif est la variation
+avec les données, pas la valeur absolue :
+
+| Lignes fournies | `Table` | `VStack` des mêmes données | `Form(.grouped)` |
+|---|---|---|---|
+| 0 | 9 couleurs | 9 | 1 |
+| 3 | 9 | 15 | 1 |
+| 60 | **9** | 74 | **1** |
+
+Le `Table` ne bouge pas — c'est le chrome, `NSTableView` ne passe pas dans le rendu. Le `Form`
+groupé ne rend rien du tout. **Et ma lecture d'hier était fausse** : j'avais pris ces 9 couleurs
+pour la preuve que le corps rendait, alors qu'elles disaient l'inverse.
+
+**La règle qui entre dans `CLAUDE.md`** : avant de croire une porte de rendu, vérifier qu'elle
+**varie avec ses données**. Deux comptes à deux volumes, et s'ils sont égaux la porte est
+aveugle sur ce contenu. C'est la même forme de confiance fausse qui a coûté quatre sessions
+d'affiches invisibles.
+
+### Le remplacement est construit, et il bute sur un second obstacle
+
+**Ce qui marche, contre ce que `project.yml` affirmait** : les tests d'interface **tournent sur
+macOS**. Le commentaire disait « iOS uniquement, sur macOS ils réclament l'autorisation
+d'accessibilité » ; mesuré, `testAppLaunches` passe en 9 s sans rien accorder à la main. La
+cible a donc gagné macOS, et c'est nécessaire — la console est un écran Mac, et la sélection
+multiple par clic modifié n'a pas d'équivalent iOS.
+
+**Ce qui est en place** : l'amorçage par argument de lancement `-cineshelf-seed <n>` (DEBUG
+seulement), trois identifiants d'accessibilité sur la console, et trois tests qui portent les
+trois vérifications demandées — table peuplée, contre-cas vide, sélection qui pilote
+l'inspecteur.
+
+**Ce qui bloque, et que je n'ai pas résolu** : l'app se lance, `wait(for: .runningForeground)`
+passe, et **aucune fenêtre n'apparaît dans l'arbre d'accessibilité**. L'application y figure
+« Disabled » et son sous-arbre ne contient que la barre de menus. `console.table` est donc
+introuvable pour une raison qui n'est plus l'identifiant.
+
+**Les trois tests sautent plutôt que de rougir**, avec le motif écrit dans le fichier : ils
+cherchent une chose et échoueraient sur une autre. **La ligne 21 reste donc en 🔶** — je ne peux
+pas la cocher, la porte que tu demandes n'est pas verte, elle est absente.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| **Le test décisif du `Table`** | ✅ 9 · 9 · 9 contre 9 · 15 · 74 — ton hypothèse confirmée |
+| `xcodebuild test -scheme CineShelfUITests -destination macOS` | 🔶 **lancée pour la première fois** — 4 tests, 1 passé, **3 sautés** faute de fenêtre dans l'arbre |
+| `swift test` CineShelfCore | ✅ **559 tests** |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **121 tests** |
+| `xcodebuild test -scheme CineShelfScreenTests` | ✅ **10 tests** |
+| `xcodebuild build` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 333 fichiers |
+| `xcrun swift-format lint` | ✅ 0 avertissement |
+| **`V8` — import et export** | ❌ **non commencée**. Le budget de la session est passé dans la mesure et l'infrastructure ; commencer `V8` maintenant produirait un écran à moitié écrit, ce qui est pire que rien |
+| `swift test` DesignSystem · MediaKit · `DesignSystemCatalog` | ❌ **non relancés** |

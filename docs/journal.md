@@ -5734,3 +5734,88 @@ purge rejouable ; lot sans effet.
 | `xcodebuild test -scheme DesignSystemCatalog` | ❌ **non lancée** cette session |
 | `xcodebuild test -scheme CineShelfUITests` | ❌ **non lancée** |
 | **Sous-agent de revue** (attendu à rigueur maximale) | ❌ **non lancé** — l'instruction de session interdit d'appeler un agent sans demande explicite. Remplacé par la sonde et la preuve d'échec, pas par rien, mais ce n'est pas le même filet |
+
+## 2026-08-06 (7) — `L20` était sous-exercée, et `L14`
+
+### La question qui a fait tomber deux défauts
+
+« L'annulation a-t-elle été rejouée sur une fusion ? » — non. Et la réponse à « `L20`
+était-elle simple ou sous-exercée » est **sous-exercée**, sans ambiguïté.
+
+**Correction de ma propre présentation d'abord.** J'avais bien signalé deux défauts, mais ils
+étaient dans du code que je venais d'écrire dix minutes plus tôt. `L11b`, `L12`, `L10` et `L1`
+trouvaient des défauts dans du code **déjà là**. Une sonde qui corrige son auteur dans la même
+heure est un signal beaucoup plus faible, et je ne l'avais pas dit.
+
+**Ce que la fusion a révélé, et qu'aucune édition en masse ne pouvait montrer :**
+
+1. **La garde « entité à la corbeille » refusait le perdant.** Or sortir le perdant de la
+   corbeille *est* ce qu'annuler une fusion veut dire : **aucune fusion n'était annulable**.
+   Elle ne mord plus que si le lot n'est pas ce qui a mis l'entité là — le diff le dit, en
+   portant un changement sur `deletedAt`.
+2. **Le nom de la relation venait de `BulkEditDiff.field`**, global au lot. Pour une édition en
+   masse il vaut « genres » ; pour une fusion il vaut « merge », donc `relatedIDs` rendait vide
+   et **tout paraissait avoir bougé**.
+
+`currentVersion` ne change pas, et c'est argumenté : un `payload` en base n'a pas la clé
+`relationField`, `decodeIfPresent` rend `nil`, et `nil` veut dire « la relation du lot » — soit
+exactement la sémantique v1. Un test lit le JSON réellement écrit par `L10` et vérifie que la
+clé **n'y est pas**, puis que l'annulation fonctionne quand même.
+
+**Les trois autres questions étaient couvertes** : seize appels passent par un lot réellement
+appliqué (seul le test des entrées malformées fabrique un diff, et c'est son sujet) ; le double
+appel est refusé par `undoneAt` ; une version inconnue est rejetée.
+
+### `L14` — le verrou, et la portée
+
+**La portée est la seule partie à rigueur maximale, et elle a trouvé un défaut de forme.** Neuf
+écrans écrivaient `session.current?.hidesPrivateContent ?? false` : **en l'absence de profil,
+montrer le contenu privé**. Le repli va dans le mauvais sens. Il n'est pas atteignable
+aujourd'hui — `RootView` pose le sélecteur tant que `current` est `nil` — mais c'est un
+invariant tenu **à distance**, par un `if` dans un autre fichier, que rien ne rappelle au
+dixième écran. `PrivacyScope` masque par défaut, et c'est le seul point d'entrée.
+
+**`Profile.requiresBiometry` était « affiché mais jamais appliqué » — l'écart se ferme ici.** Un
+profil qui exige l'authentification masque tant que l'app est verrouillée. Sans cette clause, le
+réglage serait un interrupteur qui ne fait rien, ce qui est pire qu'un réglage absent : il donne
+une confiance qu'il ne mérite pas.
+
+**La règle de lint en plus du test**, parce que la propriété à garantir est « ce code passe par
+tel point d'entrée » et non « ce code produit telle valeur » : `no_direct_private_flag`. Lancée
+sur tout le dépôt **avant** d'être ajoutée — neuf infractions, exactement les neuf sites — puis
+prouvée en réinjectant la faute sur un écran.
+
+**Les trois rappels de la fiche sont tenus.** `.deviceOwnerAuthentication` et non
+`...WithBiometrics`, avec la raison écrite dans le fichier : la variante biométrique enferme
+dehors un utilisateur masqué ou dont Face ID s'est verrouillé, sans recours. Le voile de
+confidentialité se pose dès `.inactive`, pas à `.background` — iOS prend la vignette **pendant**
+`.inactive`. Et les quatre délais de grâce, avec leur cas dégénéré : `>=` et non `>`, sinon
+« immédiat » ne verrouille **jamais**.
+
+**Un défaut trouvé par la sonde d'écran, et il tue le processus.** Ajouter
+`@Environment(AppLock.self)` aux neuf écrans a fait rendre « 0 test exécuté, TEST FAILED » à la
+suite de rendu, sans nommer un seul test — le symptôme exact que `CLAUDE.md` décrit. Cause : une
+valeur d'environnement absente fait mourir SwiftUI à l'évaluation du corps. C'est la porte de
+rendu qui l'a attrapé, le jour même où elle a été construite.
+
+**Et un test qui a attrapé mon propre compte faux** : la table des huit combinaisons annonçait
+deux cas visibles, il y en a trois. L'assertion est passée d'un nombre à l'énumération — un
+nombre nu ne dit pas *lesquels*, donc la prochaine rougeur ne dirait pas si c'est le code ou le
+compte qui a bougé.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `swift test` CineShelfCore | ✅ **554 tests** (+20) |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **121 tests** |
+| `xcodebuild test -scheme CineShelfScreenTests -destination macOS` | ✅ **8 tests** — après correction du décor |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 327 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| **Sonde de fusion** | ✅ hors dépôt, 2 défauts trouvés, corrigés, remesurés |
+| **Preuve d'échec de la garde de corbeille** | ✅ garde neutralisée, une substitution vérifiée, le test de fusion rouge sur ses quatre assertions, restauration vérifiée |
+| **Preuve d'échec de `no_direct_private_flag`** | ✅ faute réinjectée sur `TitlesView`, substitution vérifiée, règle déclenchée, restauration vérifiée |
+| **Une vraie authentification Face ID / Touch ID** | ❌ **jamais jouée** — aucun test ne peut en déclencher une. `LocalAuthenticationEvaluator` n'a donc **jamais tourné** : sa traduction d'erreurs est écrite contre la documentation, pas contre le système. À vérifier à la main à `V7` |
+| `swift test` DesignSystem · MediaKit · `DesignSystemCatalog` | ❌ **non relancés** — rien de cette passe ne les touche, mais ça ne se déduit pas |
+| `xcodebuild test -scheme CineShelfUITests` | ❌ **non lancée** |

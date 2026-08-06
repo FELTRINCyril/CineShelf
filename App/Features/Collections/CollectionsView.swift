@@ -24,6 +24,7 @@ import SwiftUI
 struct CollectionsView: View {
     @Environment(NavigationModel.self) private var navigation
     @Environment(ProfileSession.self) private var session
+    @Environment(AppLock.self) private var appLock
     @Environment(\.modelContext) private var modelContext
 
     @Query(sort: \TitleCollection.name) private var allCollections: [TitleCollection]
@@ -145,7 +146,7 @@ struct CollectionsView: View {
     /// **Le tri par nombre de titres se fait en mémoire**, comme celui des personnes par
     /// crédits, et pour la même raison : SwiftData ne trie pas sur le compte d'une relation.
     private var collections: [TitleCollection] {
-        let hidesPrivate = session.current?.hidesPrivateContent ?? false
+        let hidesPrivate = appLock.scope(for: session.current).hidesPrivateContent
         let libraryID = session.current?.library?.id
         let visible = allCollections.filter { collection in
             guard collection.deletedAt == nil else { return false }

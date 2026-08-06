@@ -23,6 +23,7 @@ import SwiftUI
 
 struct SavedLinksView: View {
     @Environment(ProfileSession.self) private var session
+    @Environment(AppLock.self) private var appLock
     @Environment(\.modelContext) private var modelContext
 
     @Query(sort: \SavedLink.createdAt, order: .reverse) private var allLinks: [SavedLink]
@@ -76,7 +77,7 @@ struct SavedLinksView: View {
     }
 
     private var links: [SavedLink] {
-        let hidesPrivate = session.current?.hidesPrivateContent ?? false
+        let hidesPrivate = appLock.scope(for: session.current).hidesPrivateContent
         let libraryID = session.current?.library?.id
         return allLinks.filter { link in
             guard link.deletedAt == nil, !link.isArchived else { return false }

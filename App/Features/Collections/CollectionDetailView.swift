@@ -22,6 +22,7 @@ struct CollectionDetailView: View {
 
     @Environment(NavigationModel.self) private var navigation
     @Environment(ProfileSession.self) private var session
+    @Environment(AppLock.self) private var appLock
     @Environment(\.modelContext) private var modelContext
 
     @Query private var collections: [TitleCollection]
@@ -160,7 +161,7 @@ struct CollectionDetailView: View {
 
     @ViewBuilder
     private func titles(of collection: TitleCollection) -> some View {
-        let hidesPrivate = session.current?.hidesPrivateContent ?? false
+        let hidesPrivate = appLock.scope(for: session.current).hidesPrivateContent
         let members = (collection.titles ?? [])
             .filter { $0.deletedAt == nil && !(hidesPrivate && $0.isPrivate) }
             .sorted { ($0.releaseDate ?? .distantPast) < ($1.releaseDate ?? .distantPast) }

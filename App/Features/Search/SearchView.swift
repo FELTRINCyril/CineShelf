@@ -42,6 +42,7 @@ import SwiftUI
 
 struct SearchView: View {
     @Environment(ProfileSession.self) private var session
+    @Environment(AppLock.self) private var appLock
     @Environment(\.modelContext) private var modelContext
 
     @State private var term = ""
@@ -303,7 +304,7 @@ struct SearchView: View {
         }
 
         let service = SearchService(context: modelContext)
-        let hidingPrivate = session.current?.hidesPrivateContent ?? false
+        let hidingPrivate = appLock.scope(for: session.current).hidesPrivateContent
         let libraryID = session.current?.library?.id
 
         do {

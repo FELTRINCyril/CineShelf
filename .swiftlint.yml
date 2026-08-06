@@ -158,6 +158,21 @@ custom_rules:
   # aurait forcé un détour sans bénéfice. Ce qu'on veut empêcher, c'est un prédicat
   # écrit dans une vue — où personne ne lira l'avertissement, et où aucune cible de
   # test ne peut le couvrir.
+  no_direct_private_flag:
+    name: "hidesPrivateContent lu directement"
+    message: >-
+      La portee du contenu prive se demande a PrivacyScope, jamais au Profile :
+      `session.current?.hidesPrivateContent ?? false` montre le prive quand aucun
+      profil n'est actif, et ignore requiresBiometry. Utilise appLock.scope(for:)
+      ou PrivacyScope.resolve(profile:isUnlocked:).
+    regex: 'current[?!]?\.hidesPrivateContent'
+    excluded:
+      - ".*/Packages/CineShelfCore/.*"
+    excluded_match_kinds:
+      - comment
+      - doccomment
+      - string
+
   no_predicate_outside_core:
     name: "#Predicate hors CineShelfCore"
     message: >-

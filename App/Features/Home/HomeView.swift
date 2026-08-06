@@ -20,6 +20,7 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(ProfileSession.self) private var session
+    @Environment(AppLock.self) private var appLock
     @Environment(NavigationModel.self) private var navigation
 
     @Query(sort: \Title.createdAt, order: .reverse) private var titles: [Title]
@@ -37,7 +38,7 @@ struct HomeView: View {
             pinnedGenres: pinnedGenres,
             collections: collections,
             profileID: session.current?.id,
-            hidingPrivate: session.current?.hidesPrivateContent ?? false,
+            hidingPrivate: appLock.scope(for: session.current).hidesPrivateContent,
             libraryID: session.current?.library?.id,
             day: .now
         )

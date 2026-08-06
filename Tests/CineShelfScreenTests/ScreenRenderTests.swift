@@ -100,6 +100,13 @@ func render(_ content: some View, width: CGFloat = 1_280, height: CGFloat = 760)
     return screenStats(of: image)
 }
 
+/// Un évaluateur qui n'appelle jamais le système : aucune sonde ne peut invoquer Face ID.
+struct ProbeEvaluator: BiometricEvaluating {
+    func canEvaluate() -> Bool { true }
+    func biometryKind() -> BiometryKind { .none }
+    func evaluate(reason: String) async throws {}
+}
+
 // MARK: - Le décor
 //
 // **Chaque échantillon exerce le chemin réel, jamais le cas nul.** Chaque personne a des
@@ -112,6 +119,15 @@ struct Stage {
     let container: ModelContainer
     let context: ModelContext
     let navigation = NavigationModel()
+    /// **Le verrou entre dans le décor par `L14`.** Sans lui, `@Environment(AppLock.self)`
+    /// n'a pas de valeur et SwiftUI **tue le processus** à l'évaluation du corps : la suite
+    /// rend alors « 0 test exécuté » et `TEST FAILED`, sans nommer un seul test. C'est
+    /// exactement le symptôme décrit dans `CLAUDE.md` pour une suite qui meurt.
+    ///
+    /// L'évaluateur est factice et le verrou reste **fermé** : les profils du décor n'exigent
+    /// pas d'authentification, donc la portée montre quand même — et un verrou ouvert
+    /// masquerait le fait que `PrivacyScope` décide bien de quelque chose.
+    let appLock = AppLock(evaluator: ProbeEvaluator())
     let session: ProfileSession
     let library: Library
 
@@ -187,6 +203,7 @@ struct Stage {
         content
             .environment(navigation)
             .environment(session)
+            .environment(appLock)
             .modelContainer(container)
     }
 }

@@ -19,6 +19,7 @@ import SwiftUI
 struct GalleryView: View {
     @Environment(NavigationModel.self) private var navigation
     @Environment(ProfileSession.self) private var session
+    @Environment(AppLock.self) private var appLock
 
     @State private var isSelecting = false
     @State private var selection: Set<UUID> = []
@@ -29,7 +30,7 @@ struct GalleryView: View {
             filterRow
             GalleryMasonry(
                 filter: navigation.galleryFilter,
-                hidingPrivate: session.current?.hidesPrivateContent ?? false,
+                hidingPrivate: appLock.scope(for: session.current).hidesPrivateContent,
                 isSelecting: isSelecting,
                 selection: $selection
             )

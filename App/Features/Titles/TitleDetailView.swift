@@ -26,6 +26,7 @@ struct TitleDetailView: View {
 
     @Environment(NavigationModel.self) private var navigation
     @Environment(ProfileSession.self) private var session
+    @Environment(AppLock.self) private var appLock
     @Environment(\.modelContext) private var modelContext
 
     @Query private var titles: [Title]
@@ -45,7 +46,7 @@ struct TitleDetailView: View {
     /// restauration d'état ou par ⌥↑ : un profil « Invité » ne doit jamais la voir.
     private var title: Title? {
         guard let found = titles.first else { return nil }
-        if found.isPrivate, session.current?.hidesPrivateContent == true { return nil }
+        if found.isPrivate, appLock.scope(for: session.current).hidesPrivateContent { return nil }
         return found
     }
 

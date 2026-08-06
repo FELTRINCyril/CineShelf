@@ -8,6 +8,13 @@ struct CineShelfApp: App {
     @State private var container: ModelContainer
     @State private var navigation = NavigationModel()
     @State private var session = ProfileSession()
+
+    /// Le verrou d'interface de `L14`.
+    ///
+    /// **Un seul pour toute l'app**, et posé ici : `PrivacyScope` en dérive, donc deux
+    /// instances donneraient deux réponses à « ce profil peut-il voir le contenu privé ».
+    /// L'évaluateur réel est injecté une fois ; les tests en fournissent un factice.
+    @State private var appLock = AppLock(evaluator: LocalAuthenticationEvaluator())
     @State private var media: MediaEnvironment
 
     init() {
@@ -42,6 +49,7 @@ struct CineShelfApp: App {
             RootView()
                 .environment(navigation)
                 .environment(session)
+                .environment(appLock)
                 .environment(media)
                 .imageLoader(media.imageLoader())
                 .displayScale(feeding: media)
@@ -58,6 +66,7 @@ struct CineShelfApp: App {
                 SettingsScene()
                     .environment(navigation)
                     .environment(session)
+                    .environment(appLock)
                     .modelContainer(container)
             }
 
@@ -68,6 +77,7 @@ struct CineShelfApp: App {
                     .frame(minWidth: 720, minHeight: 480)
                     .environment(navigation)
                     .environment(session)
+                    .environment(appLock)
                     .modelContainer(container)
             }
             .keyboardShortcut("l", modifiers: [.command, .shift])

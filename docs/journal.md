@@ -5619,3 +5619,118 @@ navigation, c'est **la configuration de l'accueil**, donc il vit à côté des r
 | **Sonde de boucle locale sur la garde de lien** | ✅ serveur local, huit hôtes, `0x7f.0.0.1` atteint 127.0.0.1 — puis refusé après correction |
 | `xcodebuild test -scheme CineShelfUITests` | ❌ **non lancée** |
 | **Les cinq écrans vus à l'écran** | ❌ **non vus** — pas faute d'outil cette fois : `CineShelfTests` n'a pas de `TEST_HOST`, la sonde d'écran ne peut pas y vivre. Écart inscrit avec sa cause |
+
+## 2026-08-06 (6) — Le `TEST_HOST`, la classe de défaut, et `L20`
+
+### La CI était rouge, et elle avait raison contre moi
+
+`@testable import CineShelf` dans `PersonPresentationTests` : **inutile** — la cible compile
+les fichiers de `App/` dont elle a besoin, ils ne sont pas importés — et il **compilait en
+local** parce que `DerivedData` gardait le module app d'un build précédent. Sur une machine
+propre : « unable to resolve module dependency ». Même famille que les seuils de performance
+calés sur la machine locale : vert ici, rouge là-bas, et le local est le mauvais juge. Vérifié
+après correction sur un `DerivedData` vidé.
+
+### Le `TEST_HOST` : l'issue retenue, et ce qu'elle a trouvé
+
+**Une seconde cible, pas un `TEST_HOST` sur l'existante.** `CineShelfTests` porte 121 tests qui
+tournent sans lancer l'interface et `project.yml` documente ce choix ; lui donner un hôte ferait
+payer le lancement de l'app à des tests de prédicat. Les deux autres issues inscrites ne
+tiennent pas : extraire les compositions vers `DesignSystem` échoue par construction sur
+l'écran qui compte — la console de `V6` extraite du contexte n'est plus la console —, et
+accepter laisse `V6` sans porte.
+
+**Deux trouvailles en la branchant, et la première a failli me faire conclure de travers.**
+
+1. **`ImageRenderer` ne met pas en page un `ScrollView`.** Cinq écrans sur sept rendaient
+   **une seule couleur**. J'ai failli lire ça comme « cinq écrans cassés » ; le diagnostic
+   minimal — `ScrollView { Text("CineShelf") }` contre le même texte nu — donne 1 contre 3.
+   C'est la sonde qui était aveugle. Aucun contournement d'enveloppe ne marche : `.fixedSize`,
+   `.scrollDisabled`, `.clipped`, hauteur libre ou imposée. D'où `ScreenScroll`, qui s'aplatit
+   sur `\.rendersFlat`.
+2. **Trois écrans de `V5b` portaient un `ScrollView` redondant.** `RegularRootView` en pose
+   déjà un autour de `section.destination` : les sections étaient donc en défilement imbriqué.
+   `TitlesView` et `PeopleView` n'en ont pas — c'est la forme correcte, et je ne l'avais pas
+   suivie. Les fiches, poussées par `navigationDestination`, sont hors de ce conteneur et
+   gardent le leur.
+
+Huit sondes, dont le contrôle négatif et deux écrans sondés **rétroactivement** — la grille des
+titres et l'accueil, livrés sans porte, et c'est sur eux que `MediaFill` était passé.
+
+| Écran | vide | peuplé |
+|---|---|---|
+| Personnes | 17 couleurs | 24 |
+| Collections | 16 | 20 |
+| Fil | 11 | 28 |
+| Fiche personne | 10 (absente) | 21 (trouvée) |
+| Fiche collection | 8 (absente) | 10 (trouvée) |
+| Titres · Accueil | — | 8 · 133 |
+
+**Ce que la porte ne couvre pas, et c'est écrit dans le fichier** : le *chargement* des images.
+`ImageRenderer` rend de façon synchrone et le décor n'attache aucun média. Ce chemin est couvert
+par `ContentRenderTests` de `DesignSystem`, qui injecte un chargeur et laisse tourner la boucle.
+Croire que cette suite couvre les deux serait l'erreur exacte qui a laissé passer `MediaFill`.
+
+### La classe de défaut entre dans `CLAUDE.md`
+
+« Une capacité lue et jamais écrite est un écran qui ment. » Cinq occurrences dans `V4`/`V5b`,
+donc une classe, pas cinq oublis. Le geste ajouté : avant de livrer un écran, `grep` sur chaque
+propriété qu'il lit pour trouver qui l'écrit. Le corollaire symétrique est déjà mesuré —
+`ActivityEntry`, écrit quinze prompts avant son premier lecteur.
+
+**Propagation, comme la règle l'exige.** Un balayage des propriétés du modèle rend vingt noms
+« lus sans écriture hors du modèle ». Dix-neuf sont des faux positifs par construction —
+dérivées (`sortName`, `filterKeys`, `nameKey`, `searchText`, maintenues par `refreshDerived`),
+calculées (`age`, `isEmpty`, `releaseYear`, `hasExactlyOneOwner`), ou écrites par
+initialisation de relation (`attachments`, `flags`, `handles`, `links`, `crops`). **Le vingtième
+est réel et déjà connu** : `Profile.accent`, 53 lectures et aucune écriture — l'écran de
+profils est `V7`. Inscrit.
+
+### `L20` — l'exécuteur d'annulation
+
+**La fiche est périmée sur un point, et je l'ai vérifié avant d'écrire** : elle dit
+« `ActivityEntry.payload` n'existe pas ». Il existe depuis la fermeture du schéma du
+2026-08-03, avec `undoneAt`, et `L10` y écrit déjà un `BulkEditDiff` versionné. **Aucun
+changement de schéma n'a donc été nécessaire** — ce qui manquait était le lecteur.
+
+**Deux passes et non une** : vérifier tout, puis écrire. Une annulation qui écrirait au fil de
+sa vérification laisserait, sur le premier champ divergent, la moitié du lot défaite — le
+désordre exact que « tout ou rien » existe pour empêcher.
+
+**La sonde a trouvé un défaut que je ne cherchais pas, et c'est le plus vicieux du lot.**
+`isUndoable` répondait « non » au-delà de trente jours pendant qu'`undo` défaisait quand même :
+deux réponses à la même question. L'interface aurait grisé le bouton et tout appel
+programmatique serait passé outre. La fenêtre est désormais tenue dans `undo`, et `isUndoable`
+la lit du même endroit ; la purge de `L16` n'est plus qu'une libération d'espace.
+
+**Le test de purge en a trouvé un second, plus fin.** Une entrée purgée n'a plus de `payload`,
+donc elle répondait `notUndoable` — « ce n'était pas une opération de masse », ce qui est faux :
+elle l'était, et elle a été annulable pendant trente jours. La fenêtre départage maintenant les
+deux causes du même symptôme.
+
+**Le rappel de la fiche est tenu et testé** : `releaseDate` et `releasePrecision` reviennent
+**dans la même écriture**. Restaurer en deux passes laisserait entre les deux une date au jour
+près sur une précision à l'année — le bug du prompt 11.
+
+**Ce que la sonde a mesuré, quinze scénarios** : aller-retour sur notes, dates, rôles ;
+remplacement de genres (attachés *et* détachés) ; vidage ; un genre ajouté après le lot, qui
+**survit** — l'annulation défait ce que le lot a fait, rien d'autre ; entité modifiée,
+corbeille, supprimée ; entrée inconnue, sans diff, de version inconnue ; double annulation ;
+purge rejouable ; lot sans effet.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `swift test` CineShelfCore | ✅ **531 tests** (+14) |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **121 tests**, dont une passe sur `DerivedData` vidé |
+| `xcodebuild test -scheme CineShelfScreenTests -destination macOS` | ✅ **8 tests** — la cible n'existait pas ce matin |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 322 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| **Sonde hors dépôt de `L20`** | ✅ 15 scénarios, 2 défauts trouvés, corrigés et remesurés |
+| **Preuve d'échec de `L20`** | ✅ garde de champ neutralisée, **une** substitution vérifiée, test rouge sur le bon test, restauration vérifiée |
+| `swift test` DesignSystem · MediaKit | ❌ **non relancés depuis `V5b`** — rien de `L20` ni du `TEST_HOST` ne les touche, mais ça ne se déduit pas |
+| `xcodebuild test -scheme DesignSystemCatalog` | ❌ **non lancée** cette session |
+| `xcodebuild test -scheme CineShelfUITests` | ❌ **non lancée** |
+| **Sous-agent de revue** (attendu à rigueur maximale) | ❌ **non lancé** — l'instruction de session interdit d'appeler un agent sans demande explicite. Remplacé par la sonde et la preuve d'échec, pas par rien, mais ce n'est pas le même filet |

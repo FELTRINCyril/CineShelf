@@ -74,6 +74,7 @@ public struct ActivityItem: Identifiable, Sendable {
         case .merge: "Fusionné"
         case .import: "Importé"
         case .bulkEdit: "Modifié en masse"
+        case .undo: "Annulé"
         case nil: "Opération"
         }
     }

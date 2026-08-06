@@ -123,4 +123,12 @@ public enum ActivityAction: String, Codable, CaseIterable, Sendable {
     /// `ActivityEntry.actionRaw` est une `String`, et `action` rend `nil` sur un
     /// `rawValue` inconnu.
     case bulkEdit
+    /// L'annulation d'un lot — `L20`.
+    ///
+    /// Distincte d'`update` et de `restore` : `restore` sort une entite de la corbeille, et
+    /// « Modifie » ne dirait pas que l'operation en defait une autre. Meme raisonnement que
+    /// `bulkEdit` ci-dessus, et meme innocuite vis-a-vis du schema : `actionRaw` est une
+    /// `String`, et une version anterieure lira `nil` — donc « Operation », ce qu'une piste
+    /// d'audit a le droit de dire.
+    case undo
 }

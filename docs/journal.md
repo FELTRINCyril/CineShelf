@@ -5217,3 +5217,100 @@ direction a supprimé, ce que le lint interdit ailleurs.
 | `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
 | **Les cinq vérifications visuelles de `V3`** | ❌ **non faites** — `screencapture` refusé, cause identifiée ci-dessus |
 | **La planche `I5` vue à l'œil** | ❌ **non vue**, pour la même raison |
+
+## 2026-08-06 (2) — La sonde de pixels, le palier 3 compressé, et les neuf champs
+
+### `ImageRenderer` était là depuis `I2`, et la question ne lui était pas posée
+
+**Trois échanges perdus sur `screencapture`, et l'outil était dans le dépôt.** Les tests de
+rendu comparent des pixels depuis `I2` sans aucune permission — rendre une vue dans un bitmap
+ne passe par aucune API de capture d'écran. Ce qui manquait n'était pas l'accès à l'écran,
+c'était **la bonne question** : les empreintes FNV distinguaient deux rendus sans jamais
+demander s'il y avait quelque chose dedans.
+
+**Deux aplats de couleurs différentes ont deux empreintes différentes.** C'est tout le défaut,
+en une phrase : la porte passait au vert sur une tuile vide.
+
+### La sonde, et ce qu'elle a fallu comprendre
+
+`PixelStats` compte les **couleurs distinctes** sur une grille de 32 × 32 et mesure l'écart de
+luminance. Une image en rend des dizaines, un aplat une seule.
+
+**Le piège, et il aurait rendu la sonde inutile** : `ImageRenderer` rend de façon
+**synchrone**, donc un `.task` n'a pas tourné au moment du bitmap. Sans attente, « chargée »,
+« en cours » et « en échec » rendent tous le même placeholder — exactement l'aveuglement qu'on
+venait corriger. La parade tient en trois lignes : lire `cgImage` une première fois pour que la
+vue existe et que ses tâches démarrent, laisser tourner la boucle, relire.
+
+**Preuve d'échec, avec injection vérifiée.** J'ai remis la faute historique dans `MediaFill` —
+le chargeur remplacé par le stub qui n'aboutit jamais — après avoir vérifié que la substitution
+avait bien eu lieu (une ligne, un `grep`). Deux tests rouges, dont le principal.
+
+**Et la mesure a corrigé mon assertion.** J'attendais `isUniform` ; la tuile fautive rend
+**deux** couleurs et non une, parce que le symbole d'échec en dessine une seconde. C'est le
+seuil `distinctColours > 8` qui mord, pas le booléen. Écrit dans le test, parce que quelqu'un
+essaiera de le « simplifier ».
+
+Cinq assertions neuves : la sonde contre son contrôle négatif, la tuile chargée contre l'aplat,
+les quatre états **deux à deux**, le liseré de sélection, et les colonnes de la maçonnerie qui
+ne finissent pas à la même hauteur — la seule chose qui distingue une maçonnerie d'une grille.
+
+**La règle est dans `CLAUDE.md`** : une tâche `V` se termine par un rendu assené, jamais par
+« non vu ». Je ne peux pas juger si c'est beau ; je peux prouver que ce n'est pas vide.
+
+### Le palier 3 — quatorze lignes en douze, et trois prémisses corrigées
+
+**`V8` n'est pas un doublon de `V3`.** `V3` est la galerie ; `V8` est **l'import et
+l'export**. La retirer aurait laissé `L11a`, `L11b` et `L12` — trois tâches faites, deux à
+rigueur maximale — sans aucun écran, et sept écarts inscrits sans destination. Elle reste.
+
+**`L15` n'est pas dans le palier 3**, elle est reportée en v1.1 : il n'y a que **trois** tâches
+à rigueur maximale, pas quatre. Et **`L14` n'est pas maximale** — le classement dit « légère
+sauf la portée du déverrouillage », et c'est cette portée qui est une seconde porte.
+
+**Une contrainte d'ordre que « les maximales en fin de palier » violait** : `V6` ne se livre
+pas sans `L20`, `V7` pas sans `L14`. Les mettre après le groupe `V6`+`V7` aurait inversé une
+dépendance dure. Elles sont donc **juste avant** — isolées et tardives, sans rien casser. Seule
+`L16` finit vraiment.
+
+Les quatre regroupements sont faits : `I7`+`I8`+`I9`, `L7`+`L17`, `V4`+`V5b`, `V6`+`V7`.
+
+### `I7` + `I8` + `I9` — neuf composants, une anatomie
+
+**C'est le regroupement qui se justifie le mieux** : les neuf partagent le même libellé, le
+même fond, le même trait de focus et les mêmes quatre marques d'erreur. Séparés, cette coquille
+s'écrivait trois fois — ou deux fois et demie, avec une divergence au milieu.
+
+**`I9` ne recoupe pas `I10`, et le vérifier valait la peine.** Les deux touchent au refus, et
+c'est là que ça se joue : le récapitulatif de refus du bloc `11c` est posé « dans le contenu,
+pas en notification ». Réutiliser `Banner` l'aurait posé en interruption — donc exactement ce
+que le bloc écarte. `ValidationSummary` est un composant distinct **pour ne pas** partager.
+
+**Une collision de noms, et le compilateur l'a attrapée à la seconde.** Mon `DatePrecision` a
+fait cesser de compiler `TitleEditor` : le modèle en porte déjà un, **persisté** dans
+`releasePrecisionRaw`. Les deux paquets ne pouvant pas se connaître, le double est inévitable —
+comme `CardLayout` / `DisplayLayout` — mais le nom, non. Renommé `DateFieldPrecision`, avec le
+test d'accord des `rawValue` dans `DisplayVocabularyTests`, seul endroit qui voie les deux.
+
+Le message d'erreur méritait d'être noté : « ambiguous use of `year` », qui ne nomme ni le
+type, ni le module, ni la cause.
+
+**Trois décisions inscrites** : le jour n'est pas borné au mois — un 31 février se **tape** et
+se refuse par l'anatomie d'erreur, parce qu'un champ qui refuse la frappe ne dit pas pourquoi ;
+les couleurs de profil sont **hors du catalogue d'assets**, puisqu'une couleur qu'on persiste ne
+doit pas suivre l'apparence ; et le jeton du multi-sélecteur n'est **pas** `FilterChip` — même
+allure, deux gestes différents, et deux relevés différents.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **461 · 85 · 64** |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **115 tests** |
+| `xcodebuild test -scheme DesignSystemCatalog` · macOS et iOS | ✅ **86** et **85** |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 296 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| **Preuve d'échec de la sonde** | ✅ faute historique réinjectée, substitution vérifiée, deux tests rouges, restauration vérifiée |
+| `xcodebuild test -scheme CineShelfUITests` | ❌ **non lancée** — rien de cette session ne touche la navigation, mais ça ne se déduit pas |
+| **Les planches vues à l'œil** | ❌ **non vues** — `screencapture` abandonné. Ce qui a changé : ce n'est plus le seul recours, et les cinq points aveugles de `V3` sont désormais assénés au pixel |

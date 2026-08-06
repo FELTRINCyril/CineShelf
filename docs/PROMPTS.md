@@ -406,6 +406,10 @@ de découpage sur sa fiche.
 | **L'archivage d'une image n'a aucun écran qui la retrouve.** `MediaQuery.galleryAssets` exclut `isArchived`, ce qui est **déduit** du bloc `6f` : il propose « Archiver » comme action de masse, donc archiver doit faire quelque chose de visible. Mais aucun bloc ne dessine l'écran des images archivées, donc une image archivée disparaît sans recours depuis l'interface | `V10`, avec la corbeille |
 | **La visionneuse est une feuille sur macOS, pas une surface plein écran.** `fullScreenCover` n'existe pas sur macOS ; c'est le même choix que `CropEditor` à `V2 bis`. Le zoom, le pincement et le mode immersif fonctionnent dedans, mais la fenêtre garde son chrome système — donc « aucun chrome » du bloc `6d` n'est vrai que du chrome de l'app | à revoir si une vraie fenêtre plein écran devient nécessaire |
 | **`TitleFilterPerformanceTests` porte le même défaut de calibration que `SearchPerformanceTests` avait, et il n'a pas encore rougi.** Son plafond est de **25 ms**, calé sur une mesure locale. Le rapport runner / local observé le 2026-08-05 est de 7 à 10 : ce seuil est donc un flake en attente, exactement comme l'autre. Il vit dans la cible app (job « Tests logique (macOS) »), qui est passée au vert ce jour-là — c'est de la chance, pas une preuve. **Non corrigé par `V3`** : la tâche soldait un reste-à-faire et n'avait pas à toucher un test qui passe, mais l'attente d'une occurrence n'a ici aucune valeur d'information, la cause étant déjà connue et écrite | à relever au prochain rouge, ou à la prochaine passe qui touche ce fichier |
+| ~~**Les tâches `V` se terminent sur « non vu ».**~~ **Réglé par la sonde de pixels** (`PixelProbe`, `ContentRenderTests`) : cinq assertions de non-vacuité et de distinction, sans aucune permission. `screencapture` est abandonné — la cause est identifiée (TCC attribue l'autorisation à `Switchboard.app`, pas au terminal) et elle n'a plus d'importance. **Ce qui reste hors de portée est le jugement esthétique**, et c'est le tien | méthode |
+| **`DatePrecision` existe en double, sous deux noms.** Le modèle le persiste (`Title.releasePrecisionRaw`), `DesignSystem` porte `DateFieldPrecision` pour le rendre. Le double est inévitable — la règle de dépendances interdit aux deux paquets de se connaître — mais **le même nom faisait cesser de compiler `TitleEditor`**, avec un message qui ne nommait ni le type ni le module (« ambiguous use of `year` »). `DisplayVocabularyTests` accorde les `rawValue` | inscrit, comme `CardLayout` / `DisplayLayout` |
+| **Les couleurs de profil sont des littérales `displayP3`, hors du catalogue d'assets.** C'est délibéré : une couleur de profil est une **valeur persistée que l'utilisateur choisit**, pas un rôle de l'interface, et elle doit rester la même en clair et en sombre. Trois des quatre sont relevées de la planche 6, la quatrième est l'accent | inscrit, pas à corriger |
+| **`TokenFieldRow` pose ses jetons dans un `LazyVGrid` adaptatif, pas dans un vrai flux.** SwiftUI n'a pas de `WrappingHStack` ; un `Layout` maison serait de l'arithmétique à écrire et à tester pour un champ qui porte rarement plus de six valeurs. La grille retourne à la ligne sans qu'on calcule rien, au prix de colonnes de largeur égale — donc d'un jeton court aussi large qu'un long | à revoir si un champ porte vingt genres |
 | **La marge horizontale du tableau est de 18 pt aux deux crans de densité.** Seul le bloc dense la rend ; une valeur ample déduite par proportion serait une mesure que personne n'a dessinée. Choix de ne pas inventer | au premier rendu ample de la console |
 | **Aucun bloc ne rend une ligne de tableau sélectionnée.** Le bloc `7a` annonce « 1 sélectionnée » dans son en-tête sans qu'on voie laquelle. `TableRow` pose donc un fond `bg.fill` **plus** une barre d'accent de 2 pt : le fond seul est déjà celui du survol, donc « sélectionnée » et « sous le curseur » auraient rendu la même chose — le motif exact de « deux états qui rendent la même chose ». Déduction, pas relevé | à confirmer au design |
 | **Le jeton de filtre n'a qu'une graisse là où le prototype en a deux.** Bloc `7d` : actif en 600, inactif en 400. Le système n'a pas d'Archivo Narrow 400 — les faces enregistrées sont `SemiBold` et `Bold`. Ajouter une face pour un écart de graisse sur 11 pt coûterait un fichier de police et une entrée de registre ; les deux états restent distincts par le fond et la couleur du texte | à rouvrir seulement si le design y tient |
@@ -711,26 +715,49 @@ saccade pas.
 
 #### Palier 3 — complète
 
-Le reste des `V`, et les `L` qu'elles réclament. L'ordre interne compte moins ; ce qui
-compte est que **`L20` passe avant `L13`** (elle touche au schéma) et que `V6` ne se livre
-pas sans elle.
+**Compressé le 2026-08-06 : quatorze lignes deviennent douze, par quatre regroupements.** Les
+tâches réunies sont celles qui touchent les mêmes fichiers ou le même écran — les séparer
+faisait rouvrir deux fois le même contexte, ce qui est la seule chose qu'un découpage ne doit
+jamais coûter.
+
+> **Trois prémisses de la compression demandée ne tenaient pas, et les corriger change le
+> tableau. Elles sont dites ici plutôt que corrigées en silence.**
+>
+> 1. **`V8` n'est pas un doublon de `V3`.** `V3` est la galerie ; `V8` est **l'import et
+>    l'export** — sélecteur de champs, aperçu ligne à ligne, correction en masse, progression
+>    (prompt 19, planche 5 blocs `7c` et `7d`, addendum 1 blocs `11d`–`11g`). La retirer
+>    laisserait `L11a`, `L11b` et `L12` — **trois tâches faites, dont deux à rigueur
+>    maximale** — sans aucun écran, et sept écarts inscrits sans destination. Elle reste.
+> 2. **`L15` n'est pas dans ce palier**, elle est **reportée en v1.1** (transfert entre
+>    bibliothèques). Elle ne peut donc pas passer en fin de palier 3 : il n'y a que **trois**
+>    tâches à rigueur maximale ici, pas quatre.
+> 3. **`L14` n'est pas à rigueur maximale**, et le classement le dit depuis qu'il existe :
+>    « légère **sauf la portée du déverrouillage** ». C'est cette portée qui est critique — un
+>    déverrouillage qui déborde d'un profil expose du contenu privé — pas la tâche entière.
+>
+> **Et une contrainte d'ordre que « les maximales en fin de palier » viole.** `V6` ne se livre
+> pas sans `L20`, `V7` pas sans `L14` : les mettre après le groupe `V6`+`V7` inverserait une
+> dépendance dure. Elles sont donc placées **juste avant** lui — isolées et tardives, ce qui
+> est l'intention, sans casser ce qui en dépend. Seule `L16` peut vraiment finir, puisque seule
+> `V10` la réclame.
 
 | # | Tâche | Ce qu'elle débloque | Rigueur |
 |---|---|---|---|
-| 14 | `I5` — ligne de tableau · jeton de filtre · pastille de compteur | La console de gestion et les barres de filtre | légère — ✅ |
-| 15 | `I7` `I8` `I9` — les champs de formulaire, trois lots | Tout éditeur : titre, personne, collection, profil | légère |
+| 14 | `I5` — ligne de tableau · jeton de filtre · compteur | La console de gestion et les barres de filtre | légère — ✅ |
+| 15 | **`I7` + `I8` + `I9`** — tous les champs de formulaire, en un lot | Tout éditeur : titre, personne, collection, profil. **Regroupés** : les trois lots partagent la même planche 6, la même anatomie d'erreur et la même coquille — les séparer faisait l'écrire trois fois | légère — ✅ **`I9` ne recoupe pas `I10`** : le récapitulatif de refus du bloc `11c` est « dans le contenu, pas en notification », donc `ValidationSummary` existe **pour ne pas** être `Banner` |
 | 16 | `L18` — sélections éditoriales, fil d'activité, statistiques | L'accueil (`V5a`), « ma liste », le fil. **Rien ne lit `ActivityEntry` aujourd'hui** | légère |
-| 17 | `L20` — annulation de l'édition en masse et de la fusion | `V6`. **Doit passer avant `L13`** : le champ est posé, le format se fige | **maximale** |
-| 18 | `L14` — `AppLock` : authentification, délai de grâce, portée par profil | `V7`, le verrouillage | légère **sauf la portée du déverrouillage** |
-| 19 | `L16` — maintenance et corbeille : orphelins, purge à 30 jours | `V10` | **maximale** |
-| 20 | `L17` — état de synchronisation, les 6 cas, espace occupé | `V10`. **Jamais vérifiable avant le prompt 21** | légère |
-| 21 | `V4` — personnes : grille, fiche, éditeur | — | légère |
-| 22 | `V5b` — collections, genres, liens et signets, fil | — | légère |
-| 23 | `V6` — console de gestion : tableau, édition inline, édition en masse | — . **Ne pas livrer sans `L20`** | légère |
-| 24 | `V7` — profils, bibliothèques, transfert, verrouillage | — | légère |
-| 25 | `V8` — import et export : aperçu ligne à ligne, corrections, progression | `L11a` `L11b` `L12` sont faites et n'ont aucun écran | légère |
-| 26 | `V10` — synchronisation : indicateur, corbeille, espace occupé | — | légère |
-| 27 | `V12` — passe d'accessibilité sur les écrans définitifs | — | légère |
+| 17 | **`L7` + `L17`** — aperçu de lien, et état de synchronisation | `V5b` pour le premier, `V10` pour le second. **Regroupés** : deux petites tâches de service, sans recouvrement de fichiers mais de même forme — un état à produire, aucune écriture. `L7` sort des tâches d'appoint pour l'occasion | légère |
+| 18 | **`V4` + `V5b`** — personnes, collections, genres, liens, fil | **Regroupés** : ce sont les mêmes formes — une grille, une fiche, un éditeur — sur quatre entités, et elles partagent leurs composants au point qu'écrire la seconde après la première serait la recopier | légère |
+| 19 | `L20` — annulation de l'édition en masse et de la fusion | `V6`. **Doit passer avant `L13`** : le champ est posé, le format se fige | **maximale** |
+| 20 | `L14` — `AppLock` : authentification, délai de grâce, portée par profil | `V7`, le verrouillage | légère **sauf la portée du déverrouillage**, qui est une seconde porte : un déverrouillage qui déborde expose du contenu privé |
+| 21 | **`V6` + `V7`** — console de gestion, profils, bibliothèques, verrouillage | **Regroupés** : la console et les réglages sont le même registre dense (planche 5), et `V7` n'est qu'un panneau de plus dans ce registre. **Ne pas livrer sans `L20` ni `L14`**, qui précèdent | légère |
+| 22 | `V8` — import et export : aperçu ligne à ligne, corrections, progression | `L11a` `L11b` `L12` sont faites et n'ont **aucun** écran. Sept écarts inscrits y pointent | légère |
+| 23 | `L16` — maintenance et corbeille : orphelins, purge à 30 jours | `V10`. **La seule maximale qui puisse vraiment finir le palier** : rien d'autre ne la réclame | **maximale** |
+| 24 | `V10` — synchronisation : indicateur, corbeille, espace occupé | — | légère |
+| 25 | `V12` — passe d'accessibilité sur les écrans définitifs | — . **En dernier par nécessité** : elle porte sur les écrans définitifs, donc sur tous les autres | légère |
+
+**Douze lignes, dont trois à rigueur maximale ou à seconde porte** — `L20`, `L14` et `L16`.
+Quatorze avant compression.
 
 **Reportées en v1.1**, donc absentes de ces paliers : `L6` `L8` `L9` `L15` `L19`, `V9`,
 `V11`, et `V6` au-delà d'une `Table` brute. Voir « Reporté en v1.1 ».
@@ -1434,9 +1461,9 @@ Trois décisions de décompte, pour que le chiffre soit vérifiable :
 | `I6` | Badge d'état · barre de notation · indicateur de progression | Planche 6 blocs `8a` `8c` (notation), addendum 1 bloc `11e` (progression), planches 3 et 7 (badge). **Pas « planche 7 » seule**, comme cette colonne l'a longtemps dit : les trois composants sont sur trois planches différentes | palier 1, rang 4 | ✅ `a745c7f` |
 | `I10` | Vue vide paramétrée · notification temporaire | Planche 7 blocs `9a` (vide) et `9c` (bandeau) — **pas « planche 7 » seule** : le bandeau est une interruption, pas un état vide | palier 2, rang 10 | ✅ |
 | `I5` | Ligne de tableau · jeton de filtre · pastille de compteur | Planche 5, aux deux crans de densité | palier 3, rang 14 — avec la console | ✅ — **la « pastille » n'en est pas une** : le bloc `7a` ne dessine qu'un nombre en mono, sans fond. Le nom vient de l'inventaire écrit avant la direction artistique |
-| `I7` | Champ texte · zone de texte · champ nombre | Planche 6 | palier 3, rang 15 | ⬜ |
-| `I8` | Date à précision variable (année / mois / jour) · sélecteur simple · interrupteur | Planche 6 | palier 3, rang 15 | ⬜ |
-| `I9` | Sélecteur multiple avec création à la volée · sélecteur de couleur de profil · marques d'erreur de champ | Planche 6 et addendum 1 (11a–11c, 11i) | palier 3, rang 15 | ⬜ |
+| `I7` | Champ texte · zone de texte · champ nombre | Planche 6 | palier 3, rang 15 | ✅ — livré avec `I7`+`I8`+`I9`, une seule anatomie |
+| `I8` | Date à précision variable (année / mois / jour) · sélecteur simple · interrupteur | Planche 6 | palier 3, rang 15 | ✅ — livré avec `I7`+`I8`+`I9`, une seule anatomie |
+| `I9` | Sélecteur multiple avec création à la volée · sélecteur de couleur de profil · marques d'erreur de champ | Planche 6 et addendum 1 (11a–11c, 11i) | palier 3, rang 15 | ✅ — **aucun recoupement avec `I10`**, vérifié : le récapitulatif de refus n'est pas un bandeau |
 
 **Neuf tâches**, `I2` à `I10`, huit lots de trois et un de deux. Contre vingt-six
 tâches avant regroupement.

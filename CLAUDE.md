@@ -518,6 +518,34 @@ dit plus rien du confort réel : il ne reste que le chiffre imprimé pour le dir
 qu'on compare d'une session à l'autre. Un test de perf sans `print` ne mesure plus rien, il
 surveille seulement l'effondrement.
 
+## Une tâche `V` se termine par un rendu assené, jamais par « non vu »
+
+**`ImageRenderer` ne demande aucune permission**, parce que rendre une vue dans un bitmap ne
+passe par aucune API de capture d'écran. Il est dans le dépôt depuis `I2`. Pendant ce temps,
+cinq vérifications visuelles ont été reportées faute de `screencapture`, et quatre sessions
+d'affiches invisibles sont passées : **l'outil était là, la question ne lui était pas posée.**
+
+Ce que je ne peux pas faire reste vrai — juger si c'est beau, c'est ton travail. Ce que je peux
+faire et que je dois faire : **prouver que ce n'est pas vide.**
+
+- **Une image attendue rend de la variance ; un aplat n'en a aucune.** C'est l'assertion qui
+  aurait attrapé `MediaFill`. Mesuré à l'injection de la faute : la tuile fautive rend **deux**
+  couleurs et non une — le symbole d'échec en dessine une seconde — donc « uniforme » seul ne
+  mord pas. Le seuil utile est un compte de couleurs distinctes, pas un booléen.
+- **Deux états qui doivent se distinguer se comparent deux à deux**, jamais en bloc : c'est la
+  paire « en cours » / « en échec » qui était aveugle, et une assertion d'ensemble n'aurait pas
+  dit laquelle.
+- **`ImageRenderer` rend de façon synchrone**, donc un `.task` n'a pas tourné : sans attente,
+  tous les états de chargement rendent le placeholder et la porte est aveugle **à nouveau**. La
+  parade est de lire `cgImage` une première fois, laisser tourner la boucle, puis relire — voir
+  `renderStats(_:settling:)`.
+- La sonde a son **contrôle négatif** : un aplat doit être vu comme uniforme, sinon elle ne
+  mesure rien.
+
+En pratique, à la fin d'une tâche `V` ou `I` : au moins une assertion de non-vacuité sur ce que
+la tâche dessine. Le tableau de vérification porte alors une ligne verte au lieu d'un « non
+vu », et le « non vu » qui reste ne concerne plus que l'esthétique.
+
 ## Une règle qui entre ici se propage à ce qui existait avant elle
 
 **Une règle écrite mais jamais propagée ne protège que le code écrit après elle**, et c'est la

@@ -6037,3 +6037,69 @@ extérieures : ils ne se « vérifient » pas, ils s'argumentent, et leur argume
 | `xcodebuild build -scheme CineShelf -destination macOS` | ✅ `BUILD SUCCEEDED` |
 | **`V8` — import et export** | ❌ **non commencée**, pour la seconde fois et pour la même raison : le budget est passé dans le diagnostic et l'audit. Un écran d'import à moitié écrit serait pire que rien |
 | `swift test` paquets · `DesignSystemCatalog` · suite app · sondes d'écran | ❌ **non relancés** — rien de cette passe ne les touche, mais ça ne se déduit pas |
+
+## 2026-08-06 (11) — La permission ne suffit pas, et `V8` premier jalon
+
+### Les trois tests ne mordent toujours pas, et j'ai mesuré pourquoi
+
+Autorisation accordée à **Xcode.app**, et l'arbre reste vide : `windows=0`, `groups=0`,
+`others=0`, `root=false`. `UI elements enabled` rend encore `false`, et **aucun refus TCC n'est
+journalisé** pendant la course.
+
+**L'explication la plus probable, et je la donne pour ce qu'elle est — une hypothèse non
+épuisée** : le processus qui pilote ici est `xcodebuild` lancé depuis un terminal, pas
+Xcode.app. C'est l'application responsable du terminal qui aurait besoin du droit. Je n'ai pas
+pu la vérifier — TCC.db n'est pas lisible sans droits — et je n'ai pas brûlé plus de budget
+dessus. **La ligne 21 reste donc en 🔶.**
+
+### La leçon générale entre dans `CLAUDE.md`
+
+« **Infirmer une contrainte documentée demande la même rigueur que l'établir.** » Retirer une
+limitation écrite est une écriture, pas une lecture, et on l'aborde avec l'humeur inverse. Trois
+gestes : nommer ce que la mesure a réellement exercé, chercher le chemin par lequel la contrainte
+se manifesterait, et **si la contrainte prescrit sa propre vérification, la jouer en entier**.
+
+L'ironie est le vrai enseignement : je croyais appliquer la règle sur la fausse dette. Elle vaut,
+et son symétrique aussi — **une contrainte déclarée périmée sur une preuve trop faible coûte
+davantage**, parce qu'elle transforme un obstacle connu en défaut mystérieux.
+
+### `V8` — premier jalon, découpé plutôt que reporté une troisième fois
+
+**L'interface de `L11a`, `L11b` et `L12`**, trois tâches faites dont deux à rigueur maximale qui
+n'avaient jamais eu d'écran. Livré : le parcours `11d` → `11e` → écriture → `11j`, et l'export.
+
+**Ce que le premier jalon tient, et ce qu'il refuse de simuler :**
+
+- **`11d`** — une ligne par colonne avec sa qualité de correspondance, les non reconnues
+  **nommées** et non bloquantes, et le seul blocage réel : un champ requis sans colonne. « Aucune
+  donnée n'est écrite à cette étape » est affiché parce que c'est vrai ;
+- **`11e`** — l'aperçu **groupé par cause**, pas par ligne. Les deux sorties du prototype, et
+  chacune n'apparaît que si elle a quelque chose à faire : un fichier sans erreur ne propose pas
+  « erreurs en brouillon » ;
+- **`11j`** — le bilan chiffré, les causes du rejet, et le cas de l'interruption ;
+- **l'export** — titres, personnes, et le **modèle vide**, qui ferme la boucle « exporter,
+  remplir dans un tableur, redéposer ».
+
+**`ImportFlow` a changé de maison en cours de route.** Écrit d'abord à côté de l'écran, il était
+invisible des tests du paquet. C'est une machine d'états qui n'importe que `Foundation` : sa place
+est dans `CineShelfCore`, et c'est ce qui la rend assénable sans monter un rendu. Cinq tests, dont
+le singulier sur une ligne et les deux sorties qui suivent les comptes.
+
+**Le second jalon, inscrit et non promis** : la correction en masse depuis l'aperçu (`11f`),
+l'abandon avec reprise de brouillon (`11g`), et le rejeu de la correspondance mémorisée — le pont
+entre `ImportMapping` du magasin et `ColumnMapping` décodé n'existe pas encore.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `swift test` CineShelfCore | ✅ **564 tests** (+5) |
+| `xcodebuild test -scheme CineShelfScreenTests -destination macOS` | ✅ **11 tests** (+1) — l'écran d'import rend **15 couleurs** |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 336 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| `xcodebuild test -scheme CineShelfUITests -destination macOS` | 🔶 **4 tests, 3 sautés** — cause non épuisée |
+| **CI sur `75c519e`** | ❌ **rouge**, et c'est un **échec de lancement du simulateur** à 108 s (« Timed out while launching application via Xcode ») sur `testAppLaunches`, qui passe en local. Je n'ai pas pu relancer le job — droits admin — donc le prochain push tranchera flake ou défaut |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ❌ **non relancée** depuis `V8` |
+| `swift test` DesignSystem · MediaKit · `DesignSystemCatalog` | ❌ **non relancés** |
+| **Un import réel de bout en bout** | ❌ **non joué** — il demande un `fileImporter`, donc un clic. Les transitions sont couvertes par `ImportFlowTests`, l'écriture par `L11b` ; ce qui n'est pas exercé est la **couture** entre les deux |

@@ -58,7 +58,12 @@
             //
             // Ils **sautent** plutôt que de rougir : un défaut de droits ne doit pas se lire
             // comme un défaut de code, sinon on cherche des heures du mauvais côté.
-            // À accorder : Réglages Système → Confidentialité et sécurité → Accessibilité.
+            // **Et l'autorisation accordée à Xcode.app ne suffit pas**, mesuré le 2026-08-06
+            // après qu'elle l'a été : l'arbre reste vide, `UI elements enabled` rend toujours
+            // `false`, et aucun refus TCC n'est journalisé pendant la course. Le processus qui
+            // pilote ici est **`xcodebuild` lancé depuis un terminal**, pas Xcode.app — c'est
+            // l'application responsable du terminal qui aurait besoin du droit. Piste non
+            // épuisée, écart inscrit.
             print(
                 "UI DIAG windows=\(app.windows.allElementsBoundByIndex.count) "
                     + "groups=\(app.groups.allElementsBoundByIndex.count) "

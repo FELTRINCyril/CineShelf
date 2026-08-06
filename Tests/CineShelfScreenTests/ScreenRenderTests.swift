@@ -372,6 +372,18 @@ struct ScreenRenderTests {
         #expect(!lock.isUniform)
     }
 
+    @Test("L'écran d'import et d'export dessine son état initial")
+    func transferDraws() throws {
+        let stage = try Stage()
+        try stage.populate()
+        let stats = try #require(render(stage.host(TransferView())))
+        print("Import/Export : \(stats.distinctColours) couleurs")
+        // **Seul l'état initial est sondable ici** : les trois étapes suivantes demandent un
+        // fichier choisi par l'utilisateur, donc un `fileImporter`. Les transitions sont
+        // couvertes ailleurs, par les tests d'`ImportFlow` qui n'ont pas besoin de rendu.
+        #expect(!stats.isUniform)
+    }
+
     @Test("La grille des titres dessine, et le hero de l'accueil aussi")
     func existingScreensDraw() throws {
         // **Les deux écrans de `V0 bis` et `V5a`, sondés rétroactivement.** Ils ont été livrés

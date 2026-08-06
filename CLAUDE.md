@@ -689,6 +689,39 @@ défaut vu de l'autre bout. `ActivityEntry` a été écrit pendant quinze prompt
 que ce soit le relise — une piste d'audit qu'on ne lit jamais est une piste d'audit qu'on n'a
 pas. Les deux se cherchent avec le même `grep` ; ce qui change est la colonne qui manque.
 
+## Infirmer une contrainte documentée demande la même rigueur que l'établir
+
+**Retirer une limitation écrite est une écriture, pas une lecture.** On l'aborde pourtant avec
+l'humeur inverse : établir une contrainte se fait en la mesurant, l'infirmer se fait souvent sur
+un indice — et l'indice suffit à donner l'autorisation qu'on cherchait.
+
+**Mesuré le 2026-08-06, et c'est moi qui l'ai commis.** `project.yml` disait « iOS uniquement :
+sur macOS les tests UI réclament l'autorisation d'accessibilité ». J'ai lancé la suite sur Mac,
+vu `testAppLaunches` passer, et écrit « mesuré, elle y tourne, le commentaire était faux ». Le
+test passait parce que `wait(for: .runningForeground)` lit un **état de processus** et non l'arbre
+d'accessibilité : sans l'autorisation, la suite est **verte sur ce qu'elle n'exerce pas et vide
+sur le reste** — donc pire que si elle ne tournait pas. Le commentaire avait raison ; il était
+seulement imprécis sur la conséquence.
+
+**L'ironie est le vrai enseignement** : je croyais appliquer la règle sur la fausse dette — « une
+contrainte écrite mais jamais éprouvée coûte le temps d'une vraie ». Elle vaut, et son symétrique
+aussi : **une contrainte déclarée périmée sur une preuve trop faible coûte davantage**, parce
+qu'elle transforme un obstacle connu en défaut mystérieux.
+
+En pratique, avant d'écrire qu'une limitation documentée ne tient plus :
+
+- **nommer ce que la mesure a réellement exercé**, et ce qu'elle n'a pas pu exercer. « Le test
+  passe » n'est pas « la contrainte est levée » ;
+- **chercher le chemin par lequel la contrainte se manifesterait**, et vérifier qu'il a été
+  emprunté. Ici : lire un élément de l'arbre, pas seulement l'état du processus ;
+- **si la contrainte prescrit sa propre vérification, la jouer en entier.** Le commentaire sur le
+  bug XcodeGen demandait « relancer la reproduction, *puis* retirer les réglages et vérifier les
+  deux builds ». La reproduction ne reproduit plus ; le second temps n'a pas été joué, donc la
+  contrainte reste en place **avec son audit inscrit** plutôt que retirée à moitié.
+
+C'est la même famille que « un tableau de vérification ne porte que des commandes réellement
+passées », appliquée aux contraintes plutôt qu'aux résultats.
+
 ## Une règle qui entre ici se propage à ce qui existait avant elle
 
 **Une règle écrite mais jamais propagée ne protège que le code écrit après elle**, et c'est la

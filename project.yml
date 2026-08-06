@@ -87,6 +87,16 @@ settings:
 # A supprimer le jour ou XcodeGen emet les bonnes valeurs : relancer la
 # reproduction ci-dessus, et si elle est verte, retirer ces deux reglages de
 # chaque cible puis verifier le build iOS *et* macOS.
+#
+# **AUDIT DU 2026-08-06 : la reproduction ci-dessus NE REPRODUIT PLUS**, sur la
+# meme version que celle incriminee (XcodeGen 2.46.0). Le spec minimal n'ecrit
+# aucun `= "";`.
+#
+# Ce que ca prouve, et ce que ca ne prouve pas : la reproduction documentee est
+# perimee. Ca ne prouve PAS que retirer les reglages explicites de ce fichier
+# est sans risque — c'est le second temps que le commentaire prescrit lui-meme,
+# et il n'a pas ete joue. La contrainte reste donc en place, avec son audit
+# inscrit, plutot que retiree sur une demi-mesure.
 # ---------------------------------------------------------------------------
 targets:
   CineShelf:

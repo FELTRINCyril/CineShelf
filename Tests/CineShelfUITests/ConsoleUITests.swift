@@ -37,25 +37,35 @@
         private func launch(seed: Int) throws -> XCUIApplication {
             let app = XCUIApplication()
             app.launchArguments = ["-cineshelf-seed", String(seed)]
+            if ProcessInfo.processInfo.environment["CINESHELF_NO_LOCK"] != nil {
+                app.launchArguments.append("-cineshelf-no-lock")
+            }
             app.launch()
+            app.activate()
             XCTAssertTrue(app.wait(for: .runningForeground, timeout: 30))
 
-            // **Obstacle non résolu, et il est dit ici plutôt que masqué par un échec.** Mesuré le
-            // 2026-08-06 : l'app se lance et `wait(for: .runningForeground)` passe, mais **aucune
-            // fenêtre n'apparaît dans l'arbre d'accessibilité** — l'application y figure
-            // « Disabled » et son sous-arbre ne contient que la barre de menus. `console.table` est
-            // donc introuvable pour une raison qui n'est plus l'identifiant.
+            // **La cause est trouvée, et ce n'est pas le code : l'autorisation
+            // d'accessibilité manque sur cette machine.** Mesuré le 2026-08-06 :
+            // `osascript -e 'tell application "System Events" to return UI elements enabled'`
+            // rend `false`, et toute requête d'élément rend zéro sur une app pourtant lancée et
+            // au premier plan.
             //
-            // Ces tests sont conservés parce que leur intention est juste et que l'infrastructure
-            // — amorçage par argument de lancement, identifiants d'accessibilité, cible macOS — est
-            // en place. Ils **sautent** tant que la fenêtre n'est pas exposée, plutôt que de rougir
-            // sur un défaut qui n'est pas celui qu'ils cherchent. Écart inscrit.
-            print("UI DIAG windows=\(app.windows.allElementsBoundByIndex.count) "
-                + "groups=\(app.groups.allElementsBoundByIndex.count) "
-                + "others=\(app.otherElements.allElementsBoundByIndex.count) "
-                + "tables=\(app.tables.allElementsBoundByIndex.count) "
-                + "root=\(app.descendants(matching: .any)["root.content"].exists) "
-                + "consoleTable=\(app.descendants(matching: .any)["console.table"].exists)")
+            // **Deux hypothèses écartées par la mesure avant d'arriver là** : ce n'était pas ma
+            // garde de saut (`windows`, `groups`, `others` et `tables` sont tous à zéro, pas
+            // seulement `windows`), et ce n'était pas le voile de confidentialité de `L14` — avec
+            // `-cineshelf-no-lock`, qui contourne entièrement la porte du verrou, l'arbre reste
+            // vide. `app.activate()` n'y change rien non plus.
+            //
+            // Ils **sautent** plutôt que de rougir : un défaut de droits ne doit pas se lire
+            // comme un défaut de code, sinon on cherche des heures du mauvais côté.
+            // À accorder : Réglages Système → Confidentialité et sécurité → Accessibilité.
+            print(
+                "UI DIAG windows=\(app.windows.allElementsBoundByIndex.count) "
+                    + "groups=\(app.groups.allElementsBoundByIndex.count) "
+                    + "others=\(app.otherElements.allElementsBoundByIndex.count) "
+                    + "tables=\(app.tables.allElementsBoundByIndex.count) "
+                    + "root=\(app.descendants(matching: .any)["root.content"].exists) "
+                    + "consoleTable=\(app.descendants(matching: .any)["console.table"].exists)")
             guard !app.windows.allElementsBoundByIndex.isEmpty else {
                 throw XCTSkip(
                     "Aucune fenêtre dans l'arbre d'accessibilité — voir l'écart inscrit à V6.")

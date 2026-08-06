@@ -5961,3 +5961,79 @@ pas la cocher, la porte que tu demandes n'est pas verte, elle est absente.
 | `xcrun swift-format lint` | ✅ 0 avertissement |
 | **`V8` — import et export** | ❌ **non commencée**. Le budget de la session est passé dans la mesure et l'infrastructure ; commencer `V8` maintenant produirait un écran à moitié écrit, ce qui est pire que rien |
 | `swift test` DesignSystem · MediaKit · `DesignSystemCatalog` | ❌ **non relancés** |
+
+## 2026-08-06 (10) — L'arbre d'accessibilité, et l'audit de `project.yml`
+
+### CI rouge d'abord, et la cause était ma garde de saut
+
+`be3aaec` a rougi. Ma garde sautait sur « aucune fenêtre dans l'arbre » — un raisonnement
+**macOS** — dans une suite qui tourne sur **les deux** plateformes depuis que la cible a gagné
+macOS. Sur iOS une fenêtre existe toujours, donc le saut ne déclenchait pas et les trois tests
+cherchaient un écran Mac sur un iPhone. `#if os(macOS)`, et le périmètre est de toute façon
+celui-là : le bloc `7a` « assume un usage clavier ».
+
+**La leçon : une condition écrite en pensant à une plateforme se borne à elle, elle ne se
+devine pas à l'exécution.**
+
+### Ton hypothèse était fausse, et la mienne aussi
+
+**Le voile de confidentialité n'est pas la cause.** Testé avec `-cineshelf-no-lock`, qui
+contourne entièrement `LockGate` : l'arbre reste vide. `app.activate()` n'y change rien.
+
+**Ma garde n'était pas la cause non plus** — c'était la première chose à vérifier, parce que
+c'était la plus suspecte de mon côté : `windows`, `groups`, `others` **et** `tables` sont tous à
+zéro, pas seulement `windows`.
+
+**La cause est une autorisation système.**
+
+```
+osascript -e 'tell application "System Events" to return UI elements enabled'  ->  false
+```
+
+**Et c'est moi qui avais surinterprété, pas `project.yml`.** Son commentaire disait « sur macOS
+les tests UI réclament l'autorisation d'accessibilité ». J'ai écrit hier « mesuré, elle y tourne,
+le commentaire était faux » — parce que `testAppLaunches` passe. Il passe parce que
+`wait(for: .runningForeground)` lit un **état de processus**, pas l'arbre. C'est exactement le
+motif que ce dépôt passe son temps à proscrire : **un test vert qui n'exerce pas ce qu'on
+croit.** Le commentaire avait raison sur la permission ; il était imprécis sur la conséquence,
+qui n'est pas « ça ne tourne pas » mais « ça tourne et ne voit rien » — c'est-à-dire pire.
+
+À accorder à la main : Réglages Système → Confidentialité et sécurité → Accessibilité, pour
+Xcode. D'ici là la suite **saute**, et ne rougit pas : un défaut de droits ne doit pas se lire
+comme un défaut de code.
+
+### L'audit des commentaires de `project.yml`
+
+Deux affirmations vérifiables, deux résultats.
+
+- **« Aucune dépendance externe »** — ✅ vérifiée : aucun `url:` dans `project.yml` ni dans les
+  trois `Package.swift`.
+- **Le bug XcodeGen sur `SUPPORTED_PLATFORMS` / `TARGETED_DEVICE_FAMILY`** — ⚠️ **la
+  reproduction documentée ne reproduit plus**, sur la **même version** que celle incriminée
+  (2.46.0) : le spec minimal n'écrit aucun `= "";`.
+
+  **Ce que ça prouve et ce que ça ne prouve pas.** La reproduction est périmée. Ça ne prouve
+  **pas** que retirer les réglages explicites soit sans risque — c'est le second temps que le
+  commentaire prescrit lui-même (« retirer ces deux réglages de chaque cible puis vérifier le
+  build iOS *et* macOS »), et il n'a pas été joué. La contrainte reste donc en place **avec son
+  audit inscrit**, plutôt que retirée sur une demi-mesure. C'est la même prudence que pour
+  `currentVersion` à `L20`.
+
+Les autres commentaires du fichier énoncent des choix (pourquoi `DEVELOPMENT_TEAM` n'est pas
+dans `settings`, pourquoi les entitlements sont macOS seuls) plutôt que des limitations
+extérieures : ils ne se « vérifient » pas, ils s'argumentent, et leur argument tient.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `xcodebuild test -scheme CineShelfUITests -destination iOS` | ✅ **1 test** — CI réparée |
+| `xcodebuild test -scheme CineShelfUITests -destination macOS` | 🔶 **4 tests, 3 sautés** — autorisation d'accessibilité absente |
+| **Hypothèse du voile** | ✅ **écartée par la mesure** — `-cineshelf-no-lock`, arbre toujours vide |
+| **Hypothèse de ma garde** | ✅ **écartée** — tous les compteurs à zéro, pas seulement `windows` |
+| **Autorisation d'accessibilité** | ❌ **`false`** — c'est la cause, et elle ne se donne qu'à la main |
+| **Reproduction du bug XcodeGen** | ⚠️ **ne reproduit plus** sur 2.46.0 · retrait des réglages **non tenté** |
+| `swiftlint --strict` | ✅ 0 violation sur 333 fichiers |
+| `xcodebuild build -scheme CineShelf -destination macOS` | ✅ `BUILD SUCCEEDED` |
+| **`V8` — import et export** | ❌ **non commencée**, pour la seconde fois et pour la même raison : le budget est passé dans le diagnostic et l'audit. Un écran d'import à moitié écrit serait pire que rien |
+| `swift test` paquets · `DesignSystemCatalog` · suite app · sondes d'écran | ❌ **non relancés** — rien de cette passe ne les touche, mais ça ne se déduit pas |

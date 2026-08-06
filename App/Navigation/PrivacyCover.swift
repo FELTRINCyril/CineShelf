@@ -81,6 +81,22 @@ extension View {
     func lockGate() -> some View { modifier(LockGate()) }
 }
 
+/// La porte du verrou, sauf si un argument de lancement demande de s'en passer.
+///
+/// **Existe pour une mesure, et elle est nommée.** L'arbre d'accessibilité ne montrait aucune
+/// fenêtre sous XCUITest, et l'hypothèse était que le voile de confidentialité se posait parce
+/// que le lanceur garde le focus — donc que l'app démarre inactive. Cet interrupteur permet de
+/// trancher au lieu de raisonner.
+struct OptionalLockGate: ViewModifier {
+    func body(content: Content) -> some View {
+        if ProcessInfo.processInfo.arguments.contains("-cineshelf-no-lock") {
+            content
+        } else {
+            content.modifier(LockGate())
+        }
+    }
+}
+
 // MARK: - L'écran de déverrouillage
 
 /// Ce qui s'affiche tant que le verrou est fermé.

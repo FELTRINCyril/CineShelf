@@ -303,21 +303,50 @@ Mesurer avec Instruments (Time Profiler, Allocations, SwiftUI, Hangs) sur le **p
 CloudKit est asynchrone et parfois lent. L'utilisateur doit toujours savoir où il en est :
 
 ```swift
-enum SyncState { case upToDate, syncing(Double?), offline, needsAccount, failed(String) }
+enum SyncStatus {
+    case upToDate
+    case syncing(SyncDirection, Double?)   // .upload | .download — progression parfois absente
+    case offline
+    case needsAccount                      // pas de compte, ou iCloud Drive désactivé
+    case quotaExceeded(bytes: Int64)
+    case failed(String)
+}
 ```
+
+> **Corrigé le 2026-08-06.** Cette énumération en déclarait **cinq** cas quand le tableau
+> ci-dessous en décrivait **six** : le **quota** manquait, alors que le tableau lui donne un
+> message *et* une action. Le tableau était le plus précis, donc il a fait foi, et `L17` a
+> écrit les six. Deux autres écarts entre les deux formes se referment ici :
+>
+> - **`syncing` porte sa direction.** Le tableau distingue « premier envoi long » et « premier
+>   téléchargement » — deux lignes, deux messages, et l'app reste utilisable dans un cas mais
+>   pas dans l'autre. Un `syncing(Double?)` nu ne pouvait pas les départager.
+> - **« Pas de compte » et « iCloud Drive désactivé » sont un seul cas**, et le tableau le
+>   disait déjà en écrivant « idem » : même geste demandé à l'utilisateur, et l'app ne sait pas
+>   toujours distinguer les deux depuis son bac à sable.
+>
+> Le nom aussi a changé — `SyncStatus`, pas `SyncState` — pour ne pas se confondre avec l'état
+> de la machine qui le calcule. La source fait foi : `CineShelfCore/Services/SyncStatus.swift`.
 
 `SyncStatusBadge` dans la barre latérale (Mac) ou l'écran Bibliothèque (iOS). Observer `NSPersistentCloudKitContainer.eventChangedNotification` — accessible même via SwiftData en écoutant les notifications du coordinateur sous-jacent.
 
-Cas à traiter explicitement, chacun avec un message et une action :
+Cas à traiter explicitement. **Tous n'ont pas d'action** : « hors ligne » et les deux
+échanges en cours n'en proposent aucune, parce qu'il n'y a rien à réparer — un bouton qui ne
+fait rien d'utile apprend à ne pas croire l'interface.
 
-| Cas | Message |
-|---|---|
-| Pas de compte iCloud | « Connecte-toi à iCloud pour synchroniser tes bibliothèques. » + `[Ouvrir Réglages]` |
-| iCloud Drive désactivé | idem |
-| Quota dépassé | « Ton stockage iCloud est plein. » + taille occupée par CineShelf + `[Gérer]` |
-| Hors ligne | « Modifications enregistrées localement. Synchronisation à la reconnexion. » |
-| Premier envoi long | barre de progression honnête, Wi-Fi recommandé |
-| Premier téléchargement | l'app reste utilisable à moitié peuplée |
+| Cas | `SyncStatus` | Message | Action |
+|---|---|---|---|
+| Pas de compte iCloud | `needsAccount` | « Connecte-toi à iCloud pour synchroniser tes bibliothèques. » | `[Ouvrir Réglages]` |
+| iCloud Drive désactivé | `needsAccount` — idem | idem | idem |
+| Quota dépassé | `quotaExceeded(bytes:)` | « Ton stockage iCloud est plein. » + taille occupée par CineShelf | `[Gérer le stockage]` |
+| Hors ligne | `offline` | « Modifications enregistrées localement. Synchronisation à la reconnexion. » | aucune |
+| Premier envoi long | `syncing(.upload, _)` | barre de progression honnête, Wi-Fi recommandé | aucune |
+| Premier téléchargement | `syncing(.download, _)` | l'app reste utilisable à moitié peuplée | aucune |
+| Échec | `failed(String)` | « La synchronisation a échoué. Tes données locales sont intactes. » | `[Réessayer]` |
+
+La progression est un `Double?` **et non un `Double`** : CloudKit n'en rend pas toujours une,
+et une barre inventée qui avance à vitesse constante est un mensonge que l'utilisateur croit.
+C'est ce que « barre de progression honnête » veut dire ici.
 
 ### Conflits & doublons
 

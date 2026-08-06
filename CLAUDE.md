@@ -504,6 +504,17 @@ xcodebuild test -scheme CineShelfUITests -destination 'platform=iOS Simulator,na
 # qui puisse instancier une vue de `App/`. C'est la porte de non-vacuite des taches `V`.
 # macOS uniquement : la question qu'elle pose ne depend pas de la plateforme.
 xcodebuild test -scheme CineShelfScreenTests -destination 'platform=macOS'
+
+# Biometrie simulee — pour exercer LocalAuthenticationEvaluator contre le vrai systeme.
+# Mesure du 2026-08-06 : `canEvaluate`, `biometryKind` et les chemins d'echec sont
+# atteignables depuis un bundle de test SANS app hote ; un SUCCES ne l'est pas — le
+# dialogue attend indefiniment. Il faudra une app au premier plan (V7).
+xcrun simctl boot <udid>
+xcrun simctl spawn <udid> notifyutil -s com.apple.BiometricKit.enrollmentChanged 1
+xcrun simctl spawn <udid> notifyutil -p com.apple.BiometricKit.enrollmentChanged
+# puis, pendant l'evaluation, depuis l'hote :
+xcrun simctl spawn <udid> notifyutil -p com.apple.BiometricKit_Sim.pearl.match     # Face ID
+xcrun simctl spawn <udid> notifyutil -p com.apple.BiometricKit_Sim.fingerTouch.nomatch
 for p in CineShelfCore DesignSystem MediaKit; do (cd "Packages/$p" && swift test); done
 
 # Un paquet qui dépend de CineShelfCore peut échouer sur « cannot find type X in
@@ -616,6 +627,32 @@ inscrits y menaient.
 Corollaire, et il vaut pour moi : **quand une consigne repose sur une propriété du plan, la
 vérifier avant de l'appliquer, et dire ce qu'on a trouvé.** Appliquer en silence une prémisse
 fausse produit un document faux qui porte une signature de validation.
+
+## Un défaut trouvé se rapporte avec son âge
+
+**Un défaut trouvé dans du code écrit dans la même session ne prouve pas la même chose qu'un
+défaut trouvé dans du code déjà là.** Le premier dit que je me relis ; le second dit que la
+passe de rigueur sert. Les confondre fait croire qu'une sonde a travaillé alors qu'elle n'a
+rattrapé que sa propre écriture.
+
+**Mesuré le 2026-08-06, sur `L20`.** Ma sonde avait trouvé deux défauts, et je les avais
+rapportés comme un résultat. Ils étaient tous les deux dans du code écrit **dix minutes plus
+tôt**. À la même rigueur, `L11b` en avait trouvé cinq, `L12` neuf, `L10` un bug de notation,
+`L1` trois hypothèses fausses — tous dans du code antérieur. La question « `L20` était-elle
+simple ou sous-exercée ? » n'a pu être posée que parce que le rapport ne faisait pas la
+distinction. Elle était sous-exercée : la fusion était **entièrement inannulable**, et aucun
+test d'édition en masse ne pouvait le montrer.
+
+En pratique, dans le rapport et le journal : **dire pour chaque défaut s'il est de la session
+ou antérieur.** Et quand tous les défauts d'une tâche à rigueur maximale sont de la session,
+le dire aussi — c'est le signal qu'il faut chercher ailleurs, pas la preuve que le code était
+sain.
+
+Le corollaire, qui découle du même incident : **une tâche dont la moitié du domaine n'est
+exercée par aucun test peut être déclarée finie sans que rien ne proteste.** `L20` couvrait
+l'édition en masse par quatorze tests et la fusion par zéro, alors que sa fiche exige que les
+deux « s'annulent par le même chemin ». Avant de déclarer finie une tâche à rigueur maximale,
+relire sa fiche **phrase par phrase** et pointer le test qui couvre chacune.
 
 ## Une capacité lue et jamais écrite est un écran qui ment
 

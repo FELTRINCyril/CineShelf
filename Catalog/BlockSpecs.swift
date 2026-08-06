@@ -240,6 +240,84 @@ extension BlockSpec {
                 verdict: .matches)
         ])
 
+    // MARK: I5
+
+    static let tableRow = BlockSpec(
+        component: "TableRow",
+        source: "planche 5 bloc 7a · addendum 2 bloc 13d",
+        measures: [
+            .init(name: "Hauteur, dense", expected: "30 pt (7a)", verdict: .matches),
+            .init(name: "Hauteur, ample", expected: "44 pt (13d)", verdict: .matches),
+            .init(
+                name: "Hauteur annoncée en prose",
+                expected: "28 pt (« la console est en lignes de 28 pt », relevé de la planche 5)",
+                verdict: .keptAtToken(
+                    gap: 13, code: "30 pt, la valeur du bloc rendu",
+                    reason: """
+                        Le bloc rendu gagne sur la prose de synthèse. 28 pt existe bien dans le \
+                        rendu — c'est la hauteur de l'en-tête
+                        """)),
+            .init(name: "Marge horizontale", expected: "18 pt", verdict: .matches),
+            .init(name: "Séparateur", expected: "1 px, blanc à 5 %", verdict: .matches),
+            .init(name: "Vignette", expected: "16 × 24, hors échelle d'affiche", verdict: .matches),
+            .init(
+                name: "Ligne sélectionnée",
+                expected: "aucun bloc ne la rend",
+                verdict: .keptAtToken(
+                    gap: 14, code: "fond bg.fill + barre d'accent de 2 pt à gauche",
+                    reason: """
+                        Déduit. Le fond seul est déjà celui du survol : sans la barre, \
+                        « sélectionnée » et « sous le curseur » seraient indistinguables
+                        """)),
+            .init(
+                name: "Animation de sélection",
+                expected: "aucune — dur.instant (§7)",
+                verdict: .matches)
+        ])
+
+    static let filterChip = BlockSpec(
+        component: "FilterChip",
+        source: "planche 5 bloc 7d · planche 3 bloc 4a (la croix)",
+        measures: [
+            .init(name: "Rembourrage, dense", expected: "7 × 11 pt", verdict: .matches),
+            .init(name: "Fond actif", expected: "accent plein, texte accent.onAccent", verdict: .matches),
+            .init(name: "Fond inactif", expected: "blanc à 10 %, texte clair", verdict: .matches),
+            .init(
+                name: "Graisse",
+                expected: "600 en actif, 400 en inactif",
+                verdict: .keptAtToken(
+                    gap: 15, code: "Typo.action (Archivo Narrow 600) aux deux états",
+                    reason: """
+                        Le système n'a pas d'Archivo Narrow 400 ; les deux états restent \
+                        distincts par le fond et la couleur du texte
+                        """)),
+            .init(
+                name: "Cible tactile",
+                expected: "non dessinée — le jeton rendu fait 25 pt de haut",
+                verdict: .keptAtToken(
+                    gap: 16, code: "zone cliquable de 44 pt autour d'un jeton de 25",
+                    reason: "Règle d'accessibilité du projet, tenue sans déformer le dessin")),
+            .init(name: "Croix de retrait", expected: "sur un jeton actif retirable (4a)", verdict: .matches)
+        ])
+
+    static let countBadge = BlockSpec(
+        component: "CountBadge",
+        source: "planche 5 bloc 7a, barre latérale",
+        measures: [
+            .init(
+                name: "Forme",
+                expected: "aucune : un nombre, pas une pastille",
+                verdict: .keptAtToken(
+                    gap: 17, code: "un nombre en mono, sans fond",
+                    reason: """
+                        Le lot s'appelle « pastille de compteur », mais le bloc ne dessine aucun \
+                        fond. Le nom vient de l'inventaire écrit avant la direction artistique
+                        """)),
+            .init(name: "Police", expected: "IBM Plex Mono 400, 11 pt", verdict: .matches),
+            .init(name: "Couleur", expected: "text.tertiary", verdict: .matches),
+            .init(name: "Alignement", expected: "à droite, chiffres tabulaires", verdict: .matches)
+        ])
+
     static let tileSkeleton = BlockSpec(
         component: "TileSkeleton",
         source: "planche 7 bloc 9b",

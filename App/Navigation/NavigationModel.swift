@@ -44,6 +44,11 @@ final class NavigationModel {
     /// dans l'instantané ci-dessous.
     var titleFilter = TitleFilter()
 
+    /// Les filtres de la liste des personnes — bloc `4c`, « Réalisation · Interprétation ·
+    /// Tranche d'âge ». Ici pour la même raison que `titleFilter` : ils survivent au
+    /// redémarrage, donc ils entrent dans l'instantané.
+    var personFilter = PersonFilter()
+
     /// Les filtres de la galerie — source et graine de mélange.
     ///
     /// Ici pour la même raison que `titleFilter`, et `GalleryFilter` a été rendu `Codable` par
@@ -179,6 +184,7 @@ extension NavigationModel {
         var paths: [String: [AppRoute]]
         var isInspectorPresented: Bool
         var titleFilter: TitleFilter?
+        var personFilter: PersonFilter?
         var galleryFilter: GalleryFilter?
     }
 
@@ -194,6 +200,7 @@ extension NavigationModel {
             paths: Dictionary(uniqueKeysWithValues: paths.map { ($0.key.storageKey, $0.value) }),
             isInspectorPresented: isInspectorPresented,
             titleFilter: titleFilter,
+            personFilter: personFilter,
             galleryFilter: galleryFilter
         )
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
@@ -224,6 +231,7 @@ extension NavigationModel {
         )
         isInspectorPresented = snapshot.isInspectorPresented
         titleFilter = snapshot.titleFilter ?? TitleFilter()
+        personFilter = snapshot.personFilter ?? PersonFilter()
         galleryFilter = snapshot.galleryFilter ?? GalleryFilter()
     }
 
@@ -232,6 +240,7 @@ extension NavigationModel {
         paths = [:]
         isInspectorPresented = false
         titleFilter = TitleFilter()
+        personFilter = PersonFilter()
         galleryFilter = GalleryFilter()
     }
 }

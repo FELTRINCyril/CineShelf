@@ -31,6 +31,9 @@ public enum LinkRefusal: String, Sendable, Equatable {
     case privateAddress
     /// `localhost`, `*.local`, ou un nom sans point — la machine ou le réseau local.
     case localName
+    /// L'hôte se présente comme une adresse IPv4 sans en être une que nous sachions lire —
+    /// `0x7f.0.0.1`. Mesuré : le résolveur, lui, la lit, et elle joint la boucle locale.
+    case malformedAddress
     /// Plus de redirections que la limite.
     case tooManyRedirects
     /// Réponse plus grosse que la limite.
@@ -72,7 +75,40 @@ public enum LinkGuard {
         if let address = IPAddress(host) {
             return address.isPubliclyRoutable ? nil : .privateAddress
         }
-        return isLocalName(host) ? .localName : nil
+        if isLocalName(host) { return .localName }
+        return claimsToBeAddress(host) ? .malformedAddress : nil
+    }
+
+    /// L'hôte **prétend** être une adresse IPv4 sans que `IPAddress` ait su la lire.
+    ///
+    /// **Mesuré le 2026-08-06, contre un serveur de boucle locale**, parce que l'écart inscrit à
+    /// `L7` nommait le mauvais exemple. Ce que `URLSession` fait réellement de ces hôtes :
+    ///
+    /// | Hôte collé | Ce que joint `URLSession` | Ce que la garde en faisait |
+    /// |---|---|---|
+    /// | `0177.0.0.1` | `177.0.0.1` — publique | acceptée, et **c'est correct** |
+    /// | `0300.0250.0.1` | rien, la résolution échoue | acceptée, sans effet |
+    /// | `0x7f.0.0.1` | **`127.0.0.1`** | **acceptée — c'était la faille** |
+    /// | `2130706433`, `0x7f000001` | `127.0.0.1` | déjà refusées, faute de point |
+    ///
+    /// L'octal n'était donc pas le sujet : `UInt8("0177")` rend 177, et le résolveur système lit
+    /// lui aussi ce segment en décimal. Les deux s'accordent, il n'y avait rien à corriger. C'est
+    /// l'**hexadécimal par segments** qui passait, parce que `UInt8("0x7f")` rend `nil` — l'hôte
+    /// repartait alors sur le chemin des noms, où son point suffisait à le faire accepter.
+    ///
+    /// **On ne réimplémente pas le résolveur pour autant** : deux parseurs qui divergent, c'est
+    /// la faille suivante. La garde reste une liste de refus — un hôte qui a la *forme* d'une
+    /// adresse sans en être une que nous sachions lire est refusé, quelle que soit la notation
+    /// qu'il emploie, y compris celles qui n'existent pas encore ici.
+    ///
+    /// Aucun nom légitime n'est pris au passage : un domaine de tête ne peut pas être
+    /// entièrement numérique (RFC 3696 §2), donc `exemple.fr` et `1234.exemple.fr` sortent par
+    /// leur dernier segment.
+    static func claimsToBeAddress(_ host: String) -> Bool {
+        let parts = host.split(separator: ".", omittingEmptySubsequences: false)
+        if parts.contains(where: { $0.lowercased().hasPrefix("0x") }) { return true }
+        guard let last = parts.last, !last.isEmpty else { return false }
+        return last.allSatisfy { $0.isASCII && $0.isNumber }
     }
 
     public static func allows(_ url: URL) -> Bool { refusal(for: url) == nil }
@@ -183,10 +219,11 @@ struct IPAddress {
         guard parts.count == 4 else { return nil }
         var bytes: [UInt8] = []
         for part in parts {
-            // `UInt8(part)` refuse déjà « 256 » et « 01a ». Les formes octales et hexadécimales
-            // — `0177.0.0.1`, `0x7f.0.0.1` — sont donc refusées comme **noms**, ce qui les
-            // envoie sur le chemin `isLocalName` : sans point elles seraient refusées, avec
-            // points elles passeraient. C'est l'angle mort du parseur, inscrit comme écart.
+            // `UInt8(part)` refuse « 256 », « 01a » et « 0x7f », mais **accepte les zéros
+            // initiaux** : `UInt8("0177")` rend 177. Ce n'est pas un défaut — mesuré, le
+            // résolveur système lit lui aussi `0177` en décimal, donc les deux s'accordent.
+            // Ce que ce parseur ne lit pas repart vers `claimsToBeAddress`, qui le refuse
+            // plutôt que de le laisser passer pour un nom.
             guard let value = UInt8(part) else { return nil }
             bytes.append(value)
         }

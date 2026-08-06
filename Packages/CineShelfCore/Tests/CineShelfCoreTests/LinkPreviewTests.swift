@@ -77,6 +77,43 @@ struct LinkGuardTests {
         #expect(LinkGuard.refusal(for: try url("https://a.co/")) == nil)
     }
 
+    @Test("Une adresse en notation hexadécimale est refusée")
+    func hexadecimalAddressesAreRefused() throws {
+        // **Source : mesure du 2026-08-06 contre un serveur de boucle locale**, pas déduction.
+        // `URLSession` joint bel et bien 127.0.0.1 sur `http://0x7f.0.0.1/` — la garde
+        // l'acceptait, parce que `UInt8("0x7f")` rend `nil` et que l'hôte repartait alors sur le
+        // chemin des noms, où son point suffisait.
+        for text in [
+            "http://0x7f.0.0.1/", "http://0x7f.0x0.0x0.0x1/", "http://0xc0.0xa8.1.1/",
+            // Une forme à quatre segments qu'aucun des deux parseurs ne lit reste refusée : on
+            // ne cherche pas à savoir où elle irait, on refuse qu'elle parte.
+            "http://0300.0250.0.1/", "http://1.2.3.999/", "http://0x7f.1/"
+        ] {
+            #expect(
+                LinkGuard.refusal(for: try url(text)) == .malformedAddress,
+                "\(text) devrait être refusée")
+        }
+    }
+
+    @Test("Les zéros initiaux se lisent en décimal, comme le fait le résolveur")
+    func leadingZeroesFollowTheResolver() throws {
+        // **Le contre-cas, et c'est lui qui a corrigé l'écart inscrit à `L7`.** `0177.0.0.1`
+        // était noté comme un angle mort ; mesuré, il n'en est pas un. Notre parseur en fait
+        // 177.0.0.1 et `URLSession` aussi — les deux s'accordent, donc rien à fermer.
+        #expect(LinkGuard.refusal(for: try url("http://0177.0.0.1/")) == nil)
+        // Et le même mécanisme sur un bloc privé reste refusé : `010` se lit 10.
+        #expect(LinkGuard.refusal(for: try url("http://010.0.0.1/")) == .privateAddress)
+    }
+
+    @Test("Un nom de domaine légitime n'est pas pris pour une adresse")
+    func realNamesAreNotMistakenForAddresses() throws {
+        // Le garde-fou de `claimsToBeAddress` : un domaine de tête ne peut pas être numérique
+        // (RFC 3696 §2), donc un sous-domaine qui l'est ne doit rien déclencher.
+        for text in ["https://1234.exemple.fr/", "https://192.exemple.fr/", "https://a.co/"] {
+            #expect(LinkGuard.refusal(for: try url(text)) == nil, "\(text) devrait passer")
+        }
+    }
+
     @Test("Un identifiant dans l'URL est refusé")
     func credentialsAreRefused() throws {
         // `http://exemple.fr@192.168.1.1/` se lit « exemple.fr » d'un coup d'œil et joint

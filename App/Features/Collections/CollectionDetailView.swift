@@ -37,7 +37,7 @@ struct CollectionDetailView: View {
     private var collection: TitleCollection? { collections.first }
 
     var body: some View {
-        ScrollView {
+        ScreenScroll {
             if let collection {
                 content(for: collection)
             } else {

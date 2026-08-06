@@ -39,7 +39,7 @@ struct PersonDetailView: View {
     private var person: Person? { people.first }
 
     var body: some View {
-        ScrollView {
+        ScreenScroll {
             if let person {
                 content(for: person)
             } else {

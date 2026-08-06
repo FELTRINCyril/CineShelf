@@ -37,22 +37,20 @@ struct ActivityFeedView: View {
     @State private var hasMore = true
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Space.s5) {
-                ScreenHeader(section: .activity, count: countLabel) { actions }
+        VStack(alignment: .leading, spacing: Space.s5) {
+            ScreenHeader(section: .activity, count: countLabel) { actions }
 
-                if days.isEmpty {
-                    emptyState
-                        .frame(maxWidth: .infinity, minHeight: 320)
-                } else {
-                    ForEach(days) { day in
-                        section(for: day)
-                    }
-                    loadMore
+            if days.isEmpty {
+                emptyState
+                    .frame(maxWidth: .infinity, minHeight: 320)
+            } else {
+                ForEach(days) { day in
+                    section(for: day)
                 }
+                loadMore
             }
-            .padding(.bottom, Space.s7)
         }
+        .padding(.bottom, Space.s7)
         // `id: filter` : changer de filtre repart de la première page, sinon le curseur
         // hérité de la lecture précédente sauterait le début du journal.
         .task(id: filter) { await reload() }

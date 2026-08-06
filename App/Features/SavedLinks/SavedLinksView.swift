@@ -33,27 +33,25 @@ struct SavedLinksView: View {
     @State private var fetching: Set<UUID> = []
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Space.s4) {
-                ScreenHeader(section: .savedLinks, count: countLabel) { actions }
+        VStack(alignment: .leading, spacing: Space.s4) {
+            ScreenHeader(section: .savedLinks, count: countLabel) { actions }
 
-                if links.isEmpty {
-                    EmptyState(
-                        title: "Aucun signet",
-                        message:
-                            "Colle l'adresse d'une critique, d'une fiche ou d'une bande-annonce.",
-                        primary: .init("Coller un lien") { isPasting = true }
-                    )
-                    .frame(maxWidth: .infinity, minHeight: 320)
-                } else {
-                    ForEach(links, id: \.persistentModelID) { link in
-                        row(link)
-                    }
-                    .padding(.horizontal, Breakpoint.macStandard.screenMargin)
+            if links.isEmpty {
+                EmptyState(
+                    title: "Aucun signet",
+                    message:
+                        "Colle l'adresse d'une critique, d'une fiche ou d'une bande-annonce.",
+                    primary: .init("Coller un lien") { isPasting = true }
+                )
+                .frame(maxWidth: .infinity, minHeight: 320)
+            } else {
+                ForEach(links, id: \.persistentModelID) { link in
+                    row(link)
                 }
+                .padding(.horizontal, Breakpoint.macStandard.screenMargin)
             }
-            .padding(.bottom, Space.s7)
         }
+        .padding(.bottom, Space.s7)
         .alert("Coller un lien", isPresented: $isPasting) {
             TextField("https://…", text: $draftURL)
             Button("Annuler", role: .cancel) { draftURL = "" }

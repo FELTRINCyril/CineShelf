@@ -34,14 +34,12 @@ struct CollectionsView: View {
     @State private var ascending = true
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Space.s6) {
-                ScreenHeader(section: .collections, count: countLabel) { actions }
-                shelves
-                genreSection
-            }
-            .padding(.bottom, Space.s7)
+        VStack(alignment: .leading, spacing: Space.s6) {
+            ScreenHeader(section: .collections, count: countLabel) { actions }
+            shelves
+            genreSection
         }
+        .padding(.bottom, Space.s7)
         .task(id: session.current?.id) { setting = storedSetting }
         .onChange(of: setting) { _, new in
             PosterSettingStore.save(new, profileID: session.current?.id, context: .collections)

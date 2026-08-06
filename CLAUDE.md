@@ -499,6 +499,11 @@ xcodebuild -scheme CineShelf -destination 'platform=macOS' build
 
 xcodebuild test -scheme CineShelf -destination 'platform=macOS'
 xcodebuild test -scheme CineShelfUITests -destination 'platform=iOS Simulator,name=iPhone 17'
+
+# Sondes de rendu d'ecran — la SEULE suite qui charge l'app (TEST_HOST), donc la seule
+# qui puisse instancier une vue de `App/`. C'est la porte de non-vacuite des taches `V`.
+# macOS uniquement : la question qu'elle pose ne depend pas de la plateforme.
+xcodebuild test -scheme CineShelfScreenTests -destination 'platform=macOS'
 for p in CineShelfCore DesignSystem MediaKit; do (cd "Packages/$p" && swift test); done
 
 # Un paquet qui dépend de CineShelfCore peut échouer sur « cannot find type X in
@@ -611,6 +616,41 @@ inscrits y menaient.
 Corollaire, et il vaut pour moi : **quand une consigne repose sur une propriété du plan, la
 vérifier avant de l'appliquer, et dire ce qu'on a trouvé.** Appliquer en silence une prémisse
 fausse produit un document faux qui porte une signature de validation.
+
+## Une capacité lue et jamais écrite est un écran qui ment
+
+**Une propriété que le code sait *afficher* mais que rien ne sait *écrire* produit une
+interface cohérente et inerte.** Rien ne casse, rien ne prévient : l'écran rend simplement la
+valeur par défaut, pour toujours. C'est indétectable à la relecture du code d'affichage, qui
+est correct.
+
+**Mesuré à `V4`/`V5b` : cinq occurrences dans une seule tâche**, ce qui en fait une classe de
+défaut et non cinq oublis.
+
+- `Genre.isPinned` et `pinIndex` étaient posés à la fermeture du schéma et **lus par `HomeView`
+  depuis `V5a`** — l'accueil affichait donc une configuration que l'utilisateur ne pouvait pas
+  faire, et aucun test ne pouvait le voir puisque le rail *fonctionne* quand la donnée existe ;
+- `PersonFilter` n'avait pas de tri, alors que le bloc `4c` pose un menu « Trier » ;
+- `SavedLink` n'avait ni repository ni conformité à `ActivityDescribing` : le cas
+  `ActivityEntityType.savedLink` existait **sans habitant**, lisible avant d'être écrivable ;
+- `PrecisionDateRow`, `TokenFieldRow` et `ValidationSummary` n'avaient **aucun appelant de
+  production**, donc la conversion `PrecisionDate` ↔ `Date` n'existait pas ;
+- `PosterCardModel(_ person:)` ne passait aucune `imageURL` — un portrait attaché ne
+  s'affichait nulle part.
+
+**Le geste, avant de livrer un écran : pour chaque propriété que l'écran lit, chercher qui
+l'écrit.** C'est un `grep` sur le nom du symbole, pas une relecture — s'il n'apparaît qu'en
+lecture et dans le modèle, la chaîne est ouverte.
+
+```bash
+grep -rn "isPinned" App/ Packages/*/Sources | grep -v "Tests"
+# lectures seules + déclaration = personne ne l'écrit
+```
+
+**Le corollaire, et il est symétrique** : une capacité **écrite et jamais lue** est le même
+défaut vu de l'autre bout. `ActivityEntry` a été écrit pendant quinze prompts avant que quoi
+que ce soit le relise — une piste d'audit qu'on ne lit jamais est une piste d'audit qu'on n'a
+pas. Les deux se cherchent avec le même `grep` ; ce qui change est la colonne qui manque.
 
 ## Une règle qui entre ici se propage à ce qui existait avant elle
 

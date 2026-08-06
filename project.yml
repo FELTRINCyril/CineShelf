@@ -266,7 +266,54 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) XCODE_ASSET_TESTS"
 
-  # iOS uniquement : sur macOS, les tests UI réclament l'autorisation
+  # Sondes de rendu d'ecran : la seule cible de test qui charge l'app.
+  #
+  # **Pourquoi une seconde cible plutot qu'un TEST_HOST sur CineShelfTests.**
+  # Celle-ci en porte 121 qui tournent sans lancer l'interface, et son commentaire
+  # dit pourquoi. Lui donner un hote ferait payer le lancement de l'app a des tests
+  # de predicat qui n'en ont pas besoin — et rendrait la suite rapide dependante
+  # d'une app qui se signe et se lance.
+  #
+  # **Pourquoi elle existe.** Sans hote, un test ne peut pas instancier une vue de
+  # `App/` : les symboles du module app ne sont pas lies, et `@testable import
+  # CineShelf` echoue au lien (« nominal type descriptor not found »). C'est ce qui
+  # a fait retirer la sonde d'ecran de `V4`/`V5b`. Or c'est precisement la ou un
+  # « ca rend du vide » se paie : deux fois deja un modele de presentation a perdu
+  # son image en silence — `MediaFill` charge par `AsyncImage`, puis
+  # `PosterCardModel(_ person:)` sans `imageURL`. La troisieme arrivera sur un ecran,
+  # et `V6` — table, inspecteur, edition en masse — est le pire endroit pour ca.
+  #
+  # **macOS seul, et c'est un choix.** Un hote iOS demande un simulateur, donc du
+  # temps de CI, pour une question — « est-ce que ca dessine quelque chose ? » — dont
+  # la reponse ne depend pas de la plateforme. Les differences de mise en page par
+  # point de rupture se jugent ailleurs. Ajouter iOS ici le jour ou une sonde
+  # depend vraiment du format.
+  CineShelfScreenTests:
+    type: bundle.unit-test
+    supportedDestinations: [macOS]
+    sources:
+      - Tests/CineShelfScreenTests
+    dependencies:
+      - target: CineShelf
+      - package: CineShelfCore
+        product: CineShelfCore
+      - package: DesignSystem
+        product: DesignSystem
+    settings:
+      base:
+        # cf. bloc SUPPORTED_PLATFORMS ci-dessus (bug XcodeGen 2.46.0)
+        SUPPORTED_PLATFORMS: "macosx"
+        PRODUCT_BUNDLE_IDENTIFIER: fr.feltrin.CineShelf.ScreenTests
+        GENERATE_INFOPLIST_FILE: YES
+        # **Pose explicite, et elle est necessaire.** XcodeGen ecrit la forme iOS
+        # (`CineShelf.app/CineShelf`) des qu'une cible de test depend d'une app ; sur
+        # macOS le binaire vit dans `Contents/MacOS`, et xcodebuild refuse de demarrer :
+        # « Could not find test host for CineShelfScreenTests ». Cette cible etant
+        # macOS-seule, la forme macOS est ecrite en dur plutot que conditionnee.
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/CineShelf.app/Contents/MacOS/CineShelf"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
+  # iOS uniquement : sur macOS, les tests UI reclament l'autorisation
   # d'accessibilité, qui ne se donne qu'à la main dans Réglages Système.
   # Ajoute macOS ici le jour où tu veux les lancer sur le Mac.
   CineShelfUITests:
@@ -321,6 +368,19 @@ schemes:
       config: Debug
       targets:
         - name: DesignSystemAssetTests
+
+  # Sondes de rendu d'ecran, macOS uniquement. Separe du schema CineShelf pour que
+  # la suite rapide reste rapide :
+  #   xcodebuild test -scheme CineShelfScreenTests -destination 'platform=macOS'
+  CineShelfScreenTests:
+    build:
+      targets:
+        CineShelf: all
+        CineShelfScreenTests: [test]
+    test:
+      config: Debug
+      targets:
+        - name: CineShelfScreenTests
 
   # Tests d'interface : simulateur iOS uniquement.
   #   xcodebuild test -scheme CineShelfUITests \

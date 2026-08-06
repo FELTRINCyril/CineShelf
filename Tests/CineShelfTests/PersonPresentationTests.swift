@@ -3,8 +3,18 @@ import Foundation
 import SwiftData
 import Testing
 
-@testable import CineShelf
 @testable import CineShelfCore
+
+// **Pas d'`import CineShelf` ici, et c'est structurel** : `CineShelfTests` n'a pas d'app hôte,
+// elle *compile* les fichiers de `App/` dont elle a besoin (voir `project.yml`). `AssetURL`,
+// `PosterCardModel(_ person:)` et `PersonFormat` sont donc des symboles de cette cible, pas
+// d'un module importé.
+//
+// > **La CI l'a attrapé, pas moi.** La première version portait `@testable import CineShelf`,
+// > et elle compilait en local — `DerivedData` gardait le module app d'un build précédent. Sur
+// > une machine propre : « unable to resolve module dependency: 'CineShelf' ». C'est la même
+// > famille que les seuils de performance calés sur la machine locale : vert ici, rouge là-bas,
+// > et le local est le mauvais juge.
 
 // MARK: - V4 · Le chemin de l'image d'une personne
 //

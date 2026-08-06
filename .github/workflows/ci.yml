@@ -133,6 +133,12 @@ jobs:
           - name: logique (macOS)
             scheme: CineShelf
             destination: platform=macOS
+          # Sondes de rendu d'ecran : la seule suite qui charge l'app (TEST_HOST), et la
+          # seule qui assene qu'un ecran dessine autre chose qu'un aplat. macOS uniquement,
+          # cf. le commentaire de la cible dans project.yml.
+          - name: rendu d'ecran (macOS)
+            scheme: CineShelfScreenTests
+            destination: platform=macOS
           # Tests d'interface : simulateur iOS uniquement, cf. README.
           - name: interface (iOS)
             scheme: CineShelfUITests

@@ -6163,3 +6163,78 @@ modifiés, quatre tests cassés pour rien. Revenu en arrière et ciblé à la ma
 | `xcodebuild test -scheme CineShelfUITests -destination iOS` | ✅ **1 test**, 18,6 s à chaud |
 | `xcodebuild build` iOS · suite app macOS · sondes d'écran · `DesignSystemCatalog` · paquets | ❌ **non relancés après la correction du séparateur** — le format touche l'archive, donc `swift test` de Core couvre l'essentiel, mais les autres cibles ne se déduisent pas |
 | **`11f` et `11g`** | ❌ **non commencés** — la couture était la priorité et elle a livré un défaut de données à corriger. C'est le second jalon |
+
+---
+
+## 2026-08-06 — Fin de session · à lire en rouvrant sur l'autre Mac
+
+**Trois choses qui se perdent en changeant de machine. Elles sont ici parce qu'aucune ne se
+déduit du code.**
+
+### 1. Une perte de données a été corrigée, et son format a changé
+
+`CSVSchema.multiValueSeparator` est passé de **`/`** à **`|`** (commit `0d2cdd9`).
+
+**Ce que l'ancien séparateur faisait.** Un genre nommé « Action/Aventure » — un nom
+parfaitement ordinaire — s'exportait dans une liste jointe par `/`, puis se réimportait en
+**deux** genres, `Action` et `Aventure`. Le genre d'origine disparaissait, sans un mot, sans
+refus, sans entrée de journal.
+
+**Sa cause est dans `L12`**, à rigueur maximale, et non dans cette session. **Douze tests
+verrouillaient le format destructeur** — neuf assertions ont dû être réécrites, dont une dans le
+*nom* d'un test (« séparées par une barre oblique »). C'est le motif de `MediaFill` et de
+`PosterCardModel(_ person:)` : deux moitiés justes — l'export joignait sur `/`, l'import coupait
+sur `/` — et un joint que rien n'exerçait. La sonde d'import de bout en bout est la première
+chose à l'avoir traversé.
+
+**Conséquence pratique à ne pas oublier** : tout fichier CSV exporté par une version antérieure
+à `0d2cdd9` porte des valeurs multiples jointes par `/`. Réimporté aujourd'hui, il rendra **une
+seule valeur** contenant des barres obliques au lieu de plusieurs. Aucun fichier de ce genre
+n'existe dans le dépôt ; s'il en existe un sur l'autre machine, il est à convertir à la main.
+
+### 2. Ce qui a été relancé après le changement de format — tout, finalement
+
+Le rapport de session annonçait six cibles « non relancées ». **Elles l'ont été à la clôture, et
+elles sont toutes vertes** :
+
+| Cible | Résultat |
+|---|---|
+| `swift test` CineShelfCore | ✅ 566 |
+| `swift test` DesignSystem | ✅ 85 |
+| `swift test` MediaKit | ✅ 64 |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ 121 |
+| `xcodebuild test -scheme CineShelfScreenTests -destination macOS` | ✅ 11 |
+| `xcodebuild test -scheme DesignSystemCatalog` · macOS et iOS | ✅ 86 et 85 |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS | ✅ |
+| `xcodebuild test -scheme CineShelfUITests` · macOS et iOS | ✅ 1 et 1 |
+| `swiftlint --strict` | ✅ 0 / 335 |
+| `xcrun swift-format lint` | ✅ 0 |
+
+Le format touche aussi l'archive (`ArchiveWriter` / `ArchiveRestorer` passent par
+`joinMultiValue`), donc la suite de Core couvre l'essentiel — mais les autres cibles ne se
+déduisaient pas, et c'est pour ça qu'elles ont été jouées.
+
+### 3. Ce qui reste, nommément
+
+- **`11f` — la correction en masse depuis l'aperçu** n'existe pas. L'aperçu affiche « à corriger
+  dans le fichier » à côté de chaque cause. `ImportCorrection` existe côté cœur ; c'est du
+  travail d'écran.
+- **`11g` — l'abandon avec reprise de brouillon** n'existe pas. « Abandonner » remet à zéro.
+  `ImportDraftStore` existe côté cœur.
+- **L'échec bruyant du séparateur n'est pas en place.** C'est le point le plus important des
+  trois : le format a été *rendu plus sûr*, il n'a pas été rendu **sûr**. Une valeur qui
+  contient une barre verticale se coupe toujours en silence — `MultiValueRoundTripTests` le
+  documente au lieu de le corriger. Ce qu'il faudrait : à l'**export**, refuser ou échapper une
+  valeur contenant le séparateur, et le **dire** ; à l'**import**, aucune détection n'est
+  possible, donc c'est l'export qui doit garantir l'invariant. Tant que ce n'est pas fait, la
+  garantie repose sur « aucun nom de genre ne porte de barre verticale », qui est une
+  probabilité, pas une invariante.
+- **La porte de rendu de la console est abandonnée** — fermée sans solution, décision explicite.
+  `ImageRenderer` ne capture pas AppKit, et l'arbre d'accessibilité reste vide même
+  l'autorisation accordée. Deux écrans sur dix-neuf ne sont pas couverts par une porte
+  automatique.
+
+### État du palier 3
+
+Reste **`L16`** (maintenance et corbeille, rigueur maximale), **`V10`** (synchronisation),
+**`V12`** (accessibilité), plus les deux jalons de `V8` ci-dessus et la reprise de `V6` en 🔶.

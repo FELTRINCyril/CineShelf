@@ -274,6 +274,38 @@ succès. Trois fois que ça mord :
 En pratique : après toute injection, **relire le fichier modifié** (ou vérifier le compte
 de substitutions), et seulement ensuite lancer la vérification.
 
+### Une entrée de test se prend quelconque, jamais remarquable
+
+**Minuit, zéro, la chaîne vide et le premier élément sont les valeurs qui masquent les
+défauts.** Ce sont aussi celles qu'on tape spontanément — et un test qui les prend passe au
+vert en laissant le bug intact.
+
+**Mesuré le 2026-08-06, sur le hero du jour.** La propriété à tenir était « stable dans la
+journée ». Le code ramenait l'instant à un jour par `timeIntervalSince1970 / 86 400`,
+c'est-à-dire à un jour **UTC**. Un test posé sur minuit local aurait passé sur ma machine ; le
+test posé sur un instant quelconque — 22 h 13 UTC — a rendu deux heros pour deux instants du
+même jour, et il a fallu écrire la bonne règle. Ce que la valeur remarquable cachait n'était
+pas une erreur de calcul mais **une mauvaise définition du jour**.
+
+Le motif est le même partout : une valeur remarquable est celle où plusieurs implémentations
+coïncident. À minuit, « jour UTC » et « jour local » donnent la même réponse ; à zéro, une
+somme et un produit aussi ; sur une chaîne vide, `contains` et `hasPrefix` sont d'accord. Le
+test ne distingue alors plus les implémentations qu'il est censé départager.
+
+En pratique, pour chaque entrée d'un test :
+
+- **une date** : un instant au milieu de la journée, dans un fuseau qui n'est pas UTC, et un
+  jour qui n'est ni le 1er ni le dernier du mois ;
+- **un nombre** : ni 0, ni 1, ni la borne — et si la borne compte, elle s'ajoute *en plus* ;
+- **une chaîne** : ni vide, ni ASCII pur, ni de la longueur du tampon ;
+- **un index** : ni le premier, ni le dernier ;
+- **une collection** : ni vide, ni à un élément.
+
+Les cas dégénérés restent à couvrir — ils ont leurs propres tests, et ce fichier en réclame
+ailleurs. Ce qu'ils ne peuvent pas faire, c'est servir de **cas nominal** : là, ils ne
+départagent rien. C'est la même famille que « tout échantillon exerce le chemin réel, jamais le
+cas nul », transposée des données de démonstration aux entrées de test.
+
 ### Une propriété invisible depuis l'environnement de test n'est protégée que par le lint
 
 Quand la faute ne se manifeste **pas** sur ma machine, un test ne protège rien : il est

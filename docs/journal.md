@@ -5406,3 +5406,87 @@ la rend pas.
 | `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
 | `xcodebuild test -scheme CineShelfUITests` | ❌ **non lancée** |
 | **Le fil et les statistiques vus à l'écran** | ❌ **aucun écran** — c'est `V5b` (fil) et `V11` (statistiques). `L18` livre les séries, pas les graphiques, et la fiche le dit |
+
+## 2026-08-06 (4) — `L7` et `L17` : la seule sortie réseau du projet, et un état qu'on ne peut pas vérifier
+
+### La règle du jour : une entrée de test se prend quelconque
+
+Elle vient de la trouvaille du hero, et elle entre dans `CLAUDE.md` à côté des preuves
+d'échec. **Minuit, zéro, la chaîne vide et le premier élément sont les valeurs où plusieurs
+implémentations coïncident** — à minuit, « jour UTC » et « jour local » donnent la même
+réponse, donc le test ne départage plus rien. Les cas dégénérés gardent leurs propres tests ;
+ce qu'ils ne peuvent pas faire, c'est servir de cas nominal.
+
+Elle a servi le jour même : les tests de `L7` prennent une URL à deux segments et une extension
+plutôt que `/`, et ceux de `L17` des tailles de fichier de 3 517 et 12 289 octets plutôt que des
+puissances de deux — une somme fausse se remarque moins quand tous les nombres sont ronds.
+
+### `L7` — la fiche demande `LPMetadataProvider`, et je ne l'utilise pas
+
+**C'est la seule requête sortante de toute l'app**, et son URL vient de l'utilisateur : la
+définition d'une SSRF. Ce qu'elle permet n'est pas théorique sur une machine de bureau — coller
+`http://192.168.1.1/admin/reboot`, `http://127.0.0.1:6379/` ou
+`http://169.254.169.254/latest/meta-data/` fait émettre la requête depuis le réseau local de
+l'utilisateur, avec ses accès. Aucune de ces cibles n'est joignable de l'extérieur ; toutes le
+sont depuis l'app.
+
+**Et c'est ce qui écarte `LPMetadataProvider`.** Il va chercher l'URL lui-même — il ouvre la
+connexion, suit les redirections, lit la réponse — sans exposer aucun point de contrôle. Or la
+protection demandée porte **exactement** sur ces trois choses. Le lui confier reviendrait à
+valider l'URL collée puis à laisser un tiers décider de la suite : un serveur public répondant
+`302 Location: http://127.0.0.1:6379/` obtiendrait précisément ce que la garde existe pour
+empêcher. Le fetch passe donc par `URLSession`, dont le délégué voit chaque redirection
+**avant** qu'elle parte. Écart à la fiche, inscrit — ce qu'on perd est l'icône et l'image que
+`LPMetadataProvider` rend en plus.
+
+**Trois détails qui décident, et qu'un test rond aurait manqués :**
+
+- **l'IPv4 encapsulée en IPv6.** `::ffff:127.0.0.1` est une adresse IPv6 valide qui joint la
+  boucle locale ; sans le cas dédié, elle passe une garde qui refuse pourtant `127.0.0.1` ;
+- **les voisines des bornes.** 172.15 et 172.32 encadrent le bloc privé 172.16/12 : un masque
+  écrit de travers refuse un lien parfaitement légitime, et c'est ce que le test assène ;
+- **un hôte sans point est refusé.** Sur un réseau d'entreprise, `intranet` résout vers
+  l'intérieur par suffixe de recherche DNS. Un lien collé depuis un navigateur porte toujours un
+  domaine complet.
+
+**Ce qui reste ouvert, et se dit** : un nom d'hôte public qui *résout* vers une adresse privée.
+La garde lit le texte de l'URL ; la résolution a lieu dans `URLSession`, qui n'expose pas
+l'adresse retenue. Et les formes octales ou hexadécimales d'IPv4 — `0177.0.0.1` — que le
+parseur refuse comme adresses et qui repartent sur le chemin des noms. Deux écarts inscrits.
+
+### `L17` — écrite, couverte, et pas vérifiée
+
+**Sa ligne du tableau le dit maintenant en toutes lettres**, parce que c'est le genre de
+nuance qui se perd : au vert, elle vaut « écrite et couverte en simulation ». Ce qu'aucun test
+local ne produit reste entier — les notifications réelles du coordinateur, leur charge utile,
+leur ordre d'arrivée, les cas de compte et de quota.
+
+**Six cas et non cinq, et le document se contredit.** `docs/04` §5 déclare cinq cas dans son
+extrait de code et en liste six dans le tableau juste en dessous : le quota manque à
+l'énumération alors que le tableau lui donne un message **et** une action. Le tableau est plus
+précis, donc il fait foi.
+
+**Ce que la machine assène n'est pas la transition mais la priorité.** Un coordinateur envoie
+ses événements dans un ordre qu'on ne contrôle pas : sans priorité, le dernier arrivé gagne et
+l'utilisateur voit « envoi en cours » sur un compte qui n'existe pas. Un compte absent survit
+donc à une perte de réseau, un quota dépassé survit à un envoi qui démarre, et une progression
+hors échange est ignorée plutôt que de fabriquer un état.
+
+**L'espace occupé compte trois emplacements, et se garde d'en compter un deux fois.** Le
+magasin, le stockage externe — où vont toutes les images, donc l'essentiel du poids — et le
+cache de vignettes. Le dédoublonnage n'est pas théorique : le stockage externe vit à côté du
+fichier de magasin, et additionner à l'aveugle doublerait le chiffre annoncé **au moment précis
+où l'utilisateur cherche à faire de la place**.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **510 · 85 · 64** (+26 sur Core) |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **115 tests** |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 308 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| **Une vraie requête sortante** | ❌ **aucune, et c'est voulu** — la fiche l'exige, les tests fournissent un fournisseur factice. `URLSessionLinkFetcher` n'a donc **jamais tourné contre un serveur réel** : sa garde est testée, son chemin réseau ne l'est pas |
+| **`L17` contre un vrai CloudKit** | ❌ **impossible avant le prompt 21**, et sa ligne le dit |
+| `xcodebuild test -scheme CineShelfUITests` · catalogue | ❌ **non lancés** — rien de cette session ne touche l'interface |

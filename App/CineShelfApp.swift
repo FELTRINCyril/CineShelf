@@ -53,10 +53,7 @@ struct CineShelfApp: App {
             // of type AppLock found ». Mesuré : la suite de rendu a rendu zéro test, l'app
             // hôte n'ayant jamais démarré.
             RootView()
-                // `-cineshelf-no-lock` : contourne la porte du verrou. Sert à trancher si
-                // l'absence de fenêtre dans l'arbre d'accessibilité vient du voile de
-                // confidentialité — mesure, pas supposition.
-                .modifier(OptionalLockGate())
+                .lockGate()
                 .environment(navigation)
                 .environment(session)
                 .environment(appLock)

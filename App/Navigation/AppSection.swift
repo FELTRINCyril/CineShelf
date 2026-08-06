@@ -13,6 +13,7 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable, Codable, Sendable
     case collections
     case gallery
     case savedLinks
+    case activity
     case search
     case myList
     case libraryAdmin
@@ -29,6 +30,7 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable, Codable, Sendable
         case .collections: "Collections"
         case .gallery: "Galerie"
         case .savedLinks: "Signets"
+        case .activity: "Fil"
         case .search: "Recherche"
         case .myList: "Ma liste"
         case .libraryAdmin: "Gestion"
@@ -47,6 +49,7 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable, Codable, Sendable
         case .collections: Icon.collections
         case .gallery: Icon.gallery
         case .savedLinks: Icon.bookmarks
+        case .activity: Icon.feed
         case .search: Icon.search
         case .myList: Icon.myList
         case .libraryAdmin: "slider.horizontal.3"
@@ -71,7 +74,13 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable, Codable, Sendable
 
     /// Les sections regroupées derrière le menu de profil, pendant régulier de l'onglet
     /// « Gérer ».
-    static let utility: [AppSection] = [.savedLinks, .libraryAdmin, .transfer, .settings]
+    /// **`activity` y entre par `V5b`.** Le bloc `5e` la montre dans la barre haute, à la
+    /// place qu'occupent « Ma liste » ou « Signets » selon l'écran — le prototype substitue
+    /// l'entrée courante plutôt que d'en afficher onze. Elle rejoint donc les sections de
+    /// service, comme les signets, plutôt que la barre principale à six entrées.
+    static let utility: [AppSection] = [
+        .savedLinks, .activity, .libraryAdmin, .transfer, .settings
+    ]
 }
 
 /// Les cinq onglets de la disposition compacte — planche 2 bloc `3c`, relevés dans cet
@@ -135,7 +144,8 @@ enum CompactTab: String, CaseIterable, Identifiable, Hashable, Codable, Sendable
         case .titles: .titles
         case .search: .search
         case .myList: .myList
-        case .people, .collections, .gallery, .savedLinks, .libraryAdmin, .transfer, .settings:
+        case .people, .collections, .gallery, .savedLinks, .activity, .libraryAdmin, .transfer,
+            .settings:
             .manage
         }
     }

@@ -18,6 +18,7 @@ extension AppSection {
         case .titles: TitlesView()
         case .people: PeopleView()
         case .collections: CollectionsView()
+        case .activity: ActivityFeedView()
         case .gallery: GalleryView()
         case .savedLinks: SavedLinksView()
         case .search: SearchView()

@@ -16,13 +16,20 @@ struct RouteDestination: View {
         case .title(let id):
             TitleDetailView(titleID: id)
                 .toolbar { toolbarContent }
+        case .person(let id):
+            PersonDetailView(personID: id)
+                .toolbar { toolbarContent }
+        case .collection(let id):
+            CollectionDetailView(collectionID: id)
+                .toolbar { toolbarContent }
         default:
             placeholder
         }
     }
 
-    /// Les fiches non encore écrites — Personnes, Collections, Genres, Images —
-    /// arrivent avec leurs prompts respectifs.
+    /// Les fiches non encore écrites. **Personnes et Collections sont parties par `V5b`** ;
+    /// restent les genres — qui n'ont pas de fiche dans le design, seulement une section dans
+    /// l'écran Collections — et les images, qui s'ouvrent dans la visionneuse de `V3`.
     private var placeholder: some View {
         StateView(
             .empty(

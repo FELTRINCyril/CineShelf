@@ -63,6 +63,12 @@ struct SectionPlaceholder: View {
                 title: "Aucun signet.",
                 message: "Garde ici les liens que tu veux retrouver : bandes-annonces, critiques, fiches."
             )
+        case .activity:
+            .empty(
+                symbol: section.symbol,
+                title: "Rien à signaler.",
+                message: "Le fil montre ce que tu as fait à ta collection, jour par jour."
+            )
         case .search:
             .empty(
                 symbol: section.symbol,

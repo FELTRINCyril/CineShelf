@@ -5115,3 +5115,105 @@ mesure est désormais **imprimée**, et c'est elle qui porte le sens.
 **Un frère jumeau reste en place** : `TitleFilterPerformanceTests` plafonne à 25 ms, calé
 localement lui aussi. Il est passé au vert ce jour-là, ce qui est de la chance et non une
 preuve. Inscrit comme écart plutôt que corrigé au passage : la tâche soldait un reste-à-faire.
+
+## 2026-08-06 — L'audit des seuils, la règle qui ne s'était pas propagée, et `I5`
+
+### La vraie trouvaille du jour n'est pas un seuil, c'est un motif
+
+**Une règle écrite mais jamais propagée ne protège que le code écrit après elle.** Le
+corollaire sur les seuils de performance est né le 2026-08-04 d'un test qui échouait — les
+200 vignettes, 15 ms en local contre 266 ms sur le runner. Il a été écrit dans `CLAUDE.md`,
+et **il n'a été appliqué qu'au test qui l'avait provoqué.** Deux seuils calés sur une mesure
+locale sont restés en place, et le premier a rougi la CI dix-huit heures plus tard.
+
+C'est la même famille que la fausse dette : le document dit vrai, le dépôt dit autre chose. La
+différence est qu'ici personne ne le découvre avant que ça casse. La règle a donc gagné une
+section : **quand une règle entre dans `CLAUDE.md`, chercher ce qui l'enfreint déjà** — un
+`grep` sur le motif interdit, pas une relecture. Corriger sur-le-champ n'est pas obligatoire ;
+ne pas regarder, si.
+
+### L'audit — cinq fichiers mesurent, huit assertions de durée, une seule était fausse
+
+| Assertion | Mesure locale | Plafond | Calé sur | Verdict |
+|---|---|---|---|---|
+| `ThumbnailCacheTests` décodage | 15,2 ms · **266,5 runner** | 800 ms | le **runner**, ×3 | conforme — c'est la référence |
+| `ThumbnailCacheTests` disque | 2,5 ms · **15,8 runner** | 60 ms | le **runner**, ×4 | conforme |
+| `ThumbnailCacheTests` trois rapports | — | rapport | indépendant de la machine | conforme |
+| `BulkEdit` lot scalaire | 0,24 ms / titre | 20 ms | ordre de grandeur, ×83 | conforme |
+| `BulkEdit` lot de relation | 0,48 ms / titre | 30 ms | ×62 | conforme |
+| `BulkEdit` refus | 29 ms | 2 000 ms | ×69 | conforme |
+| `TitleFilter` rapport sélectif | 6,6 contre 240 ms | rapport ×5 | indépendant | conforme |
+| `SearchPerformance` | 8 à 11 ms | ~~40~~ → **300 ms** | ~~local ×4~~ → runner ×3,7 | corrigé le 2026-08-05 |
+| **`TitleFilter` prédicat complet** | **5,3 à 6,6 ms** | ~~25~~ → **150 ms** | ~~local ×5~~ → runner ×3,7 | **corrigé aujourd'hui** |
+
+**Une seule était sous-dimensionnée, et elle était verte.** C'est ce qui la rend instructive :
+rien ne la signalait, et elle l'était par chance. Avec le rapport runner / local mesuré la
+veille — 7 à 8 — elle devait rendre ~40 ms sur le runner, donc échouer. **Un test vert n'est
+pas une preuve de conformité à une règle qu'il enfreint.**
+
+**Et un manque commun aux deux corrigés** : ni l'un ni l'autre n'imprimait sa mesure. Un
+plafond calé sur le pire environnement ne dit plus rien du confort réel — il ne reste que le
+chiffre imprimé pour le dire. La règle le demande désormais explicitement.
+
+### La capture d'écran : toujours refusée, mais la cause est identifiée
+
+`screencapture` rend « could not create image from display », y compris hors bac à sable. La
+session est bien `Aqua` et l'utilisateur graphique est le bon, donc ce n'est pas un problème de
+contexte. **La chaîne de processus dit pourquoi** :
+
+```
+/bin/zsh  ←  claude  ←  /Applications/Switchboard.app
+```
+
+L'autorisation d'enregistrement d'écran est attribuée par TCC à l'**application responsable**,
+et ce n'est pas le terminal : c'est `Switchboard.app`. Deux choses à faire, et la seconde est
+celle qu'on oublie : l'autoriser dans Réglages → Confidentialité → Enregistrement de l'écran,
+**puis la quitter et la relancer** — une autorisation accordée à une app déjà lancée ne prend
+pas effet avant son redémarrage.
+
+Les cinq vérifications visuelles restent donc à faire, et elles restent inscrites comme non
+faites.
+
+### `I5` — trois composants, et deux d'entre eux ne sont pas ce que leur nom dit
+
+**La ligne de tableau.** 30 pt en dense (bloc `7a`), 44 en ample (addendum 2 bloc `13d`, et
+44 n'est pas un hasard : c'est la cible tactile). Le relevé de la planche 5 écrit « lignes de
+28 pt » — c'est faux, ou plutôt c'est la hauteur de l'**en-tête**, qui vaut bien 28 dans le
+rendu. Bloc rendu contre prose de synthèse : le bloc gagne.
+
+Le composant porte la géométrie, l'écran porte les colonnes — et c'est plus tranchant ici
+qu'ailleurs, parce que les colonnes changent d'une entité à l'autre. `.tableCell(width:)` est
+le modificateur qui fait tomber le corps sous l'en-tête sans que personne additionne des marges.
+
+**Une ligne sélectionnée n'est rendue par aucun bloc**, et le fond seul ne suffisait pas : il
+est déjà celui du survol, donc les deux états auraient rendu la même chose. Une barre d'accent
+de 2 pt les sépare. Déduction inscrite.
+
+**Le jeton de filtre** ferme un écart ouvert deux fois : `V0 bis` et `V3` avaient tous deux
+rendu leurs filtres en `StateBadge` faute de ce composant. Un badge *dit* un état, un jeton *se
+clique* — d'où la cible de 44 pt, posée **autour** d'un jeton de 25 pt plutôt qu'en le
+déformant, et la croix de retrait, qui n'apparaît que là où le filtre est retirable.
+
+**La graisse du prototype est impossible**, et c'est la seule vraie perte : actif en 600,
+inactif en 400, or le système n'a pas d'Archivo Narrow 400. Les deux états restent distincts
+par le fond et la couleur du texte. Inscrit.
+
+**La « pastille de compteur » n'est pas une pastille.** Le bloc `7a` ne dessine aucun fond : un
+nombre en mono, en `text.tertiary`, poussé à droite. Le nom vient de l'inventaire des
+composants, écrit **avant** la direction artistique — et la direction « plein cadre » n'a ni
+pilule ni badge de compte. Lui dessiner un fond aurait été rattraper un concept que la
+direction a supprimé, ce que le lint interdit ailleurs.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **461 · 74 · 64** |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **114 tests** |
+| `xcodebuild test -scheme CineShelfUITests -destination iOS Simulator` | ✅ **1 test** |
+| `xcodebuild test -scheme DesignSystemCatalog` · macOS et iOS | ✅ **75** et **74** |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 287 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| **Les cinq vérifications visuelles de `V3`** | ❌ **non faites** — `screencapture` refusé, cause identifiée ci-dessus |
+| **La planche `I5` vue à l'œil** | ❌ **non vue**, pour la même raison |

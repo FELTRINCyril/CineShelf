@@ -5490,3 +5490,132 @@ où l'utilisateur cherche à faire de la place**.
 | **Une vraie requête sortante** | ❌ **aucune, et c'est voulu** — la fiche l'exige, les tests fournissent un fournisseur factice. `URLSessionLinkFetcher` n'a donc **jamais tourné contre un serveur réel** : sa garde est testée, son chemin réseau ne l'est pas |
 | **`L17` contre un vrai CloudKit** | ❌ **impossible avant le prompt 21**, et sa ligne le dit |
 | `xcodebuild test -scheme CineShelfUITests` · catalogue | ❌ **non lancés** — rien de cette session ne touche l'interface |
+
+## 2026-08-06 (5) — `V4` et `V5b` : cinq écrans, et un chemin d'image qui ne menait nulle part
+
+### L'angle mort de `L7` nommait le mauvais exemple
+
+**Mesuré contre un serveur de boucle locale**, parce que la question posée était « est-ce que
+`URL` normalise déjà les IPv4 octales ? ». La réponse est non — `url.host()` rend le texte tel
+quel — mais ce n'était pas la bonne question. Ce que fait **`URLSession`** :
+
+| Hôte collé | Ce qu'il joint | Ce que la garde en faisait |
+|---|---|---|
+| `0177.0.0.1` | `177.0.0.1` — publique | acceptée, **et c'est correct** |
+| `0300.0250.0.1` | rien, la résolution échoue | acceptée, sans effet |
+| **`0x7f.0.0.1`** | **`127.0.0.1`** | **acceptée — la faille était là** |
+| `2130706433`, `017700000001`, `0x7f000001` | `127.0.0.1` | déjà refusées, faute de point |
+
+**L'octal n'était donc pas le sujet.** `UInt8("0177")` rend 177, et le résolveur système lit
+lui aussi ce segment en décimal — les deux s'accordent, il n'y avait rien à fermer. C'est
+l'**hexadécimal par segments** qui passait, parce que `UInt8("0x7f")` rend `nil` : l'hôte
+repartait alors sur le chemin des noms, où son point suffisait à le faire accepter.
+
+Le mécanisme, mesuré aussi : `inet_aton` lit `0177` en octal (127), mais le résolveur système
+le lit en **décimal** (177) et ne retombe sur l'octal que si le segment dépasse 255 — d'où
+`0300` → 192. Deux parseurs qui divergent, et c'est précisément pourquoi la correction **ne
+réimplémente pas le résolveur** : `claimsToBeAddress` refuse tout hôte qui a la *forme* d'une
+adresse sans en être une que nous sachions lire, quelle que soit la notation. Aucun nom
+légitime n'est pris au passage — un domaine de tête ne peut pas être numérique (RFC 3696 §2).
+
+### `docs/04` §5 décrivait cinq cas là où le code en a sept
+
+Corrigé, et **deux écarts de plus se referment au passage** : `syncing` porte sa direction (le
+tableau distinguait « premier envoi » et « premier téléchargement », qu'un `syncing(Double?)`
+nu ne pouvait pas départager), et le nom réel est `SyncStatus`, pas `SyncState`.
+
+### Le patron d'écran a tenu, et ce qui a manqué était sous la vue
+
+**`V0 bis` a bien généralisé.** `AdaptiveTileGrid`, `PersonTile`, `CollectionTile`,
+`ScreenHeader`, `EmptyState`, `PosterSettingStore` sont agnostiques ; `PosterContext` portait
+déjà `.people` et `.collections` ; et `SearchPresentation` — écrit par `V1` — annonçait
+lui-même « ils seront réutilisés par `V4` et `V5b` ». Changer d'entité s'est fait en changeant
+le filtre, la tuile et le menu.
+
+**Ce qui manquait n'était pas la mécanique de vue mais la couche en dessous**, et c'est la
+trouvaille utile de la session :
+
+- **`GenreRepository` n'avait aucune méthode d'épinglage.** `isPinned` et `pinIndex` étaient
+  posés à la fermeture du schéma, **lus** par `HomeView` depuis `V5a`, et **jamais écrits** :
+  l'accueil savait afficher une configuration que l'utilisateur ne pouvait pas faire ;
+- **`PersonFilter` n'avait pas de tri**, alors que le bloc `4c` pose un menu « Trier » ;
+- **`SavedLink` n'avait ni repository ni conformité à `ActivityDescribing`** — le cas
+  `ActivityEntityType.savedLink` existait sans habitant, lisible avant d'être écrivable ;
+- **`PrecisionDateRow`, `TokenFieldRow` et `ValidationSummary` n'avaient aucun appelant de
+  production.** `TitleEditor` porte encore l'ancienne direction, donc `PersonEditor` est le
+  premier — et le branchement a révélé qu'aucune conversion `PrecisionDate` ↔ `Date`
+  n'existait.
+
+### Le test qui a démenti mon code : l'épinglage partait à 1
+
+`setPinned` posait `isPinned = true` **avant** de calculer le rang, donc le genre entrait dans
+son propre maximum. Le premier épinglage d'une bibliothèque vierge rendait 1 au lieu de 0.
+
+**Invisible sur un genre isolé** — l'ordre reste bon, il commence juste plus haut — et
+invisible aussi en retirant le premier ou le dernier. C'est le test qui retire celui du
+**milieu** qui l'a trouvé, exactement la règle des entrées quelconques : sur une borne,
+« renumérote » et « ne renumérote pas » donnent la même réponse.
+
+### Un chemin mort dans le code de production, pas dans un échantillon
+
+`PosterCardModel(_ person:)` ne passait **aucune** `imageURL`. Une personne à qui
+l'utilisateur avait attaché un portrait rendait donc ses initiales — dans la recherche, dans
+le casting d'une fiche titre, et elle l'aurait fait dans la grille neuve. Le commentaire
+d'origine invoquait le §11 du handoff, « Portraits de personnes : aucun » : c'est vrai des
+**échantillons** du paquet de design, pas du modèle — `MediaAttachment` porte un `person`, et
+`V2` en attache depuis le glisser-déposer.
+
+**Même famille que `MediaFill`, avec une différence qui compte** : là-bas l'échantillon était
+nul, ici c'était le code de production qui court-circuitait le chemin qu'on croyait couvert.
+Six tests le couvrent désormais, et la preuve d'échec a été jouée — la ligne retirée, la
+substitution vérifiée (une), le test rouge sur `card.imageURL → nil`, puis restauration.
+
+### La porte de rendu n'a pas pu se poser sur les écrans, et voici pourquoi
+
+**La règle « une tâche `V` se termine par un rendu assené » est arrivée à un mur
+architectural**, pas à un oubli. La sonde a été écrite, puis retirée : `CineShelfTests` n'a
+**aucun `TEST_HOST`** — `project.yml` le documente explicitement, « la lier à la cible app
+imposerait de lancer l'interface ». Elle compile des fichiers app choisis, un par un. Rendre
+`PeopleView` y demanderait la fermeture transitive de toutes les vues, ou un `TEST_HOST` que
+la cible existe pour éviter.
+
+Ce qui a été fait à la place, et qui couvre le risque réel : la présentation des personnes est
+entrée dans la cible de test, et le défaut d'`imageURL` — le seul « ça rend du vide sans qu'on
+le voie » de cette tâche — est assené par six tests dont une preuve d'échec. **Le rendu des
+cinq écrans reste non vu**, et l'écart est inscrit avec sa cause.
+
+### Ce que les planches montrent et que la v1 ne rend pas
+
+Quatre choses, toutes issues de tâches **reportées en v1.1** : « 41 doublons possibles » et
+l'écran de fusion (`L8`, dont la fiche du report nomme « l'écran de fusion de `V4` »), la
+suggestion de casting (`L9`), la mosaïque de couverture générée (`L6` — le repli calculé
+reste, et n'écrit aucun asset), et l'« Annuler » de chaque ligne du Fil (`L20`, tâche 19).
+Cette dernière est rendue **sans bouton** plutôt qu'avec un bouton inerte.
+
+Et une cinquième qui n'est pas un report : **« Cork, Irlande »**, le lieu de naissance du bloc
+`4d`. `Person` n'a pas de champ pour ça et le schéma est fermé — un écran ne déclenche pas une
+migration.
+
+### Où l'on épingle un genre : l'écran Collections
+
+**Une seule occurrence d'« épinglé » dans les onze planches**, et elle décide : l'en-tête du
+bloc `4e` compte « 38 rayons · 14 genres épinglés ». Un écran qui compte des objets dans son
+sous-titre les possède. Les deux autres candidats ne tiennent pas — la barre de navigation n'a
+pas de section « Genres », et la console les liste comme entité (« Genres 62 ») sans rien y
+épingler. Ça recoupe la conclusion de `V5a` : un genre épinglé n'est pas une entrée de
+navigation, c'est **la configuration de l'accueil**, donc il vit à côté des rayons.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| `swift test` CineShelfCore · DesignSystem · MediaKit | ✅ **517 · 85 · 64** (+7 sur Core) |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ **121 tests** (+6) |
+| `xcodebuild test -scheme DesignSystemCatalog` · macOS et iOS | ✅ **86** et **85** |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS Simulator | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 317 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| **Preuve d'échec du portrait** | ✅ ligne retirée, **une** substitution vérifiée, test rouge, restauration vérifiée |
+| **Sonde de boucle locale sur la garde de lien** | ✅ serveur local, huit hôtes, `0x7f.0.0.1` atteint 127.0.0.1 — puis refusé après correction |
+| `xcodebuild test -scheme CineShelfUITests` | ❌ **non lancée** |
+| **Les cinq écrans vus à l'écran** | ❌ **non vus** — pas faute d'outil cette fois : `CineShelfTests` n'a pas de `TEST_HOST`, la sonde d'écran ne peut pas y vivre. Écart inscrit avec sa cause |

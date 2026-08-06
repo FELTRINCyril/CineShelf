@@ -78,8 +78,24 @@ public struct ActivityItem: Identifiable, Sendable {
         }
     }
 
-    public var entityLabel: String {
-        switch entityType {
+    public var entityLabel: String { entityType?.label ?? "Entrée" }
+}
+
+/// Les deux libellés d'un type d'entité, au singulier et au pluriel.
+///
+/// **Remontés ici par `V5b`**, quand l'écran du fil a eu besoin du pluriel pour son menu
+/// « Types ▾ » et a commencé par recopier la table. Deux tables des mêmes onze cas divergent :
+/// c'est le motif de `JournalPolicy` sans valeur par défaut — un cas ajouté demain doit être
+/// une erreur de compilation, pas un oubli silencieux dans une des deux copies.
+///
+/// **Du texte français dans un package, et c'est assumé** : `CineShelfCore` n'est pas
+/// `DesignSystem`. La règle « le composant possède la forme, l'écran possède le texte » vise
+/// les composants de dessin ; ici le mot *est* la donnée — c'est ce qu'une piste d'audit
+/// nomme, au même titre que `ActivityItem.actionLabel`, qui vit déjà dans ce fichier.
+extension ActivityEntityType {
+
+    public var label: String {
+        switch self {
         case .library: "Bibliothèque"
         case .profile: "Profil"
         case .title: "Titre"
@@ -91,9 +107,12 @@ public struct ActivityItem: Identifiable, Sendable {
         case .link: "Lien"
         case .savedLink: "Signet"
         case .batch: "Lot"
-        case nil: "Entrée"
         }
     }
+
+    /// Le pluriel. **Régulier pour les onze cas**, donc calculé — une seconde table de onze
+    /// lignes ne servirait qu'à pouvoir se tromper.
+    public var pluralLabel: String { label + "s" }
 }
 
 /// Ce que le fil montre, et ce qu'il laisse de côté.

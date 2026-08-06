@@ -186,3 +186,103 @@ struct GenreRepositoryTests {
         #expect(recreated.id != original.id)
     }
 }
+
+// MARK: - V5b · L'épinglage, écrit quinze prompts après avoir été lu
+
+@Suite("Épinglage des genres")
+@MainActor
+struct GenrePinningTests {
+
+    /// Trois genres, épinglés dans un ordre qui n'est pas l'ordre alphabétique — sans quoi le
+    /// test ne départagerait pas « ordre d'épinglage » de « ordre de création ».
+    private func pinnable(
+        _ context: ModelContext, _ library: Library, _ names: [String]
+    ) throws -> [Genre] {
+        let repository = GenreRepository(context: context)
+        let genres = try names.map { try repository.findOrCreate(name: $0, in: library) }
+        try context.save()
+        return genres
+    }
+
+    @Test("Épingler pose le genre en queue, pas en tête")
+    func pinningAppends() throws {
+        let (context, library) = try makeTestLibrary()
+        let repository = GenreRepository(context: context)
+        // Trois noms qui ne sont pas dans l'ordre alphabétique de leur épinglage : si le rang
+        // se déduisait du nom, ce test passerait par accident.
+        let genres = try pinnable(context, library, ["Western", "Drame", "Polar"])
+
+        for genre in genres { repository.setPinned(genre, true) }
+        try context.save()
+
+        // **Source : `HomeView` lit `GenreQuery.pinned` trié sur `pinIndex`.** L'ordre attendu
+        // est donc celui des épinglages, pas celui des noms.
+        let pinned = try context.fetch(
+            FetchDescriptor<Genre>(
+                predicate: GenreQuery.pinned, sortBy: [SortDescriptor(\.pinIndex)]))
+        #expect(pinned.map(\.name) == ["Western", "Drame", "Polar"])
+    }
+
+    @Test("Désépingler ne renumérote pas, et le suivant ne réutilise pas le rang libéré")
+    func unpinningLeavesAHole() throws {
+        let (context, library) = try makeTestLibrary()
+        let repository = GenreRepository(context: context)
+        let genres = try pinnable(context, library, ["Western", "Drame", "Polar"])
+        for genre in genres { repository.setPinned(genre, true) }
+        try context.save()
+
+        // On retire celui du **milieu**, pas le premier ni le dernier : sur une borne, « ne
+        // renumérote pas » et « renumérote » donnent le même résultat.
+        repository.setPinned(genres[1], false)
+        try context.save()
+
+        let fourth = try pinnable(context, library, ["Comédie"])[0]
+        repository.setPinned(fourth, true)
+        try context.save()
+
+        // Le rang 1 est libre, et le nouveau prend 3 : c'est le maximum + 1, pas le compte.
+        // Avec le compte, « Comédie » serait entrée à 2 et se serait glissée avant « Polar ».
+        #expect(fourth.pinIndex == 3)
+        let pinned = try context.fetch(
+            FetchDescriptor<Genre>(
+                predicate: GenreQuery.pinned, sortBy: [SortDescriptor(\.pinIndex)]))
+        #expect(pinned.map(\.name) == ["Western", "Polar", "Comédie"])
+    }
+
+    @Test("Réépingler un genre déjà épinglé ne le déplace pas")
+    func pinningTwiceIsIdempotent() throws {
+        let (context, library) = try makeTestLibrary()
+        let repository = GenreRepository(context: context)
+        let genres = try pinnable(context, library, ["Western", "Drame"])
+        for genre in genres { repository.setPinned(genre, true) }
+        try context.save()
+
+        let before = genres[0].pinIndex
+        let journalBefore = try activityCount(in: context, action: .update)
+        repository.setPinned(genres[0], true)
+        try context.save()
+
+        // Sans la garde, « Western » repartirait en queue **et** journaliserait une
+        // modification que l'utilisateur n'a pas faite — une bascule qu'on rappuie par erreur
+        // réordonnerait l'accueil.
+        #expect(genres[0].pinIndex == before)
+        #expect(try activityCount(in: context, action: .update) == journalBefore)
+    }
+
+    @Test("Un genre mis à la corbeille sort des épinglés")
+    func trashedGenreLeavesThePins() throws {
+        let (context, library) = try makeTestLibrary()
+        let repository = GenreRepository(context: context)
+        let genres = try pinnable(context, library, ["Western", "Drame"])
+        for genre in genres { repository.setPinned(genre, true) }
+        try context.save()
+
+        repository.softDelete(genres[0])
+        try context.save()
+
+        // `GenreQuery.pinned` porte déjà `deletedAt == nil` : le rail de l'accueil ne doit pas
+        // survivre à la mise à la corbeille de son genre.
+        let pinned = try context.fetch(FetchDescriptor<Genre>(predicate: GenreQuery.pinned))
+        #expect(pinned.map(\.name) == ["Drame"])
+    }
+}

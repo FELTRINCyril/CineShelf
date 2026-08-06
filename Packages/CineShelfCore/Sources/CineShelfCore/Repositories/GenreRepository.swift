@@ -43,6 +43,53 @@ public struct GenreRepository {
         ActivityRecorder(context: context).record(.update, genre)
     }
 
+    /// Épingle ou désépingle un genre — la configuration de l'accueil, pas une navigation.
+    ///
+    /// **Ce que `V5a` avait laissé ouvert.** Le rail « Mes genres · Drame » du bloc `3a` lit
+    /// `GenreQuery.pinned` trié sur `pinIndex` depuis `25d25b0`, mais **rien n'écrivait ces deux
+    /// champs** : ils étaient posés à la fermeture du schéma et aucun chemin ne les touchait.
+    /// L'accueil savait donc afficher une configuration que l'utilisateur ne pouvait pas faire.
+    ///
+    /// **L'épinglage s'ajoute en queue, jamais en tête.** `pinIndex` est un ordre d'affichage :
+    /// poser un genre neuf à 0 déplacerait tous les rails existants de l'accueil à chaque
+    /// épinglage, alors que l'utilisateur n'a touché qu'une bascule. La queue est le seul choix
+    /// qui laisse en place ce qui était déjà là.
+    ///
+    /// **Le désépinglage ne renumérote rien**, et c'est délibéré : le tri ne dépend que de
+    /// l'ordre relatif, donc un trou dans la suite (0, 1, 3) rend exactement la même chose.
+    /// Renuméroter ferait écrire *tous* les genres épinglés pour en retirer un — donc autant
+    /// d'objets à synchroniser vers CloudKit, et autant d'occasions de conflit sur un champ que
+    /// personne n'a modifié.
+    /// > **Le rang se calcule *avant* la bascule, et l'ordre des deux lignes est le sujet.**
+    /// > Poser `isPinned = true` d'abord fait entrer le genre dans sa propre mesure : il
+    /// > devient son propre maximum, et le premier épinglage d'une bibliothèque vierge rend 1
+    /// > au lieu de 0. Le défaut est invisible sur un genre isolé — l'ordre reste bon, il
+    /// > commence juste à 1 — et il ne se voit qu'en retirant un rang du **milieu**. C'est le
+    /// > test `unpinningLeavesAHole` qui l'a trouvé, et il l'a trouvé parce qu'il ne prenait
+    /// > ni le premier ni le dernier.
+    public func setPinned(_ genre: Genre, _ pinned: Bool) {
+        guard genre.isPinned != pinned else { return }
+        if pinned { genre.pinIndex = nextPinIndex() }
+        genre.isPinned = pinned
+        genre.refreshDerived()
+        ActivityRecorder(context: context).record(.update, genre)
+    }
+
+    /// Le rang suivant : un de plus que le plus grand déjà pris.
+    ///
+    /// **Le maximum, et non le compte.** Le compte se trompe dès qu'un trou existe — trois
+    /// genres épinglés aux rangs 0, 1 et 3 donneraient 3, un rang déjà occupé, et les deux
+    /// rails se retrouveraient dans un ordre que SwiftData choisit seul. Les trous sont la
+    /// normale ici, puisque le désépinglage n'en rebouche aucun.
+    private func nextPinIndex() -> Int {
+        let descriptor = FetchDescriptor<Genre>(
+            predicate: GenreQuery.pinned,
+            sortBy: [SortDescriptor(\.pinIndex, order: .reverse)]
+        )
+        guard let highest = try? context.fetch(descriptor).first else { return 0 }
+        return highest.pinIndex + 1
+    }
+
     /// Corbeille plutôt que suppression : un genre supprimé en dur emporte
     /// toutes ses associations avec les titres et les personnes, et les
     /// recréer ne les ramène pas. Voir `docs/02` §3.5.

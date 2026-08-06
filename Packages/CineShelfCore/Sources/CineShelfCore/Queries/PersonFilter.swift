@@ -32,19 +32,98 @@ public enum AgeBand: String, CaseIterable, Identifiable, Codable, Sendable {
 /// Vit dans `CineShelfCore` et non dans `App/` : c'est un type neuf, et la règle
 /// des tâches `L` réserve `App/` aux types qui y sont déjà (`TitleFilter`, qu'on
 /// complète sur place plutôt que d'en créer un doublon).
-public struct PersonFilter: Equatable, Sendable {
+/// Les critères de tri de la liste des personnes — bloc `4c`, « Trier ▾ ».
+///
+/// **Calqué sur `TitleSortField`, et c'est voulu.** Les deux écrans posent le même menu, donc
+/// une forme différente ici obligerait à écrire deux fois la liaison de la vue.
+///
+/// **Pas de tri sur l'âge**, alors que le filtre en propose des tranches : l'âge d'un vivant
+/// n'est pas une donnée mais une fonction du temps, et le seul champ triable, `birthDate`,
+/// donne l'ordre inverse — le plus vieux est celui né le plus tôt. `naissance` dit donc ce que
+/// la colonne trie réellement, plutôt que de promettre un âge que le magasin ne stocke pas.
+public enum PersonSortField: String, CaseIterable, Identifiable, Codable, Sendable {
+    case added
+    case name
+    case birth
+    case credits
+
+    public var id: String { rawValue }
+
+    public var label: String {
+        switch self {
+        case .added: "Ajout"
+        case .name: "Nom"
+        case .birth: "Naissance"
+        case .credits: "Crédits"
+        }
+    }
+
+    public var symbol: String {
+        switch self {
+        case .added: "clock"
+        case .name: "textformat"
+        case .birth: "calendar"
+        case .credits: "film.stack"
+        }
+    }
+
+    /// Les descripteurs SwiftData correspondants.
+    ///
+    /// Le tri secondaire sur `sortName` a la même raison que chez les titres : sans lui, deux
+    /// personnes nées la même année s'échangent de place à chaque réévaluation, et la grille
+    /// scintille.
+    ///
+    /// **`credits` n'est pas ici**, et c'est une limite du magasin, pas un oubli : SwiftData ne
+    /// trie pas sur le compte d'une relation. Le cas est traité par la vue, qui trie en mémoire
+    /// — ce qu'elle peut se permettre parce qu'elle a déjà la page en main. `descriptors` rend
+    /// donc le tri par nom, qui est l'ordre stable sur lequel le compte se départage.
+    public func descriptors(ascending: Bool) -> [SortDescriptor<Person>] {
+        let order: SortOrder = ascending ? .forward : .reverse
+        let byName = SortDescriptor(\Person.sortName, order: .forward)
+
+        return switch self {
+        case .added: [SortDescriptor(\Person.createdAt, order: order), byName]
+        case .name: [SortDescriptor(\Person.sortName, order: order)]
+        case .birth: [SortDescriptor(\Person.birthDate, order: order), byName]
+        case .credits: [byName]
+        }
+    }
+
+    /// Le tri se termine-t-il en mémoire ?
+    ///
+    /// Un seul cas, et l'exposer évite que la vue le devine par un `if` sur le cas — ce qui la
+    /// rendrait fausse en silence le jour où un second critère non triable apparaît.
+    public var sortsInMemory: Bool { self == .credits }
+}
+
+/// **`Codable` comme `TitleFilter`, et pour la même exigence** : les filtres survivent au
+/// redémarrage, donc ils entrent dans l'instantané de navigation. Un filtre qu'on repose à
+/// chaque lancement est un filtre qu'on ne pose pas.
+public struct PersonFilter: Equatable, Sendable, Codable {
     public var searchText: String = ""
     public var role: PersonRole?
     public var genreID: UUID?
     public var ageBand: AgeBand?
     public var showsArchived: Bool = false
+    public var sort: PersonSortField = .added
+    public var ascending: Bool = false
 
-    public init() {}
+    /// **Le tri n'est pas un critère**, exactement comme chez `TitleFilter` : il vit dans le
+    /// même objet parce que la vue les passe ensemble, mais changer l'ordre d'affichage ne
+    /// rend pas un filtre « actif ». D'où l'initialiseur qui les prend, et dont `isActive` et
+    /// `clear()` se servent comme référence.
+    public init(sort: PersonSortField = .added, ascending: Bool = false) {
+        self.sort = sort
+        self.ascending = ascending
+    }
 
     /// `true` dès qu'un critère restreint la liste.
-    public var isActive: Bool { self != PersonFilter() }
+    public var isActive: Bool { self != PersonFilter(sort: sort, ascending: ascending) }
 
-    public mutating func clear() { self = PersonFilter() }
+    public mutating func clear() { self = PersonFilter(sort: sort, ascending: ascending) }
+
+    /// Les descripteurs à passer au `@Query`.
+    public var descriptors: [SortDescriptor<Person>] { sort.descriptors(ascending: ascending) }
 }
 
 // MARK: - Traduction en requête

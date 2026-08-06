@@ -217,6 +217,15 @@ public enum CollectionQuery {
         }
     }
 
+    /// La collection de cet identifiant, **corbeille comprise**.
+    ///
+    /// Même motif que `TitleQuery.withID` et `PersonQuery.withID`, et écrite par `V5b` pour la
+    /// fiche collection : la corbeille est incluse pour que l'écran puisse dire « ce rayon
+    /// n'existe plus » plutôt que de rendre une page vide sans explication.
+    public static func withID(_ id: UUID) -> Predicate<TitleCollection> {
+        #Predicate<TitleCollection> { $0.id == id }
+    }
+
     /// Les collections d'un lot d'identifiants, **corbeille comprise**.
     ///
     /// Meme motif que `GenreQuery.withIDs` : l'edition en masse doit pouvoir dire

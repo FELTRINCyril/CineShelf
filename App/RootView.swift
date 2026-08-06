@@ -39,6 +39,7 @@ struct RootView: View {
             // est le contre-cas de la porte.
             .task { seedForUITestsIfAsked() }
         #endif
+        .accessibilityIdentifier("root.content")
         .task(id: profiles.map(\.id)) {
             // Les commandes de la barre de menus n'ont pas de `@Query` : c'est
             // ici que ⌃⌘1…9 apprend sur quels profils il porte.

@@ -151,3 +151,25 @@ struct DisplayVocabularyTests {
         }
     }
 }
+
+// MARK: - I8 · Les deux `DatePrecision`
+//
+// Le modèle en porte un, persisté dans `Title.releasePrecisionRaw` ; `DesignSystem` en porte un
+// second sous le nom `DateFieldPrecision`, parce que les deux paquets ne peuvent pas se
+// connaître. **Le double est acceptable, la divergence ne l'est pas** : un cran présent d'un
+// seul côté ne casse aucune compilation, il perd simplement la précision saisie au relancement.
+//
+// Même motif, même remède et même endroit que pour la matrice `disposition × taille`.
+
+@Test("Les deux jeux de précision de date s'accordent sur leurs rawValue")
+func datePrecisionVocabulariesAgree() {
+    // **Sans qualification de module**, et ce n'est pas un raccourci : les deux paquets
+    // exposent un type qui porte le nom du module (`CineShelfCore`, `DesignSystem`), donc
+    // `CineShelfCore.DatePrecision` désigne un membre de ce type-là et non du module. Les deux
+    // noms diffèrent depuis le renommage, il n'y a donc rien à lever.
+    let model = Set(DatePrecision.allCases.map(\.rawValue))
+    let visual = Set(DateFieldPrecision.allCases.map(\.rawValue))
+
+    #expect(model == visual, "Un cran de précision existe d'un seul côté : la valeur saisie se perdra")
+    #expect(model.count == 3, "Trois crans — année, mois, jour — et le handoff §6 les nomme")
+}

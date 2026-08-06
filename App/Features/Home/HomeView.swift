@@ -24,29 +24,38 @@ struct HomeView: View {
 
     @Query(sort: \Title.createdAt, order: .reverse) private var titles: [Title]
     @Query(filter: GenreQuery.pinned, sort: \Genre.pinIndex) private var pinnedGenres: [Genre]
+    // Les collections manuelles : `L18` leur donne un rayon, avant ceux des genres.
+    @Query(sort: \TitleCollection.sortName) private var collections: [TitleCollection]
 
     var body: some View {
+        // `day: .now` et non un minuit calculé ici : `HomeSelection` ramène lui-même
+        // l'instant à son jour local, et le faire deux fois donnerait deux définitions du
+        // « jour » — celle de la vue et celle du service — qui divergeraient au premier
+        // changement d'avis. Voir `HomeSelection.dayIndex(_:modulo:)`.
         let selection = HomeSelection(
             titles: titles,
             pinnedGenres: pinnedGenres,
+            collections: collections,
             profileID: session.current?.id,
             hidingPrivate: session.current?.hidesPrivateContent ?? false,
             libraryID: session.current?.library?.id,
-            day: Calendar.current.startOfDay(for: .now)
+            day: .now
         )
+        let byID = Dictionary(titles.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
         VStack(alignment: .leading, spacing: Space.s6) {
-            if let hero = selection.hero {
+            if let heroID = selection.heroID, let hero = byID[heroID] {
                 heroBand(for: hero)
             }
             ForEach(selection.rails) { rail in
+                let railTitles = rail.titleIDs.compactMap { byID[$0] }
                 TileRail(LocalizedStringKey(rail.label)) {
-                    ForEach(rail.titles, id: \.persistentModelID) { title in
+                    ForEach(railTitles, id: \.persistentModelID) { title in
                         PosterTile(card(for: title), scale: .xl) {
                             navigation.section = .titles
                             navigation.open(
                                 .title(title.id),
-                                within: rail.titles.map { AppRoute.title($0.id) })
+                                within: railTitles.map { AppRoute.title($0.id) })
                         }
                     }
                 }
@@ -175,82 +184,5 @@ struct HomeView: View {
     private func flag(for title: Title) -> TitleFlag? {
         guard let profileID = session.current?.id else { return nil }
         return title.flags?.first { $0.profile?.id == profileID }
-    }
-}
-
-// MARK: - Le choix du hero et des rails
-//
-// **Hors de la vue**, parce que c'est de l'arithmétique et que `View` est `@MainActor` —
-// même raison que `GridMetrics` et `ProgressMetrics`, et le `SIGTRAP` de `I6` a montré ce
-// que coûte l'oubli.
-//
-// **Provisoire, et son propriétaire est `L18`.** La fiche de `V5a` dit que le hero exige la
-// règle de choix de `L18` : stable dans la journée, jamais un titre archivé ni privé si le
-// profil les masque. Les trois contraintes sont tenues ici, mais les **sélections
-// éditoriales** de `L18` — ce qui décide qu'un titre mérite le hero — n'existent pas. Ce
-// qui suit prend le premier titre d'une rotation quotidienne, ce qui est stable et honnête,
-// pas éditorial.
-struct HomeSelection {
-    let hero: Title?
-    let rails: [Rail]
-
-    struct Rail: Identifiable {
-        let id: String
-        let label: String
-        let titles: [Title]
-    }
-
-    /// Le nombre de titres d'un rail. Neuf dans le prototype, dont le dernier coupé.
-    static let railLength = 12
-
-    init(
-        titles: [Title],
-        pinnedGenres: [Genre],
-        profileID: UUID?,
-        hidingPrivate: Bool,
-        libraryID: UUID?,
-        day: Date
-    ) {
-        let visible = titles.filter { title in
-            title.deletedAt == nil
-                && !title.isArchived
-                && (libraryID == nil || title.library?.id == libraryID)
-                && !(hidingPrivate && title.isPrivate)
-        }
-
-        // Stable dans la journée : la graine est le jour, pas l'instant. Deux ouvertures
-        // le même jour donnent le même hero ; le lendemain il change.
-        let seed = Int(day.timeIntervalSince1970 / 86_400)
-        hero = visible.isEmpty ? nil : visible[abs(seed) % visible.count]
-
-        var built: [Rail] = [
-            Rail(
-                id: "recent",
-                label: "Ajoutés cette semaine",
-                titles: Array(visible.prefix(Self.railLength)))
-        ]
-
-        for genre in pinnedGenres {
-            let inGenre = visible.filter { ($0.genres ?? []).contains { $0.id == genre.id } }
-            guard !inGenre.isEmpty else { continue }
-            built.append(
-                Rail(
-                    id: "genre-\(genre.id)",
-                    label: "Mes genres · \(genre.name)",
-                    titles: Array(inGenre.prefix(Self.railLength))))
-        }
-
-        let watchlist = visible.filter { title in
-            title.flags?.contains { $0.profile?.id == profileID && $0.isInWatchlist } ?? false
-        }
-        if !watchlist.isEmpty {
-            built.append(
-                Rail(
-                    id: "watchlist",
-                    label: "Ma liste · à voir",
-                    titles: Array(watchlist.prefix(Self.railLength))))
-        }
-
-        rails = built.filter { !$0.titles.isEmpty }
     }
 }

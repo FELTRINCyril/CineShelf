@@ -210,6 +210,50 @@ Le geste, sur une tâche à rigueur maximale :
   cohérent avec « le paquet sonde » plus bas — la sonde imprime au lieu d'assener, donc elle
   est le seul outil qui puisse contredire l'intention de son auteur.
 
+### Un invariant trop général est une intention fausse déguisée en rigueur
+
+**C'est la forme la plus dangereuse du défaut ci-dessus, parce qu'elle se produit au moment
+même où l'on croit corriger.** Généraliser un invariant *ressemble* à de la rigueur — plus
+général paraît plus fort, donc mieux — et un énoncé large a l'apparence d'un théorème, ce qui
+le rend **plus** crédible qu'une assertion étroite. Or un invariant plus large que la vérité
+n'est pas plus exigeant : il est **faux**, et il réclame que le code fasse une chose qu'il ne
+doit pas faire.
+
+**Mesuré le 2026-08-07**, et de justesse. La sonde du séparateur rendait **6 pertes sur 13**
+entrées. L'invariant qui venait spontanément était le plus court :
+
+```
+splitMultiValue(joinMultiValue(x)) == x        // pour toute liste x — FAUX
+```
+
+Deux des six « pertes » n'en étaient pas. `splitMultiValue` retire les valeurs vides et les
+espaces de bord **exprès** : c'est une normalisation d'entrée dont `ImportValidation` dépend —
+une cellule `« | »` doit se lire « aucune valeur » et non « deux valeurs vides ». Le poser
+sans restriction aurait donc écrit un test exigeant qu'on **casse** un comportement voulu,
+c'est-à-dire la faute que la section précédente vient de nommer, commise dans le geste censé
+la réparer.
+
+L'énoncé juste nomme sa précondition, et il est plus long :
+
+```
+pour toute liste x dont les valeurs sont NON VIDES et SANS ESPACE DE BORD,
+splitMultiValue(joinMultiValue(x)) == x
+```
+
+**Le geste, et il tient en une question posée à chaque contre-exemple : « défaut, ou règle ? »**
+Un invariant qui échoue sur cinq cas et une règle n'échoue pas six fois — il échoue cinq fois,
+et il est mal énoncé une fois. Trier avant de corriger, parce qu'après, les deux ressemblent à
+du vert.
+
+- **défaut** → le corriger, et le cas devient un argument du test d'invariant ;
+- **règle** → elle entre dans l'**énoncé** comme précondition nommée, *et* elle obtient son
+  propre test, nommé pour qu'on ne le relise pas comme une perte tolérée. Ici :
+  « Les vides et les espaces de bord sont retirés, et c'est voulu ».
+
+Le signe avant-coureur est un quantificateur non borné — « pour toute chaîne », « quel que soit
+l'ordre », « dans tous les cas ». Il n'est pas interdit : il demande qu'on ait **cherché** le
+contre-exemple qui le borne, et qu'on sache dire pourquoi il n'y en a pas.
+
 ## Le composant possède la forme, l'écran possède le texte
 
 **Même famille que la règle précédente : une erreur de couche.** Là, c'était le rendu

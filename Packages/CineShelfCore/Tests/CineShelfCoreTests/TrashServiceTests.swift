@@ -243,6 +243,136 @@ struct TrashServiceTests {
             "La clé du genre purgé ne doit plus être dans les dérivés : \(dune.filterKeys)")
     }
 
+    /// **La couture de restauration, jouée de bout en bout et relue depuis un contexte neuf.**
+    ///
+    /// Elle était inscrite comme non couverte, et le bilan des coutures exercées est sans
+    /// exception : `MediaFill`, `PosterCardModel(_ person:)`, le séparateur multivaleur (6 pertes
+    /// sur 13 entrées) et le `CRLF` de `CSVWriter` — quatre jouées, quatre défauts. Celle-ci
+    /// **dé-supprime** des données, donc elle mérite le même traitement.
+    ///
+    /// **Ce que ce test fait que les autres ne font pas : il relit depuis un `ModelContext`
+    /// neuf.** Vérifier `dune.credits` sur l'objet qu'on vient de restaurer ne prouve rien —
+    /// il est encore en mémoire, ses relations aussi. C'est la même raison qui impose de passer
+    /// un `#Predicate` par le magasin.
+    ///
+    /// Et il assène **ce qui est revenu**, pas seulement que `deletedAt` est `nil` : c'était
+    /// toute la raison d'exister de la suppression douce. Un titre restauré sans ses crédits,
+    /// ses genres ou son affiche serait une restauration de nom.
+    ///
+    /// Mesuré par une sonde hors dépôt le 2026-08-07 : **13 vérifications, aucune perte**. C'est
+    /// la première couture jouée dans ce dépôt qui ne trouve pas de défaut, et le test reste
+    /// pour que ça continue.
+    @Test("Un titre restauré revient avec ses crédits, ses genres, ses médias et ses liens")
+    func restorationBringsEverythingBack() throws {
+        let container = try makeTestContainer()
+        let context = ModelContext(container)
+        let library = Library(name: "Principal", isDefault: true)
+        context.insert(library)
+        let profile = Profile(name: "Sonde", isDefault: true)
+        profile.library = library
+        context.insert(profile)
+        try context.save()
+
+        let titles = TitleRepository(context: context)
+        let (dune, voisin) = try Self.populateRichTitle(in: context, library: library, profile: profile)
+        let duneID = dune.id
+        let filterKeysBefore = dune.filterKeys
+
+        titles.softDelete(dune)
+        try context.save()
+
+        // Le parcours de l'écran : la corbeille le voit, on clique, il revient.
+        let trash = TrashService(context: context)
+        let entry = try #require(
+            trash.items(now: MaintenanceTests.reference).first { $0.entity == .title })
+        #expect(entry.label == "Dune")
+        #expect(try trash.restore(entry))
+        try context.save()
+        #expect(try trash.items(now: MaintenanceTests.reference).isEmpty)
+
+        // **Relecture depuis un contexte neuf** : c'est le magasin qu'on interroge, pas la
+        // mémoire.
+        let fresh = ModelContext(container)
+        let relu = try #require(
+            fresh.fetch(FetchDescriptor<Title>()).first { $0.id == duneID })
+
+        #expect(relu.deletedAt == nil)
+        #expect(relu.credits?.count == 3)
+        #expect(relu.genres?.count == 2)
+        #expect(relu.attachments?.count == 2)
+        #expect(relu.links?.count == 1)
+        #expect(relu.collection?.name == "Saga Dune")
+        #expect(relu.filterKeys == filterKeysBefore, "Les dérivés doivent revenir identiques")
+
+        // Le détail qui décide de l'affichage : aucun crédit décapité, et les noms de
+        // personnage sont là. Un compte seul ne dirait pas que les arêtes pointent encore.
+        #expect((relu.credits ?? []).allSatisfy { $0.person != nil })
+        #expect((relu.credits ?? []).contains { $0.characterName == "Paul Atreides" })
+        let freshProfile = try #require(fresh.fetch(FetchDescriptor<Profile>()).first)
+        let flag = FlagRepository(context: fresh, profile: freshProfile).flag(for: relu)
+        #expect(flag?.isFavorite == true, "Le drapeau personnel survit à l'aller-retour")
+
+        // Le voisin, et le compte global : rien d'autre n'a bougé.
+        #expect(try fresh.fetchCount(FetchDescriptor<Title>()) == 2)
+        let reluVoisin = try #require(
+            fresh.fetch(FetchDescriptor<Title>()).first { $0.id == voisin.id })
+        #expect(reluVoisin.deletedAt == nil)
+
+        // **Et l'entretien qui suit le redémarrage ne casse rien.** C'est le vrai scénario :
+        // l'app relance, `MaintenanceService` tourne, et il ne doit rien trouver à réparer sur
+        // un titre qu'on vient de restaurer.
+        let report = try MaintenanceService(context: fresh).run(now: MaintenanceTests.reference)
+        #expect(report.isEmpty, "L'entretien ne doit rien trouver : \(report)")
+        #expect(try fresh.fetchCount(FetchDescriptor<Credit>()) == 3)
+        #expect(try fresh.fetchCount(FetchDescriptor<MediaAttachment>()) == 2)
+    }
+
+    /// Le décor du test de couture : un titre **riche**, et un voisin témoin.
+    ///
+    /// Extrait du test pour tenir sous la limite de longueur de corps, et la coupe est celle qui
+    /// a un sens : monter le décor n'est pas le sujet, c'est ce qui permet de l'exercer.
+    static func populateRichTitle(
+        in context: ModelContext, library: Library, profile: Profile
+    ) throws -> (dune: Title, voisin: Title) {
+        let titles = TitleRepository(context: context)
+        let people = PersonRepository(context: context)
+        let genres = GenreRepository(context: context)
+        let media = MediaRepository(context: context)
+        let collections = CollectionRepository(context: context)
+
+        // **Un voisin qui ne doit pas bouger.** Sans lui, une restauration qui restaurerait
+        // tout passerait aussi — c'est le contrôle négatif du parcours.
+        let voisin = titles.create(name: "Arrival", in: library)
+
+        let dune = titles.create(name: "Dune", in: library)
+        // Trois crédits, deux personnes : ni zéro, ni un, et un nom de personnage à préserver.
+        let villeneuve = people.create(
+            firstName: "Denis", lastName: "Villeneuve", roles: [.director], in: library)
+        let chalamet = people.create(
+            firstName: "Timothée", lastName: "Chalamet", roles: [.actor], in: library)
+        titles.addCredit(person: villeneuve, role: .director, to: dune)
+        titles.addCredit(person: chalamet, role: .cast, characterName: "Paul Atreides", to: dune)
+        titles.addCredit(person: villeneuve, role: .cast, characterName: "Voix", to: dune)
+        let sf = try genres.findOrCreate(name: "Science-fiction", target: .title, in: library)
+        let aventure = try genres.findOrCreate(name: "Aventure", target: .title, in: library)
+        titles.setGenres([sf, aventure], on: dune, journal: .perEntity)
+        titles.setCollection(
+            collections.create(name: "Saga Dune", in: library), on: dune, journal: .perEntity)
+        media.attach(
+            media.create(MediaAssetDraft(byteSize: 2_048, checksum: "affiche")), to: dune,
+            slot: .primary)
+        media.attach(
+            media.create(MediaAssetDraft(byteSize: 4_096, checksum: "fond")), to: dune,
+            slot: .backdrop)
+        FlagRepository(context: context, profile: profile).toggleFavorite(dune)
+        let lien = ResourceLink()
+        lien.urlString = "https://example.org/dune"
+        lien.title = dune
+        context.insert(lien)
+        try context.save()
+        return (dune, voisin)
+    }
+
     /// Restaurer une entité déjà purgée rend `false` au lieu de lever.
     ///
     /// Le cas est réel : la liste est affichée, la maintenance passe, l'utilisateur clique. Il

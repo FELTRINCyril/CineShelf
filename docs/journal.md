@@ -6526,3 +6526,73 @@ basculement sans que rien ne change dans le fichier.
 | `swift test` DesignSystem · MediaKit · `DesignSystemCatalog` | ❌ **non relancés après `L16`** — rien de cette passe ne les touche, mais ça ne se déduit pas |
 | `xcodebuild test -scheme CineShelfUITests` | ❌ **non relancée** |
 | **La corbeille n'a aucun écran** | ❌ `TrashService` est écrit, testé, et **aucune vue ne l'appelle** — le bloc `7g` (« Vider maintenant », « Analyser ») reste à rendre. Capacité écrite jamais lue, inscrite en écart |
+
+## 2026-08-07 (4) — La normalisation assumée, et `V10`
+
+### Le `CRLF` : j'ai corrigé une normalisation et trouvé une corruption
+
+L'arbitrage demandé était clair — normaliser des **deux** côtés pour que l'idempotence soit une
+garantie plutôt qu'un accident. En écrivant le test, la sonde a trouvé autre chose.
+
+**`escaped("ligne 1\r\nligne 2")` ne mettait pas le champ entre guillemets.** En Swift, `\r\n`
+est **un seul `Character`** — un groupe de graphèmes — donc `field.contains("\r")` **et**
+`field.contains("\n")` sont tous deux **faux**. Le champ sortait nu, son `CRLF` était relu comme
+une fin de ligne, et **un synopsis venu d'Excel cassait la ligne exportée en deux**, décalant
+toutes les colonnes de la seconde moitié.
+
+**Défaut antérieur à `L11a`**, et aucun test ne pouvait le voir : ils construisent tous leurs
+fichiers **à la main**, donc le writer n'était jamais confronté à un `CRLF` de cellule. C'est le
+même angle mort que le séparateur — deux moitiés justes, un joint que rien n'exerce.
+
+La normalisation passe donc **avant** le test de quoting : après elle il ne reste que des `\n`
+isolés, sur lesquels `contains` se comporte comme on l'attend. Traiter la cause plutôt
+qu'ajouter un troisième `contains` avec le même angle mort.
+
+**Le test compare trois états** — original, un tour, deux tours — et non deux : comparer
+seulement les deux derniers passerait même sans normalisation. Il assène aussi le **compte de
+lignes**, sans quoi l'égalité tiendrait sur deux fichiers également cassés — ce qui est
+exactement ce qui s'est produit au premier essai.
+
+Les huit autres assertions sans source portent désormais **`CONVENTION, aucun document`**,
+et la neuvième **`NORMALISATION DÉLIBÉRÉE`**. La distinction dit au lecteur suivant ce qu'il a le
+droit de remettre en cause.
+
+### `V10` — et trois prémisses vérifiées avant d'agir
+
+**La consigne disait « `V10` — profils, bibliothèques, verrouillage ».** Vérifié : la fiche dit
+« synchronisation : indicateur, **corbeille**, espace occupé ». Les profils et le verrouillage
+sont `V6`+`V7`, livrés en 🔶 par `d11615a`.
+
+**Les deux rappels étaient périmés.** `ProfilesView.swift` écrit déjà `requiresBiometry` (l. 80),
+`hidesPrivateContent` (l. 81) et `accentRaw` (l. 110), et `ProfileColorPicker` a son appelant de
+production l. 82. L'écart `requiresBiometry` est rayé depuis `L14`. Les trois réglages
+inchangeables ont donc été fermés à `V6`/`V7`.
+
+**Et `L17` est écrite** — `SyncStatus.swift` porte les six cas, `SyncMachine`, les messages et le
+calcul d'espace — alors que le tableau la marque ⬜. `V10` n'était donc pas bloquée.
+
+**Livré** : la section « Synchronisation et données » du bloc `7g`, l'écran de corbeille, et le
+premier appelant de `Banner` depuis `I10`. Deux maillons manquants posés au passage, tous deux
+« capacité écrite jamais lue » **vue du côté de l'entrée** : `StorageFootprint.appLocations()`
+— `total(of:)` existait avec sa règle de dédoublonnage et **rien ne savait quoi lui passer** — et
+`MaintenanceService.survey()`, une lecture seule pour qu'un écran n'ait pas à supprimer pour
+s'afficher.
+
+**Ce qui n'est pas rendu, et c'est dit** : « déduplication par empreinte » du prototype.
+`MaintenanceService` ne la fait pas — le dédoublonnage est à l'import, par `checksum`. Un libellé
+qui promet un travail qui n'a pas lieu est pire que son absence.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| **Sonde CSV** (hors dépôt) | ✅ **1 corruption antérieure trouvée** — `escaped()` ne quotait pas un champ à `CRLF` |
+| `swift test` CineShelfCore | ✅ **597 tests** (+3 depuis `L16`) |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ `TEST SUCCEEDED` |
+| `xcodebuild test -scheme CineShelfScreenTests -destination macOS` | ✅ **15 tests** (+1) — corbeille **vide 21 couleurs, peuplée 12** |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 344 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| `swift test` DesignSystem · MediaKit · `DesignSystemCatalog` | ❌ **non relancés** depuis `L16` |
+| `xcodebuild test -scheme CineShelfUITests` | ❌ **non relancée** |
+| **La synchronisation réelle** | ❌ **non exercée** — `SyncStatus` est alimenté par ce que l'app sait de l'appareil, pas par `eventChangedNotification`, qui n'existe pas tant que `FeatureFlags.cloudKitEnabled` est faux. L'écran est vrai sur ce qu'il montre et muet sur ce qu'il ne peut pas observer |

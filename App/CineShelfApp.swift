@@ -33,6 +33,33 @@ struct CineShelfApp: App {
         do {
             let container = try Persistence.makeContainer(cloudKit: FeatureFlags.cloudKitEnabled)
             try Bootstrap.ensureDefaults(in: container.mainContext)
+            // L'entretien au lancement — la fiche `L16` le veut « appelable au démarrage comme
+            // à la demande ». Une passe sur une base saine ne modifie rien : elle rend un
+            // rapport `isEmpty`, ce qu'un test assène.
+            //
+            // **Sautée quand CloudKit est actif, et c'est le point le plus important ici.**
+            // Les quatre étapes lisent « relation absente » comme « déchet » — un attachement
+            // sans titre, un crédit sans personne. Or c'est exactement le **régime normal d'une
+            // importation CloudKit en cours** : le miroir matérialise les enregistrements par
+            // lots, et les deux extrémités d'une relation peuvent apparaître dans des
+            // transactions distinctes. Lancée avant la fin de l'import, la passe supprimerait
+            // des arêtes parfaitement valides — et **exporterait ces suppressions**, donc à tous
+            // les appareils. Le paradoxe mérite d'être dit : cette passe existe pour réparer les
+            // dégâts d'une fusion CloudKit, et c'est une fusion en cours qui la rend
+            // destructrice.
+            //
+            // La garde saute donc tant que `L17` n'a pas fourni un état de synchronisation
+            // permettant d'attendre `upToDate`. Écart inscrit — sans quoi cette ligne
+            // deviendrait dangereuse le jour où le drapeau passe à `true`, sans que rien ne
+            // change dans ce fichier.
+            //
+            // **L'échec ne bloque pas le lancement**, et c'est délibéré : perdre l'app parce
+            // qu'un ménage a échoué serait hors de proportion. La passe est rejouable et se
+            // replie proprement — voir le `rollback` de `run()` —, donc le prochain lancement
+            // réessaiera.
+            if !FeatureFlags.cloudKitEnabled {
+                try? MaintenanceService(context: container.mainContext).run()
+            }
             self.container = container
             // Le cache de vignettes n'était instancié par personne jusqu'ici :
             // rien n'était mis en cache, tout était redécodé à chaque affichage.

@@ -396,6 +396,48 @@ ailleurs. Ce qu'ils ne peuvent pas faire, c'est servir de **cas nominal** : là,
 départagent rien. C'est la même famille que « tout échantillon exerce le chemin réel, jamais le
 cas nul », transposée des données de démonstration aux entrées de test.
 
+### Un test qui construit son entrée n'exerce que les entrées qu'on sait imaginer
+
+**La section précédente dit comment choisir une valeur ; celle-ci dit d'où elle doit venir**, et
+c'est la question qui reste après avoir bien choisi. Quand un test **fabrique** son entrée,
+l'espace exercé est exactement l'espace des cas que l'auteur a su concevoir. Il ne peut donc,
+par construction, jamais le surprendre : le test hérite des angles morts de celui qui l'écrit,
+et un angle mort ne se voit pas de l'intérieur.
+
+**Mesuré le 2026-08-07, et le défaut avait trois jours de plus que le lecteur.** Tous les tests
+de `CSVFormatTests` construisent leurs fichiers octet par octet — un choix **délibéré et
+défendable**, écrit en tête du fichier : « les octets exacts restent lisibles à côté de
+l'assertion au lieu d'être cachés dans un binaire que personne ne rouvre ». Conséquence non
+prévue : le **writer** n'était jamais confronté à un `CRLF` de cellule, puisque c'est toujours le
+test qui écrivait les octets. Or `escaped()` ne mettait pas un tel champ entre guillemets — en
+Swift, `\r\n` est **un seul `Character`**, donc `contains("\r")` et `contains("\n")` sont tous
+deux faux. Un synopsis venu d'Excel cassait la ligne exportée **en deux**, depuis `L11a`.
+
+Aucun test n'aurait pu l'attraper : pour écrire l'entrée qui mord, il fallait déjà soupçonner
+que `\r\n` se comporte autrement qu'attendu. **Le test aurait encodé la découverte, il ne
+pouvait pas la produire.**
+
+Trois provenances qui échappent à cette limite, par ordre de force :
+
+- **le système lui-même** — faire produire l'entrée par le code qu'on teste. Un aller-retour
+  `écrire → relire` confronte le lecteur à ce que l'écrivain produit *réellement*, pas à ce
+  qu'on croit qu'il produit. C'est ce qui a trouvé le `CRLF`, et le motif est le même que
+  « un test de `#Predicate` passe par le magasin » ;
+- **une source extérieure** — un vrai fichier d'export, un vrai appareil, un vrai dossier de
+  téléchargements. C'est ce que fait la sonde de bout en bout ;
+- **un générateur** — des entrées qu'on n'a pas choisies une par une. Le dépôt n'en a pas
+  encore ; les tests paramétrés en approchent quand leurs arguments viennent d'une mesure.
+
+Le geste, avant de déclarer un format couvert : **compter les tests dont l'entrée ne vient pas
+de leur propre `main`.** Sur `CSVFormatTests`, il y en avait **un seul** — l'aller-retour — pour
+34 fonctions, et c'est le seul qui pouvait trouver quelque chose.
+
+Le corollaire vaut au-delà des formats : partout où deux moitiés se répondent — un écrivain et
+un lecteur, un encodeur et un décodeur, une vue et son modèle de présentation —, **la seule
+entrée qui exerce le joint est celle que la première moitié a produite**. C'est le motif de
+`MediaFill`, de `PosterCardModel(_ person:)`, du séparateur multivaleur et du `CRLF` : quatre
+fois deux parties justes, et un joint que rien ne traversait.
+
 ### Une propriété invisible depuis l'environnement de test n'est protégée que par le lint
 
 Quand la faute ne se manifeste **pas** sur ma machine, un test ne protège rien : il est

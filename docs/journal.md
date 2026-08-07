@@ -6365,3 +6365,164 @@ et la livrer à moitié aurait reproduit le défaut au lieu de le fermer.
 | `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
 | `xcodebuild test -scheme CineShelfUITests` | ❌ **non relancée** — rien de cette passe ne la touche, mais ça ne se déduit pas |
 | **Un import réel de bout en bout par l'interface** | ❌ **non joué** — il demande un `fileImporter`, donc un clic. La couture est couverte par la sonde d'hier, `11f`/`11g` par les tests d'`ImportFlow` et la sonde de rendu ; ce qui reste non exercé est le **brouillon écrit puis relu sur disque par l'app réelle** |
+
+---
+
+## 2026-08-07 (2) — Trois dettes soldées avant `L16`
+
+### Le piège de l'invariant trop général entre dans `CLAUDE.md`
+
+C'est la forme la plus dangereuse du défaut de la veille, **parce qu'elle se produit au moment
+où l'on croit corriger**. Généraliser ressemble à de la rigueur ; un énoncé large a l'apparence
+d'un théorème, donc il est *plus* crédible qu'une assertion étroite. Or un invariant plus large
+que la vérité n'est pas plus exigeant : il est faux, et il réclame que le code casse un
+comportement voulu.
+
+Le geste tient en une question posée à chaque contre-exemple : **défaut, ou règle ?** Un
+invariant qui échoue sur cinq cas et une règle n'échoue pas six fois — il échoue cinq fois, et
+il est mal énoncé une fois. Le signe avant-coureur est un quantificateur non borné.
+
+### `CSVFormatTests` cite ses sources, et elles contredisaient le code
+
+Le fichier qui décide du format de données avait 34 fonctions et **une** citation. Chaque test
+portait une *justification* — souvent une mesure — mais presque aucun ne disait **qui décide**,
+donc chacun ne pouvait citer que l'implémentation qu'il testait.
+
+Quatre autorités recensées en tête de fichier : **RFC 4180** (§2.7 doublement du guillemet, §2.5
+guillemet significatif en début de champ, §2.1 `CRLF`), **`docs/04`** pour le format d'écriture,
+**la fiche `L11a`** pour le lecteur tolérant, et **le journal du 2026-08-04** pour ce qui a été
+mesuré.
+
+**Et la citation a trouvé un désaccord muet.** `docs/04` et la fiche `L11a` écrivent tous deux
+« resynchronisation au-delà de **huit** lignes englobées ». Le code dit
+`maximumQuotedLines = 32`. Le seuil a été relevé le 2026-08-04, quand le regard en avant a fait
+du budget un simple garde-fou — et les deux documents n'ont jamais suivi. **Un test portait
+« huit » dans son nom depuis trois jours** sans qu'aucune assertion ne s'en aperçoive : 4 < 32
+passe, 40 > 32 échoue, et le test est vert avec n'importe quel seuil entre les deux. Il dérive
+désormais son compte du budget au lieu de le recopier ; les deux documents sont corrigés.
+
+**Neuf assertions sont marquées `SANS SOURCE`** — ce sont des décisions prises dans le code et
+jamais arbitrées ailleurs. Les nommer était le but : c'est là qu'un test décrit l'implémentation
+plutôt que l'exigence. La plus discutable est la **normalisation `CRLF` → `LF` à l'intérieur
+d'une cellule**, qui *modifie la donnée de l'utilisateur* sans que `docs/02` en dise rien.
+
+### Le catalogue iOS ne passe plus par chance
+
+Rouge au premier passage, vert au second sans changement de code : son vert n'était donc pas
+probant, et un job instable rend la CI entière moins utile — même famille que le seuil vert par
+chance.
+
+**Cause mesurée** : `settling` valait **250 ms fixes**, calées sur une observation locale (« le
+chargeur ne fait que décoder un PNG déjà en mémoire »). Vrai de ma machine, faux d'un runner
+froid, avec `IOSurfaceClientSetSurfaceNotify failed` dans le journal du passage rouge. C'est la
+même famille que les seuils de performance calés en local que `CLAUDE.md` proscrit : **une durée
+constante n'est pas une condition, c'est un pari sur la vitesse de la machine.**
+
+Deux remèdes, le couple déjà employé pour le lancement iOS sous XCUITest : un **préchauffage**
+joué une fois par processus — le premier `ImageRenderer` initialise `IOSurface` et peut rendre un
+bitmap dégradé sans lever d'erreur — et une **stabilisation** qui relit jusqu'à ce que le rendu
+cesse de changer.
+
+**La boucle n'attend pas un résultat, elle attend la fin du mouvement**, et la distinction est
+tout : un `MediaFill` réellement cassé se stabilise aussitôt sur son placeholder et le test
+rougit. Vérifié par injection de la faute historique — **rouge en 0,666 s**, donc sans attente
+inutile. Mesure : **3 passages sur 3 verts** après extinction des simulateurs. Le défaut étant
+intermittent, c'est une indication forte et non une preuve.
+
+## 2026-08-07 (3) — `L16` : la seule passe qui supprime pour de bon
+
+**Rigueur maximale, et le cran était justifié** : quatre défauts critiques ou graves sont sortis
+de la revue adverse, dont **un que j'avais introduit et qui détruisait des données**.
+
+### La sonde, avant d'écrire
+
+Cinq questions posées au modèle réel plutôt qu'à ma lecture du modèle. Deux réponses ont décidé
+de l'architecture de la passe :
+
+| Sonde | Mesure |
+|---|---|
+| Purger un titre | son affiche devient **non référencée** → l'ordre des étapes décide de l'idempotence |
+| **Purger une personne** | **2 crédits sur 2 restent, sans personne** — `Person.credits` n'a pas de `deleteRule: .cascade` |
+| Restaurer un titre | relations intactes : `deletedAt` est bien un drapeau |
+| Asset d'un titre à la corbeille | **est référencé** — une passe naïve le supprimerait |
+
+Le second est **antérieur à la session** : il vit dans le schéma depuis sa fermeture, et la fiche
+`L16` ne le nomme pas. Un crédit sans personne est une ligne de générique vide. Le schéma étant
+fermé, la correction est dans le service, comme l'unicité de `Genre.nameKey`.
+
+### Le défaut que j'avais introduit, et qu'une revue adverse a trouvé
+
+**`removeUnreferencedAssets` supprimait définitivement les médias sans rattachement.** J'avais lu
+« médias non référencés » dans la fiche et compris « déchets ». Le code voisin dit le contraire,
+en trois endroits concordants :
+
+- `MediaRepository.detach` : « **le média n'est pas supprimé**, et c'est délibéré : il devient
+  orphelin, ce que le filtre de galerie de `L1 bis` sait montrer » ;
+- `GalleryFilter.MediaSource.orphan` : « Aucun propriétaire : importé puis détaché, ou resté
+  d'une suppression », rendu « Sans rattachement » dans le menu ;
+- `DemoGallery.makeOrphans`, qui en fabrique exprès.
+
+**Trois gestes ordinaires en produisent**, dont *remplacer une jaquette* — `setSingle` détache
+l'ancienne. La passe aurait donc détruit l'affiche précédente de chaque titre dont on change
+l'image, **au lancement suivant, sans corbeille et sans trace**. Et comme elle ne regardait pas
+`deletedAt`, la rétention valait **zéro seconde** pour tout média orphelin mis à la corbeille.
+
+Les rendus concordent → ils font foi : la collecte **compte** désormais, elle ne supprime plus.
+C'est aussi ce que le bloc `7g` dessine, avec « Analyser » à côté de « Vider maintenant ».
+
+**Mon test verrouillait la destruction** — « Un média qu'aucun attachement ne désigne est
+supprimé », avec `fetchCount == 0`. **Cinquième occurrence** d'un test qui encode une intention
+fausse. Et mon contrôle négatif « une base saine ne perd rien » **ne contenait aucun orphelin** :
+la base « saine » était exactement celle où le bug ne se manifeste pas — le motif « tout
+échantillon exerce le chemin réel, jamais le cas nul », commis dans le test censé l'empêcher.
+
+### Les cinq autres corrections de la revue
+
+- **Pas de `rollback`** : un échec à mi-passe laissait les `context.delete` **armés** dans le
+  contexte principal, et la première écriture de l'interface les aurait commis — purge partielle,
+  non journalisée, déclenchée par une action sans rapport ;
+- **`expiry` repliait sur `now`** : si le calcul de calendrier échouait, la borne devenait
+  « maintenant » et **toute la corbeille** partait en un tour. Le repli d'une fonction
+  irréversible se choisit du côté où l'on ne perd rien — `.distantPast` ;
+- **La réparation multi-propriétaires nullifiait** : garder le titre et poser `person = nil` fait
+  perdre son unique portrait à la personne, définitivement — un `MediaAttachment` n'a pas de
+  corbeille. Elle **scinde** désormais : un attachement par propriétaire, un seul média ;
+- **Aucun `refreshDerived()`** : purger un genre le retire des titres vivants mais laissait
+  `FilterKey.genre(id)` dans `filterKeys`, à jamais, puisque plus rien ne réécrira ce titre.
+  **Ma première correction ne marchait pas** — elle rafraîchissait *avant* le `save()`, or
+  SwiftData n'applique `nullify` qu'à la sauvegarde. Trouvé par le test que je venais d'écrire,
+  et c'est la même famille que « un test de `#Predicate` passe par le magasin » ;
+- **`isExpired` était faux d'un jour** : le compte à rebours tronque en jours, la purge compare
+  des instants. Un élément à 30 jours et 2 heures affichait « 0 jour restant », non expiré, et
+  disparaissait au lancement suivant — le sursis fictif que son propre commentaire disait éviter.
+
+### Le risque CloudKit, armé mais pas encore chargé
+
+Les quatre étapes lisent « relation absente » comme « déchet ». C'est le **régime normal d'une
+importation CloudKit en cours** : le miroir matérialise par lots, et les deux extrémités d'une
+relation peuvent arriver dans des transactions distinctes. La passe supprimerait alors des arêtes
+valides, **et exporterait ces suppressions** à tous les appareils. Le paradoxe mérite d'être dit :
+cette passe existe pour réparer les dégâts d'une fusion, et c'est une fusion en cours qui la rend
+destructrice.
+
+`FeatureFlags.cloudKitEnabled` est `false`, donc ce n'est pas exploitable aujourd'hui. L'appel au
+lancement est **sauté quand le drapeau est vrai**, jusqu'à ce que `L17` fournisse un état de
+synchronisation. Écart inscrit — sans la garde, cette ligne deviendrait dangereuse le jour du
+basculement sans que rien ne change dans le fichier.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| **Sonde de purge** (hors dépôt) | ✅ **1 défaut antérieur trouvé avant écriture**, et l'après mesuré : tour 2 `isEmpty`, 4 médias survivants |
+| **Preuve d'échec ×3, injections vérifiées** | ✅ ordre inversé → second tour non vide · cascade absente → 2 crédits · corbeille ignorée → `attachments == 0` après restauration |
+| **Sous-agent de revue adverse** | ✅ **10 défauts**, dont 2 critiques et 2 graves — tous corrigés · il a aussi corrigé **une erreur de mon brief** (`MediaAsset` déclare bien la cascade vers `attachments`) |
+| `swift test` CineShelfCore | ✅ **594 tests** (+24) |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ `TEST SUCCEEDED` |
+| `xcodebuild test -scheme CineShelfScreenTests -destination macOS` | ✅ `TEST SUCCEEDED` |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 342 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| `swift test` DesignSystem · MediaKit · `DesignSystemCatalog` | ❌ **non relancés après `L16`** — rien de cette passe ne les touche, mais ça ne se déduit pas |
+| `xcodebuild test -scheme CineShelfUITests` | ❌ **non relancée** |
+| **La corbeille n'a aucun écran** | ❌ `TrashService` est écrit, testé, et **aucune vue ne l'appelle** — le bloc `7g` (« Vider maintenant », « Analyser ») reste à rendre. Capacité écrite jamais lue, inscrite en écart |

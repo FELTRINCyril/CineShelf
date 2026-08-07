@@ -6238,3 +6238,130 @@ déduisaient pas, et c'est pour ça qu'elles ont été jouées.
 
 Reste **`L16`** (maintenance et corbeille, rigueur maximale), **`V10`** (synchronisation),
 **`V12`** (accessibilité), plus les deux jalons de `V8` ci-dessus et la reprise de `V6` en 🔶.
+
+---
+
+## 2026-08-07 — Le séparateur cesse d'être un pari, et `V8` second jalon
+
+### La leçon d'abord : le compte de tests n'est pas un signal de qualité
+
+`L12` était à rigueur maximale. Ses **douze tests** étaient verts. Ils ne protégeaient pas le
+format destructeur : **ils l'exigeaient.** C'est la quatrième fois qu'un test de ce dépôt encode
+une intention fausse, après « le type d'entité vient du nom du modèle », « une demi-étoile est
+refusée » et « les quatorze colonnes se répartissent en trois qualités ».
+
+Le motif, écrit dans `CLAUDE.md` avant la conséquence : **un test n'a accès qu'à l'intention de
+son auteur**, jamais à la question de savoir si cette intention est la bonne. Il ne peut donc
+pas distinguer « le code fait X » de « le code devrait faire X » — il ne fait que figer X. D'où
+le résultat contre-intuitif : à rigueur maximale, où l'on écrit beaucoup de tests, le risque de
+**verrouillage** est plus élevé, pas plus faible.
+
+Le seul signal réel est qu'un test **cite la source de son assertion**, parce que c'est ce qui
+permet de vérifier la décision sans relire le code qu'elle teste. Un test sans source cite
+implicitement l'implémentation : un raisonnement circulaire écrit en Swift.
+
+**Ce que la règle a trouvé en entrant** — la doctrine exige de chercher ce qui l'enfreint déjà.
+Sur 55 fichiers de tests de `CineShelfCore`, **16 citent une source**. Le plus parlant est
+`CSVFormatTests.swift` : 34 fonctions, **une** citation, et c'est le fichier qui décide du
+format CSV — le voisin direct du défaut. Écart inscrit, non corrigé dans cette passe.
+
+### Le séparateur : cinq défauts, dont quatre que personne n'avait vus
+
+La formule de clôture d'hier était juste — « le format a été rendu *plus sûr*, pas **sûr** » — et
+l'observation sur le lieu du correctif l'était aussi : à l'import aucune détection n'est
+possible, l'information est déjà perdue. C'est donc l'export qui doit garantir l'invariant.
+
+**La sonde hors dépôt a mesuré avant de corriger.** Treize entrées hostiles, et le résultat n'était
+pas celui que j'attendais : **6 pertes**, alors que je n'en cherchais qu'une.
+
+| Entrée | Relu (avant) | Nature |
+|---|---|---|
+| `["Action\|Aventure", "Science-fiction"]` | 3 valeurs | défaut, **attendu** |
+| `["Drame\|", "Polar"]` | séparateur de queue avalé | défaut, **non anticipé** |
+| `["\|Muet", "Polar"]` | séparateur de tête avalé | défaut, **non anticipé** |
+| `["\|"]` | `[]` — **la valeur disparaît entièrement** | défaut, **non anticipé** |
+| `["A\\\|B", "Comedie"]` | 3 valeurs | défaut, **non anticipé** |
+| `[" Fantastique ", "Horreur"]` | espaces retirés | **normalisation voulue** |
+| `["Drame", "", "Polar"]` | la vide disparaît | **normalisation voulue** |
+
+**Les cinq défauts sont antérieurs à la session** : ils datent de `L12`, et le changement de
+caractère d'hier n'avait fait que les déplacer. Aucun n'est de mon écriture d'aujourd'hui — c'est
+la distinction que `CLAUDE.md` réclame, et ici elle dit que la zone était **sous-exercée**, pas
+que le correctif d'hier était mauvais.
+
+**Les deux dernières lignes sont le vrai enseignement de méthode.** Elles ressemblent à des
+pertes et n'en sont pas : `splitMultiValue` retire les vides et les espaces de bord **exprès**,
+et `ImportValidation` en dépend — une cellule `« | »` doit se lire « aucune valeur ». Écrire
+l'invariant comme `split(join(x)) == x` **pour toute liste** aurait donc produit un test qui
+exige une propriété fausse : exactement la faute que la section précédente vient de nommer.
+L'invariant tenu est donc borné aux valeurs **normalisées**, et le pendant a son propre test,
+nommé pour qu'on ne le confonde pas avec une perte.
+
+**Le correctif** : `|` et `\` s'échappent par `\`, et `splitMultiValue` parcourt caractère par
+caractère au lieu d'appeler `split(separator:)` — qui ne sait pas regarder derrière lui. Le
+doublement, convention naturelle en CSV, était **impossible** : `« a||b »` signifie déjà « une
+valeur vide entre deux séparateurs ».
+
+**Rétrocompatible, et vérifié comme tel** : un `|` non précédé d'un antislash sépare toujours,
+donc un fichier exporté avant aujourd'hui se relit à l'identique. Seule une valeur portant un
+antislash juste avant un `|` change de lecture — et elle se lisait déjà faux.
+
+**Mesure après** : 2 pertes sur 13, et ce sont exactement les deux normalisations voulues.
+
+**Preuve d'échec, avec l'injection vérifiée d'abord** (le premier temps est celui qu'on oublie) :
+un `return value` prématuré dans `escapedForCell`, **constaté dans le fichier** aux lignes
+413-416, puis lancement — **8 issues**, dont les 6 cas exacts de la sonde. Les deux tests de
+normalisation sont restés verts, ce qui est le contrôle négatif : ils ne dépendent pas de
+l'échappement.
+
+**Et l'export le dit.** `CSVExportResult` remplace le `Data` nu : il porte les valeurs qu'il a
+fallu échapper, avec le titre qui les porte. Le fichier est **correct** sans cet avertissement —
+ce n'est pas une condition de justesse — mais un fichier qui part avec des séquences
+d'échappement dedans est un fichier que l'utilisateur doit reconnaître s'il le retraite ailleurs.
+
+### `V8` second jalon — `11f`, `11g`, et la jointure
+
+**`11f`, la correction en masse.** Une seule des quatre stratégies de la planche est livrée —
+« saisir une valeur pour toutes », la seule que `ImportCorrection` sait exprimer. Les trois
+autres sont **nommées** comme non livrées, pas rendues en boutons inertes ; deux d'entre elles
+exigeraient d'interroger le magasin depuis l'aperçu, ce que la coupe `L11a`/`L11b` interdit.
+
+`ImportCauseGroup` a gagné `fieldKey`, et son absence **bloquait** la tâche : le refus porte le
+libellé français du champ — « Année » — quand `ImportCorrection` vise la clé `year`. Sans ce
+report, l'écran aurait dû traduire, c'est-à-dire deviner, et une correction posée sur la mauvaise
+clé écrit dans la mauvaise colonne sans protester.
+
+`ImportFlow` porte désormais la pile de corrections et l'analyse d'origine. **L'annulation rejoue
+tout depuis la base** plutôt que de défaire un effet isolé : une correction peut en avoir
+découvert une autre, donc un retrait ciblé laisserait un état que rien n'a jamais produit.
+
+**`11g`, l'abandon.** « Abandonner » remettait le parcours à zéro **sans rien demander** : les
+corrections et la correspondance des colonnes partaient en silence. Trois issues désormais, et
+« Tout abandonner » n'est ni le premier ni celui qu'on atteint par inadvertance. Le bandeau de
+reprise est posé sur l'écran d'import et **non sur Titres** comme la planche le dessine — écart
+inscrit, avec sa raison : le poser sur Titres ferait connaître `ImportDraftStore` à une autre
+`Feature`.
+
+**La jointure.** `rememberedMapping(forHeader:in:)` relie les deux moitiés qui existaient depuis
+`L11a` sans se rencontrer. Livrée **avec** la case « Mémoriser » du bloc `11d` : sans écriture,
+la lecture n'aurait jamais rien rendu — c'est la classe « une capacité lue et jamais écrite »,
+et la livrer à moitié aurait reproduit le défaut au lieu de le fermer.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| **Sonde du séparateur** (hors dépôt) | ✅ **6 pertes avant → 2 après**, les 2 restantes voulues |
+| **Preuve d'échec, injection vérifiée** | ✅ **8 issues**, dont les 6 cas de la sonde |
+| `swift test` CineShelfCore | ✅ **574 tests** (+8) |
+| `swift test` DesignSystem | ✅ 85 |
+| `swift test` MediaKit | ✅ 64 |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ `TEST SUCCEEDED` |
+| `xcodebuild test -scheme CineShelfScreenTests -destination macOS` | ✅ **14 tests** (+1) — `11f` corrigeable **20** couleurs, non corrigeable **30**, `11g` **61** |
+| `xcodebuild test -scheme DesignSystemCatalog -destination macOS` | ✅ `TEST SUCCEEDED` |
+| `xcodebuild test -scheme DesignSystemCatalog -destination iOS` | 🔶 **rouge au 1er passage, vert au 2e** — flake de simulateur froid, voir écarts |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 337 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| `xcodebuild test -scheme CineShelfUITests` | ❌ **non relancée** — rien de cette passe ne la touche, mais ça ne se déduit pas |
+| **Un import réel de bout en bout par l'interface** | ❌ **non joué** — il demande un `fileImporter`, donc un clic. La couture est couverte par la sonde d'hier, `11f`/`11g` par les tests d'`ImportFlow` et la sonde de rendu ; ce qui reste non exercé est le **brouillon écrit puis relu sur disque par l'app réelle** |

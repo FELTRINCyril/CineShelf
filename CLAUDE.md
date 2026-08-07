@@ -162,7 +162,53 @@ il a fallu un arbitrage sur l'import pour découvrir qu'il testait une règle d'
 appliquée au mauvais niveau.
 
 Un test qui encode une intention fausse est pire qu'un test absent : il transforme le bug
-en comportement attendu, et il faut le remplacer par son contraire. C'est arrivé deux fois.
+en comportement attendu, et il faut le remplacer par son contraire. **C'est arrivé quatre
+fois**, et la section suivante en tire la conséquence sur la méthode.
+
+## À rigueur maximale, plus de tests peut vouloir dire plus de verrouillage
+
+**Le motif d'abord, parce que la conséquence seule serait ininterprétable.** Un test n'a
+accès qu'à l'intention de son auteur, jamais à la question de savoir si cette intention est
+la bonne. Il ne peut donc pas distinguer « le code fait X » de « le code devrait faire X » :
+il ne fait que **figer** X. Et une décision fausse figée par douze tests coûte plus cher à
+défaire qu'une décision fausse figée par un seul — il faut réécrire douze assertions, et
+chacune paraît sur le moment être une régression qu'on s'apprête à introduire.
+
+D'où la conséquence, qui est contre-intuitive : **à rigueur maximale, où l'on écrit
+beaucoup de tests, le risque de verrouillage est plus élevé, pas plus faible.** Un compte
+élevé n'est pas un signal de qualité. Il est neutre au mieux, et trompeur au pire, parce
+qu'il inspire une confiance que sa nature ne justifie pas.
+
+**Les quatre occurrences, toutes attestées :**
+
+| Ce que le test affirmait | Ce qui était vrai | Comment on l'a su |
+|---|---|---|
+| « Le type d'entité vient du nom du modèle » | Il vient du magasin | Un arbitrage, journal 2026-08-02 |
+| « Une demi-étoile est refusée » (planche 6) | `docs/02` §3.3 dit 0–10 | Un arbitrage sur l'import |
+| « Les quatorze colonnes se répartissent en trois qualités » | L'appel se faisait **sans lignes**, donc la déduction par contenu ne jouait jamais | La revue de `L11a` |
+| Les genres se séparent par une barre oblique — **douze tests**, dont un qui le disait dans son nom | « Action/Aventure » se coupait en deux à l'aller-retour | Une **sonde** de bout en bout, `L12`, deux jours après |
+
+La quatrième est la plus instructive parce que c'est la plus fournie en tests. `L12` est à
+rigueur maximale ; ses douze tests étaient verts ; ils ne protégeaient rien — ils
+**protégeaient le défaut**. Ce n'est pas qu'ils l'aient manqué : chacun l'affirmait.
+
+**Ce qui est un signal, et c'est le seul : un test qui cite la source de son assertion.**
+La citation est ce qui permet à un lecteur de vérifier la décision **sans relire le code
+qu'elle teste**, donc c'est le seul mécanisme qui puisse attraper une intention fausse. Un
+test sans source cite implicitement l'implémentation, ce qui est un raisonnement circulaire
+écrit en Swift.
+
+Le geste, sur une tâche à rigueur maximale :
+
+- **compter les sources citées, pas les tests.** Un fichier de trente tests dont deux
+  nomment un document est un fichier qui décrit une implémentation ;
+- **pour toute décision de format** — un séparateur, un encodage, un ordre, une unité —
+  exiger une source **extérieure au code** : une planche, une section de `docs/02`, une
+  norme. Si aucune n'existe, la décision n'est pas encore prise, elle est seulement écrite ;
+- **une sonde bat un test de plus.** Sur les quatre occurrences, aucune n'a été trouvée en
+  ajoutant un test : deux par un arbitrage, une par une revue, une par une sonde. C'est
+  cohérent avec « le paquet sonde » plus bas — la sonde imprime au lieu d'assener, donc elle
+  est le seul outil qui puisse contredire l'intention de son auteur.
 
 ## Le composant possède la forme, l'écran possède le texte
 

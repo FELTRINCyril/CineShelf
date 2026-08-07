@@ -449,6 +449,38 @@ struct ScreenRenderTests {
                     + "== opaque \(withoutField.distinctColours)"))
     }
 
+    /// **`V10` — la corbeille, et la paire qui doit se distinguer.**
+    ///
+    /// Vide contre peuplée : si les deux rendaient la même chose, la sonde serait aveugle sur
+    /// les deux. C'est la leçon de `MediaFill`, et elle vaut ici parce que `TrashService` a
+    /// vécu écrit-mais-jamais-lu — une vue qui ne montrerait rien passerait inaperçue.
+    @Test("La corbeille dessine, et une corbeille peuplée ne ressemble pas à une vide")
+    func trashDraws() throws {
+        let stage = try Stage()
+        try stage.populate()
+
+        let empty = try #require(render(stage.host(TrashView(onChange: {}))))
+
+        // Trois titres et une personne à la corbeille : ni zéro, ni un.
+        let titles = TitleRepository(context: stage.context)
+        let fetched = try stage.context.fetch(FetchDescriptor<Title>()).prefix(3)
+        for title in fetched { titles.softDelete(title) }
+        if let person = try stage.context.fetch(FetchDescriptor<Person>()).first {
+            PersonRepository(context: stage.context).softDelete(person)
+        }
+        try stage.context.save()
+
+        let filled = try #require(render(stage.host(TrashView(onChange: {}))))
+        print("Corbeille — vide : \(empty.distinctColours) couleurs · peuplée : \(filled.distinctColours)")
+
+        #expect(!empty.isUniform)
+        #expect(!filled.isUniform)
+        #expect(
+            filled.distinctColours != empty.distinctColours,
+            Comment(
+                rawValue: "vide \(empty.distinctColours) == peuplée \(filled.distinctColours)"))
+    }
+
     @Test("La grille des titres dessine, et le hero de l'accueil aussi")
     func existingScreensDraw() throws {
         // **Les deux écrans de `V0 bis` et `V5a`, sondés rétroactivement.** Ils ont été livrés

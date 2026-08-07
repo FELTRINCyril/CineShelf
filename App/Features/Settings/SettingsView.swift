@@ -31,6 +31,9 @@ struct SettingsView: View {
             // couvre déjà que cinq sur douze. Écart inscrit — un écran inatteignable serait
             // pire que dense.
             Section { ProfilesView() }
+            // `V10` — « Synchronisation et données » du bloc `7g`. Elle est la seule section à
+            // toucher le magasin, d'où sa vue à elle plutôt qu'un bloc de plus ici.
+            SyncAndDataSection()
             #if DEBUG
                 DemoCatalogSection()
             #endif

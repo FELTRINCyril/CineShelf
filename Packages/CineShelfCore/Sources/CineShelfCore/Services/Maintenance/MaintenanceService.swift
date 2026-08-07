@@ -158,6 +158,19 @@ public struct MaintenanceService {
         return report
     }
 
+    /// Ce que la passe **trouverait**, sans rien modifier.
+    ///
+    /// **Une lecture seule, pour qu'un écran de réglages puisse l'afficher sans conséquence.**
+    /// `run()` supprime ; ouvrir un écran ne doit jamais supprimer. C'est ce que le bloc `7g`
+    /// sépare en deux gestes — une ligne qui *informe*, et un bouton « Analyser » qui *agit*.
+    ///
+    /// - Returns: le nombre de médias qu'aucun attachement ne désigne. Ce sont des **orphelins
+    ///   légitimes**, que la galerie montre sous « Sans rattachement » : le chiffre renseigne,
+    ///   il n'appelle pas à agir.
+    public func survey() throws -> Int {
+        try countUnreferencedAssets()
+    }
+
     // MARK: 1 · La corbeille
 
     /// Supprime définitivement ce qui traîne à la corbeille depuis plus de trente jours.

@@ -117,6 +117,34 @@ struct SyncStatusTests {
 @Suite("Espace occupé")
 struct StorageFootprintTests {
 
+    /// **`appLocations()` était le maillon manquant du calcul d'espace.**
+    ///
+    /// `total(of:)` était livré avec sa règle de dédoublonnage par `L17`, et **rien ne savait
+    /// quoi lui passer** : la liste des emplacements n'existait nulle part, donc le chiffre
+    /// n'était calculable par personne. C'est « une capacité écrite jamais lue », vue du côté
+    /// de l'entrée.
+    ///
+    /// Le test porte sur la **règle**, pas sur les dossiers réels de la machine : un nom de
+    /// paquet qui n'existe pas doit rendre une liste vide plutôt que des chemins fantômes dont
+    /// `size(of:)` rendrait 0 — deux comportements indistinguables sur le total, et c'est
+    /// justement pourquoi il faut assener la liste et non la somme.
+    @Test("Les emplacements de l'app ne contiennent que des dossiers qui existent")
+    func appLocationsAreRealDirectories() {
+        let absent = StorageFootprint.appLocations(bundleName: "CineShelf-\(UUID().uuidString)")
+        #expect(absent.isEmpty, "Un paquet inconnu ne doit rendre aucun emplacement")
+
+        // Et le chemin réel : on fabrique le dossier, il doit apparaître. Sans ce second temps,
+        // une fonction qui rendrait toujours `[]` passerait le premier.
+        let name = "CineShelfProbe-\(UUID().uuidString)"
+        let created = URL.cachesDirectory.appendingPathComponent(name, isDirectory: true)
+        try? FileManager.default.createDirectory(at: created, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: created) }
+
+        let found = StorageFootprint.appLocations(bundleName: name)
+        #expect(found.count == 1)
+        #expect(found.first?.lastPathComponent == name)
+    }
+
     private func makeTree() throws -> URL {
         let root = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         let nested = root.appendingPathComponent("externe/images", isDirectory: true)

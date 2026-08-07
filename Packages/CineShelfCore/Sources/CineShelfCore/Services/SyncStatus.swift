@@ -223,6 +223,24 @@ public enum StorageFootprint {
         return Set(deduplicated).reduce(0) { $0 + size(of: URL(fileURLWithPath: $1)) }
     }
 
+    /// Les dossiers qu'occupe CineShelf sur cet appareil.
+    ///
+    /// **Écrit ici et non dans la vue, et son absence était un trou.** `total(of:)` était livré
+    /// par `L17` avec sa règle de dédoublonnage — et **rien ne savait quoi lui passer** : la
+    /// liste des emplacements n'existait nulle part, donc le calcul d'espace ne pouvait pas être
+    /// appelé. C'est la classe « une capacité écrite jamais lue », vue du côté de l'entrée.
+    ///
+    /// Trois emplacements, et les trois comptent : le magasin SwiftData et son stockage externe
+    /// vivent sous `Application Support`, le cache de vignettes sous `Caches`. Ne compter que le
+    /// premier annoncerait quelques mégaoctets pour une bibliothèque qui en pèse deux cents.
+    public static func appLocations(bundleName: String = "CineShelf") -> [URL] {
+        let manager = FileManager.default
+        return [URL.applicationSupportDirectory, URL.cachesDirectory].compactMap { base in
+            let directory = base.appendingPathComponent(bundleName, isDirectory: true)
+            return manager.fileExists(atPath: directory.path) ? directory : nil
+        }
+    }
+
     /// « 96 Mo ». Le format du système, donc la langue de l'utilisateur.
     public static func formatted(_ bytes: Int64) -> String {
         let formatter = ByteCountFormatter()

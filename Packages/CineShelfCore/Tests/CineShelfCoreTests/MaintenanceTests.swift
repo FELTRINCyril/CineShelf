@@ -342,6 +342,34 @@ struct MaintenanceTests {
         #expect(try context.fetchCount(FetchDescriptor<Credit>()) == 0)
     }
 
+    /// **`survey()` compte sans agir.** C'est ce qui autorise un écran de réglages à l'appeler
+    /// à l'ouverture : `run()` supprime, ouvrir un écran ne doit jamais supprimer.
+    @Test("Analyser sans agir ne modifie rien")
+    func surveyDoesNotMutate() throws {
+        let (context, library) = try makeTestLibrary()
+        let titles = TitleRepository(context: context)
+        let media = MediaRepository(context: context)
+
+        let dune = titles.create(name: "Dune", in: library)
+        let attached = media.create(MediaAssetDraft(byteSize: 1_024, checksum: "attache"))
+        media.attach(attached, to: dune, slot: .primary)
+        let orphan = media.create(MediaAssetDraft(byteSize: 256, checksum: "orphelin"))
+        _ = orphan
+        // Une entité expirée : `survey` ne doit pas la purger non plus, alors que `run` le
+        // ferait. Sans elle, le test passerait même si `survey` appelait `run`.
+        let expired = titles.create(name: "Expiré", in: library)
+        titles.softDelete(expired)
+        expired.deletedAt = Self.trashed(daysAgo: 40)
+        try context.save()
+
+        let found = try MaintenanceService(context: context).survey()
+
+        #expect(found == 1)
+        #expect(try context.fetchCount(FetchDescriptor<MediaAsset>()) == 2)
+        #expect(try context.fetchCount(FetchDescriptor<Title>()) == 2, "Rien ne doit être purgé")
+        #expect(expired.deletedAt != nil)
+    }
+
     // MARK: L'idempotence, exigée par la fiche
 
     /// « Passe rejouable et idempotente » — fiche `L16`.

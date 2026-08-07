@@ -157,9 +157,10 @@ struct CSVReaderRegressionTests {
         #expect(document.rows[0].fields[1] == "il a dit \"non\"\nà la ligne suivante")
     }
 
-    /// **SANS SOURCE** pour la tolérance elle-même, mais la mesure est au journal du
-    /// 2026-08-04 : sans elle le fichier entier devenait un en-tête, et le rapport réclamait une
-    /// colonne titre que le fichier portait. C'est un des six défauts de la revue.
+    /// **CONVENTION, aucun document** pour la tolérance elle-même — le format « CSV
+    /// (Macintosh) » n'est décrit par aucun texte du dépôt. La **mesure**, elle, est au journal
+    /// du 2026-08-04 : sans cette tolérance le fichier entier devenait un en-tête, et le rapport
+    /// réclamait une colonne titre que le fichier portait. Un des six défauts de la revue.
     @Test("Un fichier à fins de ligne CR seules se lit — c'est le format CSV (Macintosh)")
     func carriageReturnOnlyFile() {
         // La première version jetait les CR octet par octet : le fichier entier devenait un
@@ -172,10 +173,18 @@ struct CSVReaderRegressionTests {
         #expect(document.rows[0].fields == ["Dune", "2021"])
     }
 
-    /// **SANS SOURCE, et c'est la plus discutable du fichier** : cette normalisation *modifie
-    /// la donnée de l'utilisateur*. Sa raison tient — deux fichiers qu'il tient pour identiques
-    /// donneraient deux `summary` différents — mais c'est une décision de modèle prise dans un
-    /// lecteur de format, et `docs/02` ne dit rien des fins de ligne dans un champ texte.
+    /// **NORMALISATION DÉLIBÉRÉE — arbitrée le 2026-08-07**, et documentée dans
+    /// `CSVWriter.normalisedNewlines`.
+    ///
+    /// Elle modifie la donnée de l'utilisateur, ce qui exige une justification explicite : les
+    /// fins de ligne dans un champ quoté sont **incohérentes d'un tableur à l'autre** — Excel
+    /// écrit `CRLF`, Numbers et Google Sheets écrivent `LF`. Les préserver rendrait
+    /// l'aller-retour instable *selon l'outil* : le même synopsis donnerait deux valeurs de
+    /// `summary` selon le logiciel qui a touché le fichier entre-temps.
+    ///
+    /// Ce qui est garanti à la place est l'**idempotence**, tenue des deux côtés — la
+    /// normalisation est à la lecture **et** à l'écriture. Le terminateur de ligne, lui, reste
+    /// `CRLF` (RFC 4180 §2.1).
     @Test("Un CRLF à l'intérieur d'une cellule devient un LF")
     func crlfInsideCellIsNormalised() {
         // Sans normalisation, le même synopsis donne deux valeurs de `summary` selon que le

@@ -40,10 +40,23 @@ import Testing
 // documents n'ont jamais suivi. C'est le code qui a raison, avec sa mesure ; les documents
 // sont corrigés, et le nom d'un test d'ici disait « huit » lui aussi.
 //
-// **Les assertions qui n'ont aucune source documentaire sont marquées `SANS SOURCE`.** Elles
-// ne sont pas fausses — elles sont des décisions prises dans le code et jamais arbitrées
-// ailleurs. Les nommer est le but de la passe : c'est là qu'un test décrit l'implémentation
-// plutôt que l'exigence, donc là où le prochain défaut de format naîtra.
+// **Les assertions sans source documentaire portent l'une de deux marques**, et la distinction
+// compte parce qu'elle dit au lecteur suivant ce qu'il a le droit de remettre en cause :
+//
+// - **`CONVENTION, aucun document`** — un usage du format que tous les lecteurs partagent, mais
+//   qu'aucun texte du dépôt ne formule : quoter les espaces de bord, compléter une ligne courte,
+//   ne pas tronquer une longue, accepter `LF` seul, accepter l'absence de BOM, le fichier vide,
+//   les fins de ligne `CR`. Elles ne sont pas fausses ; elles sont **débattables**, et c'est
+//   tout l'intérêt de le dire.
+// - **`NORMALISATION DÉLIBÉRÉE`** — un cas où le code *modifie* la donnée de l'utilisateur.
+//   Il n'y en a qu'un, `CRLF` → `LF` dans une cellule, arbitré le 2026-08-07 : les fins de ligne
+//   sont incohérentes entre Excel, Numbers et Google Sheets, donc les préserver rendrait
+//   l'aller-retour instable selon l'outil. Ce qui est garanti à la place est l'**idempotence**,
+//   tenue des deux côtés. Une modification silencieuse aurait été exactement le défaut que la
+//   correction du séparateur venait de fermer.
+//
+// Ce marquage est le but de la passe : sans lui, un test décrit l'implémentation plutôt que
+// l'exigence, et c'est là que naît le prochain défaut de format.
 
 struct CSVWriterTests {
 
@@ -73,10 +86,10 @@ struct CSVWriterTests {
     /// Source : **RFC 4180 §2.7** pour le doublement du guillemet, et `docs/04` qui l'adopte
     /// explicitement (« échappement RFC 4180 »).
     ///
-    /// **SANS SOURCE — les deux cas d'espace de bord.** RFC 4180 n'exige pas de quoter un champ
-    /// pour ses espaces de tête ou de queue : c'est une décision prise dans `CSVWriter`, et sa
-    /// raison est réelle (un tableur mange les espaces non protégés, donc l'aller-retour les
-    /// perdrait). Elle n'est arbitrée par aucun document. À noter : c'est exactement la même
+    /// **CONVENTION, aucun document — les deux cas d'espace de bord.** RFC 4180 n'exige pas de
+    /// quoter un champ pour ses espaces de tête ou de queue ; c'est l'usage des tableurs, qui
+    /// mangent les espaces non protégés, donc l'aller-retour les perdrait. Débattable : le
+    /// lecteur suivant peut la remettre en cause, elle n'est adossée à rien d'écrit. À noter : c'est exactement la même
     /// classe de décision que le `trimmingCharacters` de `splitMultiValue`, qui a failli faire
     /// écrire un invariant faux le 2026-08-07.
     @Test(
@@ -97,9 +110,10 @@ struct CSVWriterTests {
         #expect(writer.escaped(field) == expected)
     }
 
-    /// **SANS SOURCE.** Aucun document ne dit quoi faire d'une ligne trop courte à l'écriture.
-    /// La décision — compléter — est cohérente avec le refus de perdre en silence qui gouverne
-    /// le lecteur (fiche `L11a`), mais elle n'est écrite nulle part.
+    /// **CONVENTION, aucun document.** Aucun texte ne dit quoi faire d'une ligne trop courte à
+    /// l'écriture. Compléter est l'usage — un fichier dont les lignes n'ont pas toutes le même
+    /// nombre de colonnes est refusé par la plupart des lecteurs — et c'est cohérent avec le
+    /// refus de perdre en silence de la fiche `L11a`. Débattable, et non arbitrée.
     @Test("Une ligne plus courte que l'en-tête est complétée")
     func shortRowsArePadded() throws {
         let data = writer.data(header: ["a", "b", "c"], rows: [["1"]])
@@ -107,9 +121,9 @@ struct CSVWriterTests {
         #expect(text == "a;b;c\r\n1;;\r\n")
     }
 
-    /// **SANS SOURCE**, même famille que le test précédent. Le principe invoqué — « perdre une
-    /// valeur en silence est pire qu'un fichier bancal » — est celui de la fiche `L11a` pour le
-    /// *lecteur* ; l'appliquer à l'écriture est une extension raisonnable et non arbitrée.
+    /// **CONVENTION, aucun document**, même famille que le test précédent. Le principe invoqué
+    /// — « perdre une valeur en silence est pire qu'un fichier bancal » — est celui de la fiche
+    /// `L11a` pour le *lecteur* ; l'étendre à l'écriture est raisonnable et non arbitré.
     @Test("Une ligne plus longue n'est pas tronquée")
     func longRowsAreNotTruncated() throws {
         // Perdre une valeur en silence est pire qu'un fichier bancal, qui se voit.
@@ -164,8 +178,9 @@ struct CSVReaderTests {
         #expect(document.header.first?.unicodeScalars.first?.value != 0xFEFF)
     }
 
-    /// **SANS SOURCE.** `docs/04` impose le BOM à l'**écriture** et ne dit rien de la lecture.
-    /// L'accepter absent est nécessaire — un fichier tiers n'en a pas — mais non arbitré.
+    /// **CONVENTION, aucun document.** `docs/04` impose le BOM à l'**écriture** et ne dit rien
+    /// de la lecture. L'accepter absent est l'usage universel — un fichier tiers n'en a pas —
+    /// mais aucun texte du dépôt ne le formule.
     @Test("Un fichier sans marque d'ordre se lit aussi")
     func fileWithoutByteOrderMark() {
         let document = reader.read(file(["titre;année", "A;1970"], bom: false))
@@ -173,9 +188,10 @@ struct CSVReaderTests {
         #expect(document.rows.count == 1)
     }
 
-    /// **SANS SOURCE**, et c'est une tolérance en lecture plutôt qu'une règle : RFC 4180 §2.1
-    /// impose `CRLF`, mais refuser un fichier Unix serait gratuit. La fiche `L11a` demande un
-    /// « lecteur tolérant » sans énumérer ce qu'il tolère.
+    /// **CONVENTION, aucun document** — une tolérance de lecture plutôt qu'une règle. RFC 4180
+    /// §2.1 impose `CRLF` ; refuser un fichier Unix serait gratuit, et tous les lecteurs
+    /// courants l'acceptent. La fiche `L11a` demande un « lecteur tolérant » sans énumérer ce
+    /// qu'il tolère — c'est cette liste-là qui n'est écrite nulle part.
     @Test("Les fins de ligne LF seules sont acceptées")
     func lineFeedOnly() {
         // Un fichier venu d'un outil Unix n'a pas de CR. Le refuser serait gratuit.
@@ -285,8 +301,8 @@ struct CSVReaderTests {
         #expect(document.rows[2].fields == ["6"])
     }
 
-    /// **SANS SOURCE**, et c'est normal : aucun document ne spécifie le cas dégénéré. Le test
-    /// existe pour que le lecteur ne lève pas, pas pour encoder une exigence.
+    /// **CONVENTION, aucun document**, et c'est normal : aucun texte ne spécifie le cas
+    /// dégénéré. Le test existe pour que le lecteur ne lève pas, pas pour encoder une exigence.
     @Test("Un fichier vide ne casse rien")
     func emptyFile() {
         #expect(reader.read(Data()).rows.isEmpty)
@@ -334,6 +350,56 @@ struct CSVReaderTests {
     /// Source : **addendum 1**, bloc `11j` — le rapport des écartées est « un CSV au format
     /// d'origine avec une colonne d'erreur en fin de ligne », fait pour être corrigé dans un
     /// tableur puis redéposé. Le nom `cineshelf_erreur` vient de là.
+    /// **L'idempotence de la normalisation, tenue dès le premier aller-retour.**
+    ///
+    /// C'est l'exigence qui rend la normalisation acceptable : elle change la donnée **une
+    /// fois**, de façon prévisible, et jamais ensuite. Sans la moitié écriture, un champ portant
+    /// `CRLF` changeait au premier tour puis se stabilisait — la propriété tenait par accident,
+    /// et un fichier écrit par CineShelf pouvait contenir des `CRLF` de cellule qu'un autre
+    /// outil relirait autrement.
+    ///
+    /// Le test compare **trois** états et non deux : l'original, un tour, deux tours. Comparer
+    /// seulement les deux derniers passerait même si la normalisation n'existait pas.
+    @Test("Un second aller-retour ne change plus rien, fins de ligne comprises")
+    func newlineNormalisationIsIdempotent() {
+        // Les trois formes qu'un tableur peut écrire dans une cellule, et un cas mixte — parce
+        // qu'un copier-coller entre deux outils en produit.
+        let header = ["titre", "resume"]
+        let rows = [
+            ["Excel", "ligne 1\r\nligne 2"],
+            ["Numbers", "ligne 1\nligne 2"],
+            ["Vieux Mac", "ligne 1\rligne 2"],
+            ["Mixte", "a\r\nb\nc\rd"]
+        ]
+
+        let once = CSVReader().read(CSVWriter().data(header: header, rows: rows))
+        let twice = CSVReader().read(
+            CSVWriter().data(header: once.header, rows: once.rows.map(\.fields)))
+
+        // **Le compte de lignes d'abord.** Sans lui, l'égalité ci-dessous pourrait passer sur
+        // deux fichiers également cassés — et c'est ce qui est arrivé : un champ à `CRLF`
+        // n'était pas quoté, donc la ligne se coupait en deux, des deux côtés pareil.
+        #expect(once.rows.count == rows.count, "Une ligne s'est coupée : \(once.rows.count)")
+        #expect(
+            once.rows.map(\.fields) == twice.rows.map(\.fields),
+            "Le second tour doit être l'identité")
+        // Et ce que la normalisation rend : un LF partout, jamais de CR résiduel. Les scalaires
+        // et non `contains("\r")` : en Swift, `\r\n` est **un seul Character**, donc le
+        // `contains` naïf est faux — c'est précisément l'angle mort qui a produit le défaut.
+        for row in once.rows where row.fields.count > 1 {
+            #expect(
+                !row.fields[1].unicodeScalars.contains("\r"),
+                "\(row.fields[0]) : un CR a survécu")
+        }
+        #expect(once.rows[0].fields[1] == "ligne 1\nligne 2")
+        #expect(once.rows[3].fields[1] == "a\nb\nc\nd")
+        // Le terminateur de ligne du FICHIER reste CRLF : la normalisation ne touche que les
+        // cellules. Sans cette assertion, écrire des lignes en LF passerait aussi.
+        let bytes = CSVWriter().data(header: header, rows: rows)
+        let text = String(data: bytes.dropFirst(3), encoding: .utf8) ?? ""
+        #expect(text.hasSuffix("\r\n"))
+    }
+
     @Test("Le rapport des écartées, redéposé, se relit")
     func rejectedReportIsReimportable() {
         // Le parcours que l'addendum décrit : le rapport est un CSV au format d'origine

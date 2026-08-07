@@ -83,19 +83,63 @@ public struct CSVWriter: Sendable {
     /// Les guillemets internes sont **doublés** : c'est la forme RFC 4180, et la seule
     /// qu'Excel relit. Un antislash n'échapperait rien et ressortirait tel quel dans la
     /// cellule.
+    /// > **Défaut trouvé le 2026-08-07, antérieur à `L11a` : un champ contenant `CRLF` n'était
+    /// > jamais mis entre guillemets.** En Swift, `\r\n` est **un seul `Character`** — un
+    /// > groupe de graphèmes — donc `field.contains("\r")` **et** `field.contains("\n")` sont
+    /// > tous deux **faux** sur `"ligne 1\r\nligne 2"`. Le champ sortait nu, et son `CRLF`
+    /// > était relu comme une fin de ligne : un synopsis venu d'Excel cassait la ligne
+    /// > exportée **en deux**, décalant toutes les colonnes de la seconde moitié.
+    /// >
+    /// > Mesuré par une sonde : `escaped("ligne 1\r\nligne 2")` rendait le champ inchangé, là
+    /// > où le même texte en `LF` seul était correctement quoté. Aucun test ne le voyait — ils
+    /// > construisaient tous leurs fichiers à la main, donc le writer n'était jamais confronté
+    /// > à un `CRLF` de cellule.
+    /// >
+    /// > La normalisation vient donc **avant** le test : après elle, il ne reste que des `\n`
+    /// > isolés, sur lesquels `contains` se comporte comme on l'attend. Traiter la cause plutôt
+    /// > que d'ajouter un troisième `contains` qui aurait le même angle mort.
     public func escaped(_ field: String) -> String {
+        let normalised = Self.normalisedNewlines(field)
         let needsQuoting =
-            field.contains(delimiter)
-            || field.contains("\"")
-            || field.contains("\n")
-            || field.contains("\r")
+            normalised.contains(delimiter)
+            || normalised.contains("\"")
+            || normalised.contains("\n")
             // Un champ à espaces de bord perd ses espaces sans guillemets, et
             // « 1970 » deviendrait « 1970 » sans qu'on sache d'où vient la différence.
-            || field.hasPrefix(" ")
-            || field.hasSuffix(" ")
+            || normalised.hasPrefix(" ")
+            || normalised.hasSuffix(" ")
 
-        guard needsQuoting else { return field }
-        return "\"" + field.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+        guard needsQuoting else { return normalised }
+        return "\"" + normalised.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+    }
+
+    /// Ramène les fins de ligne **à l'intérieur d'une cellule** à un `LF` unique.
+    ///
+    /// **Une normalisation délibérée, et il faut la nommer comme telle** — une modification
+    /// silencieuse de la donnée de l'utilisateur est exactement ce que la correction du
+    /// séparateur vient de fermer ailleurs.
+    ///
+    /// **Pourquoi normaliser plutôt que préserver.** Les fins de ligne dans un champ quoté sont
+    /// incohérentes d'un tableur à l'autre : Excel écrit `CRLF`, Numbers et Google Sheets
+    /// écrivent `LF`. Préserver les octets rendrait donc l'aller-retour **instable selon
+    /// l'outil** — le même synopsis, exporté puis réimporté, donnerait deux valeurs de `summary`
+    /// différentes selon le logiciel qui a touché le fichier entre les deux, et rien ne
+    /// montrerait la différence à l'écran.
+    ///
+    /// **Ce qui est garanti est l'idempotence, et elle se tient des deux côtés.** `CSVReader`
+    /// normalise déjà à la lecture ; sans cette moitié-ci, un champ portant `CRLF` changeait au
+    /// **premier** aller-retour puis se stabilisait — la propriété tenait par accident, et un
+    /// fichier écrit par CineShelf pouvait contenir des `CRLF` de cellule qu'un autre outil
+    /// relirait autrement. Écrire normalisé rend l'invariant vrai dès le premier tour :
+    ///
+    ///     lire(écrire(x)) == lire(écrire(lire(écrire(x))))
+    ///
+    /// **Le terminateur de ligne n'est pas touché** : il reste `CRLF`, comme RFC 4180 §2.1 et
+    /// `docs/04` l'exigent. Cette fonction ne voit qu'un champ, jamais la ligne qui le porte.
+    static func normalisedNewlines(_ field: String) -> String {
+        field
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
     }
 }
 

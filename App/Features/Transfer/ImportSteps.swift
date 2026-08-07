@@ -12,6 +12,12 @@ import UniformTypeIdentifiers
 /// un **champ requis sans colonne**, et rien d'autre.
 struct ImportMappingStep: View {
     @Binding var flow: ImportFlow
+    /// « Réutiliser cette correspondance pour les prochains fichiers de même en-tête ».
+    ///
+    /// **La case manquait, et son absence rendait la lecture inutile** : `ImportMapping` était
+    /// une entité que rien n'écrivait, donc la correspondance mémorisée qu'on cherchait à
+    /// l'ouverture n'existait jamais. Lire et écrire se livrent ensemble.
+    @Binding var remembersMapping: Bool
     let onAnalyze: () -> Void
 
     var body: some View {
@@ -42,6 +48,14 @@ struct ImportMappingStep: View {
                     .calloutStyle()
                     .foregroundStyle(Color.danger)
                 }
+
+                Toggle(
+                    "Réutiliser cette correspondance pour les prochains fichiers de même en-tête",
+                    isOn: $remembersMapping
+                )
+                .calloutStyle()
+                .foregroundStyle(Color.textSecondary)
+                .frame(minHeight: Space.minHitTarget)
 
                 HStack(spacing: Space.s3) {
                     Button("Analyser les lignes", action: onAnalyze)
@@ -128,6 +142,10 @@ struct ImportMappingStep: View {
 struct ImportPreviewStep: View {
     @Binding var flow: ImportFlow
     let onImport: (Bool) -> Void
+    /// Ouvre la correction de masse sur une cause. Bloc `11f`.
+    let onCorrect: (ImportCauseGroup) -> Void
+    /// Défait la correction à cet index. « Annulable une par une » de la planche.
+    let onUndoCorrection: (Int) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s4) {
@@ -154,6 +172,8 @@ struct ImportPreviewStep: View {
                         causeRow(group)
                     }
                 }
+
+                appliedCorrections
 
                 if !report.ignoredColumnNames.isEmpty {
                     Text("Colonnes ignorées : " + report.ignoredColumnNames.joined(separator: ", "))
@@ -195,14 +215,45 @@ struct ImportPreviewStep: View {
                 .calloutStyle()
                 .foregroundStyle(Color.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            // **Pas d'action de masse ici, et c'est le second jalon.** Le bloc `11f` la
-            // dessine ; `ImportCorrection` existe côté cœur. Écart inscrit — un bouton qui ne
-            // corrige rien serait pire que son absence.
-            Text("à corriger dans le fichier")
-                .metaStyle()
-                .foregroundStyle(Color.textTertiary)
+            if group.isCorrectable {
+                Button("Corriger…") { onCorrect(group) }
+                    .buttonStyle(ActionButtonStyle(rank: .secondary))
+            } else {
+                // Une cause sans champ visé vient du **découpage** du fichier : aucune
+                // correction de cellule ne la répare, et le dire vaut mieux qu'un bouton qui
+                // ouvrirait une feuille sans effet.
+                Text("à corriger dans le fichier")
+                    .metaStyle()
+                    .foregroundStyle(Color.textTertiary)
+            }
         }
         .frame(minHeight: Space.minHitTarget)
+    }
+
+    /// Les corrections déjà appliquées, chacune annulable. Bloc `11f`, « une par une ».
+    @ViewBuilder
+    private var appliedCorrections: some View {
+        if !flow.corrections.isEmpty {
+            VStack(alignment: .leading, spacing: Space.s2) {
+                Text("Corrections appliquées")
+                    .labelStyle()
+                    .foregroundStyle(Color.textTertiary)
+                ForEach(Array(flow.corrections.enumerated()), id: \.offset) { index, correction in
+                    HStack(spacing: Space.s3) {
+                        Text("\(correction.fieldKey) = « \(correction.value) »")
+                            .calloutStyle()
+                            .foregroundStyle(Color.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Button("Annuler") { onUndoCorrection(index) }
+                            .buttonStyle(.plain)
+                            .actionStyle()
+                            .foregroundStyle(Color.accent)
+                            .frame(minHeight: Space.minHitTarget)
+                    }
+                    .frame(minHeight: Space.minHitTarget)
+                }
+            }
+        }
     }
 }
 

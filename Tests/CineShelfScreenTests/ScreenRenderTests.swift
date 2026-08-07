@@ -384,6 +384,71 @@ struct ScreenRenderTests {
         #expect(!stats.isUniform)
     }
 
+    /// Les deux vues du second jalon de `V8`, et **la paire qui doit se distinguer**.
+    ///
+    /// Une cause corrigeable dessine un champ de saisie ; une cause de découpage dessine un
+    /// message et **pas** de champ. Si les deux rendaient la même chose, la sonde serait aveugle
+    /// sur les deux — c'est la leçon de `MediaFill`, où absence et échec donnaient le même aplat.
+    @Test("La correction en masse et l'abandon dessinent, et les deux causes se distinguent")
+    func correctionAndAbandonDraw() throws {
+        let columns = ColumnAnalysis(
+            entity: .title,
+            matches: [
+                ColumnMatch(
+                    columnIndex: 0, columnName: "titre", fieldKey: "title", quality: .certain)
+            ],
+            missingRequiredFieldKeys: [])
+        let layout = ColumnLayout(columns)
+        // Trois lignes fautives, ni zéro ni une : un compte quelconque.
+        let rows = (0..<3).map { index in
+            ImportRow(
+                number: index + 2, rawFields: [""], layout: layout,
+                issues: [
+                    ImportIssue(fieldKey: "title", reason: .requiredValueMissing(field: "Titre"))
+                ])
+        }
+        let analysis = ImportAnalysis(columns: columns, header: ["titre"], rows: rows)
+        let correctable = try #require(analysis.causeGroups.first)
+        // La même cause, privée de sa clé de champ : c'est ce que produit une ligne mal découpée.
+        let opaque = ImportCauseGroup(
+            causeKey: "malformed:fieldCountMismatch",
+            sample: .rowMalformed(.fieldCountMismatch(expected: 14, found: 13)),
+            rowNumbers: [4, 9], fieldKey: nil)
+
+        let withField = try #require(
+            render(
+                ImportCorrectionSheet(
+                    cause: correctable, analysis: analysis, schema: .title,
+                    onApply: { _ in }, onCancel: {})))
+        let withoutField = try #require(
+            render(
+                ImportCorrectionSheet(
+                    cause: opaque, analysis: analysis, schema: .title,
+                    onApply: { _ in }, onCancel: {})))
+        let abandon = try #require(
+            render(
+                ImportAbandonSheet(
+                    readyCount: 771, refusedCount: 203, correctedCauseCount: 3, totalCauseCount: 6,
+                    onChoose: { _ in }, onCancel: {})))
+
+        print(
+            "11f corrigeable : \(withField.distinctColours) couleurs · "
+                + "non corrigeable : \(withoutField.distinctColours) · "
+                + "11g abandon : \(abandon.distinctColours)")
+
+        #expect(!withField.isUniform)
+        #expect(!withoutField.isUniform)
+        #expect(!abandon.isUniform)
+        // La paire : le champ de saisie doit se voir. Un compte de couleurs identique
+        // signifierait que la feuille rend la même chose dans les deux cas, donc que rien ne
+        // distingue une cause qu'on peut corriger d'une cause qu'on ne peut pas.
+        #expect(
+            withField.distinctColours != withoutField.distinctColours,
+            Comment(
+                rawValue: "corrigeable \(withField.distinctColours) "
+                    + "== opaque \(withoutField.distinctColours)"))
+    }
+
     @Test("La grille des titres dessine, et le hero de l'accueil aussi")
     func existingScreensDraw() throws {
         // **Les deux écrans de `V0 bis` et `V5a`, sondés rétroactivement.** Ils ont été livrés

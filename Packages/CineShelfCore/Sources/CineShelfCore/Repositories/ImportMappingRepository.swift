@@ -126,6 +126,25 @@ public struct ImportMappingRepository {
         return try ColumnMapping.decoded(from: data)
     }
 
+    /// La correspondance **décodée** à appliquer à cet en-tête, s'il en existe une.
+    ///
+    /// **C'est la jointure qui manquait, et son absence était un trou de contrat.** Tout existait
+    /// des deux côtés — `mapping(forHeader:in:)` rendait un `ImportMapping` du magasin,
+    /// `ColumnMatcher.analyze(remembered:)` attendait un `ColumnMapping` décodé — et **rien ne
+    /// reliait les deux** : l'écran d'import passait `nil` en dur. Un fichier déjà importé
+    /// refaisait donc ses déductions au lieu de retrouver les choix de l'utilisateur, sans qu'aucun
+    /// test puisse le voir, puisque les deux moitiés étaient justes.
+    ///
+    /// **Rend `nil` plutôt que de lever quand la correspondance est illisible.** Une version
+    /// inconnue arrivée par synchronisation ne doit pas empêcher d'importer : la déduction
+    /// automatique reprend la main, ce qui est exactement l'état d'un fichier jamais vu. Refuser
+    /// serait juste si on écrivait — ici on ne fait que *proposer* un point de départ que l'écran
+    /// affiche et que l'utilisateur corrige.
+    public func rememberedMapping(forHeader header: [String], in library: Library) -> ColumnMapping? {
+        guard let record = try? mapping(forHeader: header, in: library) else { return nil }
+        return try? columnMapping(of: record)
+    }
+
     /// Renomme une correspondance personnelle.
     ///
     /// **Refuse une intégrée, comme `delete`.** Le nom d'une correspondance livrée revient à

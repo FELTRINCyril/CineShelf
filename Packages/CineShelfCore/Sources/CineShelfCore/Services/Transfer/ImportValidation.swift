@@ -119,14 +119,35 @@ public struct ImportCauseGroup: Sendable, Hashable, Identifiable {
     /// Les numéros de ligne concernés, en ordre croissant.
     public let rowNumbers: [Int]
 
+    /// La **clé** du champ en cause, `nil` si le refus porte sur la ligne entière.
+    ///
+    /// **Ajoutée au second jalon de `V8`, et son absence bloquait `11f`.** Le refus porte le
+    /// *nom d'affichage* du champ — « Année » — et `ImportCorrection` vise une **clé** —
+    /// `year`. Sans ce report, l'écran aurait dû retraduire un libellé français vers une clé,
+    /// c'est-à-dire deviner ; et une correction posée sur la mauvaise clé écrit dans la
+    /// mauvaise colonne sans que rien ne proteste.
+    public let fieldKey: String?
+
     public var id: String { causeKey }
     public var count: Int { rowNumbers.count }
     public var label: String { sample.causeLabel }
 
-    public init(causeKey: String, sample: ImportRefusalReason, rowNumbers: [Int]) {
+    /// `true` si la cause se corrige cellule par cellule.
+    ///
+    /// Une ligne mal découpée n'a pas de champ fautif : c'est le fichier qu'il faut reprendre,
+    /// et `ImportValidator.applying` ne rejoue d'ailleurs pas la malformation.
+    public var isCorrectable: Bool { fieldKey != nil }
+
+    public init(
+        causeKey: String,
+        sample: ImportRefusalReason,
+        rowNumbers: [Int],
+        fieldKey: String? = nil
+    ) {
         self.causeKey = causeKey
         self.sample = sample
         self.rowNumbers = rowNumbers
+        self.fieldKey = fieldKey
     }
 }
 
@@ -172,17 +193,23 @@ public struct ImportAnalysis: Sendable, Hashable {
     public var causeGroups: [ImportCauseGroup] {
         var samples: [String: ImportRefusalReason] = [:]
         var lines: [String: [Int]] = [:]
+        var fieldKeys: [String: String] = [:]
         for row in rows {
             for issue in row.issues {
                 let key = issue.reason.causeKey
                 if samples[key] == nil { samples[key] = issue.reason }
+                // La clé du champ est portée par le refus, pas par sa raison : c'est la seule
+                // qui puisse viser une cellule sans traduire un libellé français.
+                if let fieldKey = issue.fieldKey { fieldKeys[key] = fieldKey }
                 // Une ligne qui cumule deux refus de la **même** cause ne la compte qu'une
                 // fois : « 214 lignes » doit être un compte de lignes, pas de refus.
                 if lines[key]?.last != row.number { lines[key, default: []].append(row.number) }
             }
         }
         return samples.map { key, sample in
-            ImportCauseGroup(causeKey: key, sample: sample, rowNumbers: lines[key] ?? [])
+            ImportCauseGroup(
+                causeKey: key, sample: sample, rowNumbers: lines[key] ?? [],
+                fieldKey: fieldKeys[key])
         }
         .sorted { lhs, rhs in
             lhs.count == rhs.count ? lhs.causeKey < rhs.causeKey : lhs.count > rhs.count

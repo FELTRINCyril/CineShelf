@@ -93,4 +93,83 @@ struct ImportFlowTests {
         flow.analysis = analysis(ready: 1, refused: 2)
         #expect(flow.readyLabel() == "Importer la ligne prête")
     }
+
+    // MARK: La pile de corrections — bloc `11f`
+
+    private var validator: ImportValidator { ImportValidator(schema: .title) }
+
+    /// Une correction de masse répare les lignes visées, et **seulement** elles.
+    ///
+    /// Entrées quelconques : sept prêtes et trois fautives, ni zéro ni égalité.
+    @Test("Une correction de masse répare les lignes de sa cause")
+    func correctionRepairsItsCause() {
+        var flow = ImportFlow()
+        flow.analysis = analysis(ready: 7, refused: 3)
+        #expect(flow.report?.refusedCount == 3)
+
+        flow.apply(ImportCorrection(fieldKey: "title", value: "Titre repris"), using: validator)
+
+        #expect(flow.report?.refusedCount == 0)
+        #expect(flow.report?.readyCount == 10)
+        #expect(flow.corrections.count == 1)
+    }
+
+    /// « Chaque correction de masse est annulable une par une » — planche `11f`.
+    @Test("Annuler une correction rend l'état exactement d'avant")
+    func undoRestoresPreviousState() {
+        var flow = ImportFlow()
+        flow.analysis = analysis(ready: 7, refused: 3)
+        let before = flow.report?.refusedCount
+
+        flow.apply(ImportCorrection(fieldKey: "title", value: "Titre repris"), using: validator)
+        flow.undoCorrection(at: 0, using: validator)
+
+        #expect(flow.report?.refusedCount == before)
+        #expect(flow.corrections.isEmpty)
+    }
+
+    /// **L'annulation du milieu rejoue le reste**, elle ne retire pas un effet isolé.
+    ///
+    /// Deux corrections, on défait la **première** — ni le premier ni le dernier index si on en
+    /// avait trois, mais avec deux c'est la seule qui ne soit pas la plus récente. Ce que ça
+    /// vérifie : la seconde survit et reste appliquée.
+    @Test("Annuler une correction rejoue celles qui restent")
+    func undoReplaysTheRest() {
+        var flow = ImportFlow()
+        flow.analysis = analysis(ready: 7, refused: 3)
+
+        flow.apply(ImportCorrection(fieldKey: "title", value: "Premier"), using: validator)
+        flow.apply(ImportCorrection(fieldKey: "title", value: "Second"), using: validator)
+        flow.undoCorrection(at: 0, using: validator)
+
+        #expect(flow.corrections.count == 1)
+        #expect(flow.corrections.first?.value == "Second")
+        // La correction restante s'applique toujours : les lignes réparées le restent.
+        #expect(flow.report?.refusedCount == 0)
+    }
+
+    /// Un index hors bornes ne fait rien plutôt que de piéger.
+    ///
+    /// Le cas arrive pour de vrai : deux annulations rapides sur la même ligne d'écran.
+    @Test("Annuler un index inexistant ne change rien")
+    func undoOutOfBoundsIsInert() {
+        var flow = ImportFlow()
+        flow.analysis = analysis(ready: 7, refused: 3)
+        flow.apply(ImportCorrection(fieldKey: "title", value: "Titre"), using: validator)
+
+        flow.undoCorrection(at: 4, using: validator)
+
+        #expect(flow.corrections.count == 1)
+    }
+
+    /// La cause porte la **clé** du champ, et non son libellé d'affichage.
+    ///
+    /// Sans ça, `11f` devrait retraduire « Titre » vers `title`, c'est-à-dire deviner — et une
+    /// correction posée sur la mauvaise clé écrit dans la mauvaise colonne sans protester.
+    @Test("Une cause nomme la clé du champ qu'elle vise")
+    func causeCarriesFieldKey() {
+        let cause = analysis(ready: 7, refused: 3).causeGroups.first
+        #expect(cause?.fieldKey == "title")
+        #expect(cause?.isCorrectable == true)
+    }
 }

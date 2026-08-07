@@ -42,7 +42,43 @@ public struct ImportFlow: Sendable {
     public var result: ImportRunResult?
     public var failure: String?
 
+    /// Les corrections de masse appliquées, **dans l'ordre**. Bloc `11f`.
+    ///
+    /// Une pile et non un état fusionné, pour deux raisons qui vont ensemble : la planche exige
+    /// « chaque correction de masse est annulable une par une », et `ImportDraft` persiste
+    /// exactement cette liste pour rejouer la reprise. Le même tableau sert les deux — s'ils
+    /// divergeaient, reprendre un brouillon ne redonnerait pas l'état où l'utilisateur s'est
+    /// arrêté.
+    public var corrections: [ImportCorrection] = []
+
+    /// L'analyse d'origine, avant toute correction.
+    ///
+    /// **Conservée, parce qu'annuler une correction se fait en rejouant les autres depuis le
+    /// début.** `ImportValidator.applying` rend une nouvelle analyse et ne sait pas défaire :
+    /// garder l'origine est ce qui rend l'annulation possible sans relire le fichier, et c'est
+    /// le même mécanisme que `ImportDraft.restoredAnalysis()`.
+    public var baseAnalysis: ImportAnalysis?
+
     public init() {}
+
+    /// Applique une correction et la pousse sur la pile.
+    public mutating func apply(_ correction: ImportCorrection, using validator: ImportValidator) {
+        guard let current = analysis else { return }
+        if baseAnalysis == nil { baseAnalysis = current }
+        corrections.append(correction)
+        analysis = validator.applying(correction, to: current)
+    }
+
+    /// Retire la correction à cet index, et rejoue les autres dans l'ordre.
+    ///
+    /// **Rejeu complet plutôt qu'annulation ciblée.** Une correction peut en avoir découvert une
+    /// autre — corriger l'année révèle une durée invalide sur la même ligne — donc défaire la
+    /// deuxième sans rejouer la troisième laisserait un état que rien n'a jamais produit.
+    public mutating func undoCorrection(at index: Int, using validator: ImportValidator) {
+        guard corrections.indices.contains(index), let base = baseAnalysis else { return }
+        corrections.remove(at: index)
+        analysis = corrections.reduce(base) { validator.applying($1, to: $0) }
+    }
 
     /// Peut-on passer de la correspondance à l'aperçu ?
     ///

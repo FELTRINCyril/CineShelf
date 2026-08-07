@@ -1,5 +1,50 @@
 import Foundation
 
+// MARK: - Ce qu'un export rapporte en plus de ses octets
+
+/// Le fichier produit, et ce qu'il a fallu neutraliser pour l'écrire.
+///
+/// **Un type de retour plutôt qu'un `Data` nu**, parce que « le dire » ne se délègue pas à un
+/// appelant qui devrait penser à poser la question. La correction du séparateur tient
+/// l'invariant toute seule — voir `CSVSchema.splitMultiValue` — donc ce rapport n'est pas une
+/// condition de justesse : il existe pour que l'utilisateur reconnaisse les séquences
+/// d'échappement s'il ouvre le fichier ailleurs que dans CineShelf.
+public struct CSVExportResult: Sendable {
+    public let data: Data
+    /// Les valeurs qui portaient le séparateur ou l'échappement, dans l'ordre du fichier.
+    public let escaped: [CSVEscapedValue]
+
+    public init(data: Data, escaped: [CSVEscapedValue] = []) {
+        self.data = data
+        self.escaped = escaped
+    }
+
+    /// Les valeurs distinctes échappées, sans répétition.
+    ///
+    /// Un même genre appartient à cent titres : le nommer cent fois transformerait
+    /// l'avertissement en mur de texte, et c'est le **nom** qui intéresse l'utilisateur, pas le
+    /// nombre de titres qui le portent.
+    public var distinctEscapedValues: [String] {
+        var seen: Set<String> = []
+        return escaped.map(\.value).filter { seen.insert($0).inserted }
+    }
+}
+
+/// Une valeur qu'il a fallu échapper, et ce à quoi elle appartient.
+public struct CSVEscapedValue: Sendable, Hashable {
+    /// La clé de la colonne : `genres`, `cast`…
+    public let fieldKey: String
+    public let value: String
+    /// Le titre ou la personne qui la porte, pour que l'utilisateur sache où regarder.
+    public let owner: String
+
+    public init(fieldKey: String, value: String, owner: String) {
+        self.fieldKey = fieldKey
+        self.value = value
+        self.owner = owner
+    }
+}
+
 // MARK: - Exporter
 //
 // Le seul endroit où une entité devient des cellules. La conversion inverse — des cellules
@@ -118,12 +163,42 @@ public struct CSVExporter {
         }
     }
 
-    /// Le fichier complet pour une sélection de titres.
-    public func export(titles: [Title], keys: [String]) -> Data {
-        writer.data(
-            header: CSVSchema.title.header(for: keys),
-            rows: titles.map { row(for: $0, keys: keys) }
+    /// Le fichier complet pour une sélection de titres, et ce qu'il a fallu échapper.
+    public func export(titles: [Title], keys: [String]) -> CSVExportResult {
+        CSVExportResult(
+            data: writer.data(
+                header: CSVSchema.title.header(for: keys),
+                rows: titles.map { row(for: $0, keys: keys) }
+            ),
+            escaped: escapedValues(of: titles, keys: keys)
         )
+    }
+
+    /// Les valeurs multiples qui portaient le séparateur, avec le nom de ce qui les porte.
+    ///
+    /// **Recensées sur les valeurs elles-mêmes et non sur les cellules jointes**, sans quoi il
+    /// serait impossible de dire *laquelle* : une cellule `« Action\|Aventure|Policier »` porte
+    /// deux valeurs dont une seule est en cause, et c'est celle-là que l'utilisateur doit
+    /// pouvoir reconnaître dans son fichier.
+    private func escapedValues(of titles: [Title], keys: [String]) -> [CSVEscapedValue] {
+        titles.flatMap { title in
+            multiValues(of: title, keys: keys).compactMap { key, value in
+                CSVSchema.needsCellEscaping(value)
+                    ? CSVEscapedValue(fieldKey: key, value: value, owner: title.name) : nil
+            }
+        }
+    }
+
+    /// Les valeurs unitaires derrière chaque cellule multivaleur d'un titre.
+    private func multiValues(of title: Title, keys: [String]) -> [(String, String)] {
+        keys.flatMap { key -> [(String, String)] in
+            switch key {
+            case "genres": (title.genres ?? []).map { (key, $0.name) }
+            case "director": credits(of: title, role: .director).map { (key, $0) }
+            case "cast": credits(of: title, role: .cast).map { (key, $0) }
+            default: []
+            }
+        }
     }
 
     // MARK: Personnes
@@ -149,11 +224,33 @@ public struct CSVExporter {
         }
     }
 
-    public func export(people: [Person], keys: [String]) -> Data {
-        writer.data(
-            header: CSVSchema.person.header(for: keys),
-            rows: people.map { row(for: $0, keys: keys) }
+    public func export(people: [Person], keys: [String]) -> CSVExportResult {
+        CSVExportResult(
+            data: writer.data(
+                header: CSVSchema.person.header(for: keys),
+                rows: people.map { row(for: $0, keys: keys) }
+            ),
+            escaped: people.flatMap { person in
+                multiValues(of: person, keys: keys).compactMap { key, value in
+                    CSVSchema.needsCellEscaping(value)
+                        ? CSVEscapedValue(fieldKey: key, value: value, owner: person.displayName)
+                        : nil
+                }
+            }
         )
+    }
+
+    private func multiValues(of person: Person, keys: [String]) -> [(String, String)] {
+        keys.flatMap { key -> [(String, String)] in
+            switch key {
+            // `roles` est une énumération : ses `rawValue` sont écrits ici et ne peuvent pas
+            // porter de séparateur. Recensé quand même plutôt qu'exclu par raisonnement — la
+            // liste des rôles grandira, et l'exclusion se lirait alors comme un oubli.
+            case "roles": person.roles.map { (key, $0.rawValue) }
+            case "genres": (person.genres ?? []).map { (key, $0.name) }
+            default: []
+            }
+        }
     }
 
     // MARK: Gabarits

@@ -313,15 +313,26 @@ extension CSVSchema {
     }
 }
 
-// MARK: - Le séparateur de valeurs multiples
+// MARK: - Le séparateur de valeurs multiples, et son échappement
 //
-// Une barre oblique, et pas une virgule ni un point-virgule : la virgule est le séparateur
-// décimal en locale française, le point-virgule est déjà le séparateur de colonnes. Un
-// genre nommé « action/aventure » serait coupé en deux — c'est le prix, et il est plus
-// faible que celui d'une collision avec le séparateur de champs.
+// **Deux passes de correction, et la première ne suffisait pas.** Le 2026-08-06, le
+// séparateur est passé de `/` à `|` parce qu'un genre nommé « Action/Aventure » se coupait
+// en deux à l'aller-retour. Le format était alors *plus sûr*, pas **sûr** : la garantie
+// reposait sur « aucun nom ne porte de barre verticale », qui est une probabilité et non une
+// invariante. Un séparateur non échappé n'est pas un séparateur, c'est un pari.
+//
+// Ce fichier tient donc l'invariant plutôt que de l'espérer :
+//
+//     splitMultiValue(joinMultiValue(x)) == x
+//
+// pour **toute** liste `x` dont les valeurs sont normalisées — non vides et sans espace de
+// bord. La restriction n'est pas une échappatoire : `splitMultiValue` retire les vides et les
+// espaces de bord **exprès**, c'est une normalisation d'entrée dont `ImportValidation` dépend
+// (une cellule `« | »` doit se lire « aucune valeur », pas « deux valeurs vides »). L'écrire
+// dans l'invariant est ce qui distingue une normalisation voulue d'une perte de donnée — les
+// confondre aurait produit un test qui exige une propriété fausse.
 
 extension CSVSchema {
-    /// Sépare les valeurs multiples à l'intérieur d'une cellule.
     /// Le séparateur de valeurs multiples dans une cellule.
     ///
     /// > **Corrigé le 2026-08-06 : c'était `/`, et l'aller-retour détruisait des genres.**
@@ -334,19 +345,87 @@ extension CSVSchema {
     /// > La barre verticale est aussi ce que l'échantillon d'export de la planche 5 écrit :
     /// > `"Science-fiction|Aventure"`. Elle n'apparaît pratiquement jamais dans un nom de
     /// > genre, là où la barre oblique y est courante — « Action/Aventure », « Science-fiction
-    /// > / Fantastique ». Un séparateur qui existe dans les données qu'il sépare n'en est pas
-    /// > un.
+    /// > / Fantastique ».
     public static let multiValueSeparator: Character = "|"
 
+    /// Le caractère qui neutralise le suivant.
+    ///
+    /// Un antislash, comme dans à peu près tous les formats textuels : c'est la convention que
+    /// le lecteur d'un CSV ouvert dans un éditeur reconnaîtra sans explication. Le CSV lui-même
+    /// échappe déjà ses guillemets, par doublement — le doublement était donc le candidat
+    /// naturel, et il est **impossible ici** : `« a||b »` signifie déjà « une valeur vide entre
+    /// deux séparateurs », et cette lecture est celle dont `ImportValidation` dépend.
+    public static let multiValueEscape: Character = "\\"
+
     /// Découpe une cellule multivaleur, en retirant les vides et les espaces de bord.
+    ///
+    /// Un séparateur précédé de l'échappement est une **donnée**, pas une coupure. Le parcours
+    /// est fait caractère par caractère plutôt que par `split(separator:)` : `split` ne sait pas
+    /// regarder derrière lui, et c'est précisément ce qu'il faut ici.
+    ///
+    /// **Rétrocompatible avec les fichiers antérieurs**, et ce n'est pas un hasard : un `|` qui
+    /// n'est pas précédé d'un antislash sépare toujours, donc un export d'une version antérieure
+    /// se relit à l'identique. Seule une valeur portant un antislash **juste avant** un `|` se
+    /// lit autrement qu'avant, et elle se lisait déjà faux.
     public static func splitMultiValue(_ text: String) -> [String] {
-        text.split(separator: multiValueSeparator)
+        var values: [String] = []
+        var current = ""
+        var escaping = false
+        for character in text {
+            if escaping {
+                // Un échappement devant un caractère ordinaire se rend tel quel plutôt que
+                // d'être avalé : un fichier écrit à la main par un utilisateur qui a tapé
+                // `C:\Films` ne doit pas perdre son antislash pour avoir été relu ici.
+                if character != multiValueSeparator && character != multiValueEscape {
+                    current.append(multiValueEscape)
+                }
+                current.append(character)
+                escaping = false
+            } else if character == multiValueEscape {
+                escaping = true
+            } else if character == multiValueSeparator {
+                values.append(current)
+                current = ""
+            } else {
+                current.append(character)
+            }
+        }
+        // Un antislash isolé en fin de cellule n'échappe rien : il se rend, plutôt que de
+        // disparaître. C'est la même règle que ci-dessus, appliquée au bord.
+        if escaping { current.append(multiValueEscape) }
+        values.append(current)
+        return
+            values
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
     }
 
-    /// Joint des valeurs multiples pour une cellule.
+    /// Joint des valeurs multiples pour une cellule, en échappant ce qui doit l'être.
+    ///
+    /// **L'échappement porte sur l'antislash avant le séparateur**, et l'ordre n'est pas
+    /// interchangeable : échapper le séparateur d'abord introduirait des antislashs que la
+    /// seconde passe redoublerait, et `A|B` sortirait en `A\\|B`, donc se relirait en deux
+    /// valeurs `A\` et `B`.
     public static func joinMultiValue(_ values: [String]) -> String {
-        values.joined(separator: String(multiValueSeparator))
+        values.map(escapedForCell).joined(separator: String(multiValueSeparator))
+    }
+
+    /// Une valeur, prête à cohabiter avec ses voisines dans une cellule.
+    public static func escapedForCell(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: String(multiValueEscape), with: String(repeating: multiValueEscape, count: 2))
+            .replacingOccurrences(
+                of: String(multiValueSeparator),
+                with: String(multiValueEscape) + String(multiValueSeparator))
+    }
+
+    /// La valeur porte-t-elle un caractère que l'écriture en cellule doit neutraliser ?
+    ///
+    /// Sert à **le dire** : l'export nomme les valeurs qu'il a dû échapper. L'invariant tient
+    /// sans cet avertissement — il n'est pas une condition de correction — mais un fichier qui
+    /// part avec des séquences d'échappement dedans est un fichier que l'utilisateur doit savoir
+    /// reconnaître s'il le retraite avec un autre outil que CineShelf.
+    public static func needsCellEscaping(_ value: String) -> Bool {
+        value.contains(multiValueSeparator) || value.contains(multiValueEscape)
     }
 }

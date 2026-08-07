@@ -61,6 +61,9 @@ struct CSVSchemaTests {
         #expect(CSVSchema.splitMultiValue("action||thriller") == ["action", "thriller"])
         #expect(CSVSchema.splitMultiValue("").isEmpty)
         #expect(CSVSchema.joinMultiValue(["action", "thriller"]) == "action|thriller")
+        // Et depuis le 2026-08-07, la barre verticale dans une valeur est **échappée** plutôt
+        // que subie : le choix du caractère n'est plus ce qui tient l'invariant.
+        #expect(CSVSchema.joinMultiValue(["action|aventure"]) == "action\\|aventure")
     }
 }
 
@@ -176,7 +179,7 @@ struct CSVExportTests {
         try context.save()
 
         let keys = ["title", "summary"]
-        let data = exporter.export(titles: [first, second], keys: keys)
+        let data = exporter.export(titles: [first, second], keys: keys).data
         let document = CSVReader().read(data)
 
         #expect(document.header == ["Titre", "Résumé"])
@@ -206,7 +209,7 @@ struct CSVExportTests {
     func emptyExportKeepsHeader() {
         // Exporter une sélection vide ne doit pas produire un fichier de zéro octet, que
         // le tableur refuserait d'ouvrir.
-        let data = exporter.export(titles: [], keys: ["title", "year"])
+        let data = exporter.export(titles: [], keys: ["title", "year"]).data
         let document = CSVReader().read(data)
         #expect(document.header == ["Titre", "Année"])
         #expect(document.rows.isEmpty)
@@ -329,13 +332,87 @@ struct MultiValueRoundTripTests {
         #expect(CSVSchema.splitMultiValue(joined) == ["Action/Aventure", "Science-fiction"])
     }
 
-    /// Le cas symétrique : une valeur qui contiendrait le **nouveau** séparateur ne survit pas
-    /// davantage. Ce n'est pas une régression, c'est la limite du format — et elle est
-    /// acceptable parce qu'aucun nom de genre ne porte de barre verticale, là où la barre
-    /// oblique y est courante.
-    @Test("La limite du format est nommée, pas niée")
-    func pipeInValueIsTheKnownLimit() {
-        let joined = CSVSchema.joinMultiValue(["A|B"])
-        #expect(CSVSchema.splitMultiValue(joined) == ["A", "B"])
+    /// **Ce test affirmait l'inverse hier, et c'est pour ça qu'il est ici.**
+    ///
+    /// Il s'appelait « La limite du format est nommée, pas niée » et assénait
+    /// `split(join(["A|B"])) == ["A", "B"]` — c'est-à-dire qu'il **exigeait la perte**. Le
+    /// raisonnement était que la limite était acceptable puisque « aucun nom de genre ne porte
+    /// de barre verticale » : une probabilité, pas une invariante. Un séparateur non échappé
+    /// n'est pas un séparateur, c'est un pari, et le pari perdu ne rend pas d'erreur — il rend
+    /// une valeur de plus.
+    ///
+    /// C'est la quatrième fois qu'un test de ce dépôt encode une intention fausse ; voir
+    /// `CLAUDE.md`, « À rigueur maximale, plus de tests peut vouloir dire plus de verrouillage ».
+    @Test("Une valeur qui contient le séparateur lui-même survit à l'aller-retour")
+    func separatorInValueSurvives() {
+        let joined = CSVSchema.joinMultiValue(["A|B", "Comédie"])
+        #expect(CSVSchema.splitMultiValue(joined) == ["A|B", "Comédie"])
+    }
+
+    /// L'invariant, sur les entrées qu'une sonde hors dépôt a trouvées le 2026-08-07.
+    ///
+    /// **Cinq de ces six cas étaient cassés, et quatre n'avaient été anticipés par personne** —
+    /// le séparateur en tête, en queue, la valeur qui *est* le séparateur (elle disparaissait
+    /// entièrement, rendant une liste vide), et la valeur portant déjà un antislash devant un
+    /// séparateur. Le défaut est antérieur à la session : il date de `L12`, et le changement de
+    /// caractère du 2026-08-06 n'avait fait que le déplacer.
+    ///
+    /// Source de la propriété : `CSVSchema`, section « Le séparateur de valeurs multiples, et
+    /// son échappement ». Elle est bornée aux valeurs **normalisées** — non vides, sans espace
+    /// de bord — parce que `splitMultiValue` retire les deux exprès, et qu'`ImportValidation`
+    /// dépend de cette normalisation.
+    @Test(
+        "L'aller-retour rend exactement ce qu'on lui a donné",
+        arguments: [
+            ["Science-fiction", "Aventure", "Policier"],
+            ["Action|Aventure", "Science-fiction"],
+            ["Drame|", "Polar"],
+            ["|Muet", "Polar"],
+            ["|"],
+            ["C:\\Films", "Documentaire"],
+            ["Fin\\", "Suite"],
+            ["A\\|B", "Comédie"],
+            ["Épouvante", "Kaijū", "Мультфильм"]
+        ])
+    func roundTripIsLossless(values: [String]) {
+        #expect(CSVSchema.splitMultiValue(CSVSchema.joinMultiValue(values)) == values)
+    }
+
+    /// Le pendant : ce que la normalisation retire **volontairement**.
+    ///
+    /// Écrit à part et nommé, pour qu'on ne le confonde pas avec une perte. Une cellule `« | »`
+    /// doit se lire « aucune valeur » et non « deux valeurs vides » : c'est ce dont dépend le
+    /// refus « au moins une valeur » d'`ImportValidation`.
+    @Test("Les vides et les espaces de bord sont retirés, et c'est voulu")
+    func normalisationIsNotLoss() {
+        #expect(CSVSchema.splitMultiValue(" Fantastique | Horreur ") == ["Fantastique", "Horreur"])
+        #expect(CSVSchema.splitMultiValue("Drame||Polar") == ["Drame", "Polar"])
+        #expect(CSVSchema.splitMultiValue("|").isEmpty)
+        #expect(CSVSchema.splitMultiValue("").isEmpty)
+    }
+
+    /// **Et l'export le dit.** L'invariant tient sans cet avertissement — il n'est pas une
+    /// condition de justesse — mais un fichier qui part avec des séquences d'échappement dedans
+    /// est un fichier que l'utilisateur doit pouvoir reconnaître s'il le retraite ailleurs.
+    @Test("Une valeur échappée est nommée dans le rapport d'export")
+    @MainActor
+    func exportNamesEscapedValues() throws {
+        let (context, library) = try makeTestLibrary()
+        let repository = TitleRepository(context: context)
+        let title = repository.create(name: "Tenet", in: library)
+        let genres = GenreRepository(context: context)
+        let mixed = try genres.findOrCreate(name: "Action|Aventure", target: .title, in: library)
+        let plain = try genres.findOrCreate(name: "Thriller", target: .title, in: library)
+        repository.setGenres([mixed, plain], on: title, journal: .perEntity)
+        try context.save()
+
+        let result = CSVExporter().export(titles: [title], keys: ["title", "genres"])
+
+        #expect(result.distinctEscapedValues == ["Action|Aventure"])
+        #expect(result.escaped.first?.owner == "Tenet")
+        #expect(result.escaped.first?.fieldKey == "genres")
+        // Et le fichier reste relisable : c'est l'aller-retour complet, par les octets.
+        let cell = CSVReader().read(result.data).rows[0].fields[1]
+        #expect(CSVSchema.splitMultiValue(cell).sorted() == ["Action|Aventure", "Thriller"])
     }
 }

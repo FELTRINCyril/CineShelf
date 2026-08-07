@@ -23,6 +23,7 @@ where Data.Element: Identifiable {
 
     @Environment(\.density) private var density
     @Environment(\.breakpoint) private var breakpoint
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var available: CGFloat = 0
 
     /// - Parameters:
@@ -58,17 +59,47 @@ where Data.Element: Identifiable {
         }
     }
 
+    /// **Une seule colonne au-delà de `.accessibility1`**, ce qui rend la grille en liste.
+    ///
+    /// Source : `docs/06` §« Accessibilité ». La règle vit dans `GridMetrics.prefersList`, hors
+    /// de la vue — c'est du calcul, et un seuil recopié dans chaque grille finirait par diverger
+    /// entre les titres, les personnes et la galerie.
+    ///
+    /// **Une colonne plutôt qu'un `List` séparé** : la bascule ne change pas le composant, donc
+    /// elle ne change ni la navigation, ni le focus clavier, ni ce que VoiceOver annonce. Un
+    /// second arbre de vues pour les grandes tailles serait un second endroit où corriger les
+    /// bugs, et il ne serait exercé par personne au quotidien.
     private var columnCount: Int {
-        GridMetrics.columnCount(
+        guard !GridMetrics.prefersList(at: dynamicTypeSize) else { return 1 }
+        return GridMetrics.columnCount(
             available: available - 2 * breakpoint.screenMargin,
             cardWidth: cardWidth,
             gutter: gutter)
     }
 
+    /// **En liste, la colonne est flexible et non fixe.** Garder `.fixed(cardWidth)` laisserait
+    /// une colonne de 150 pt au milieu d'un écran de 900 : le texte serait tout aussi tronqué
+    /// qu'en grille, et la bascule n'aurait servi à rien. C'est la largeur disponible qui donne
+    /// au titre la place de s'enrouler.
+    ///
+    /// > **Limite mesurée le 2026-08-07, et inscrite en écart.** Sur une fenêtre large, une
+    /// > colonne flexible donne une tuile de la largeur de l'écran — soit une affiche de
+    /// > 1 280 pt sur un Mac. La sonde de rendu le voit : la grille des titres passe de 8
+    /// > couleurs distinctes à `large` à **2** à `AX3`, parce qu'une seule tuile occupe tout le
+    /// > cadre. Ce n'est pas un effondrement — c'est la conséquence attendue d'une colonne
+    /// > unique — mais ce n'est probablement pas la bonne mise en page : une vraie liste
+    /// > poserait une vignette **à côté** du texte plutôt qu'au-dessus.
+    /// >
+    /// > **Aucune planche ne dessine cette liste**, et `docs/06` dit seulement « les grilles
+    /// > basculent en liste ». Inventer la mise en page serait franchir la frontière que
+    /// > `CLAUDE.md` pose entre ce qui est dessiné et ce qui est déduit : la bascule est donc
+    /// > livrée dans sa forme minimale et exacte, et l'écart attend une planche.
     private var columns: [GridItem] {
-        Array(
-            repeating: GridItem(.fixed(cardWidth), spacing: gutter, alignment: .top),
-            count: columnCount)
+        let item =
+            GridMetrics.prefersList(at: dynamicTypeSize)
+            ? GridItem(.flexible(), spacing: gutter, alignment: .top)
+            : GridItem(.fixed(cardWidth), spacing: gutter, alignment: .top)
+        return Array(repeating: item, count: columnCount)
     }
 
     private var gutter: CGFloat { breakpoint.gridGutter(density) }

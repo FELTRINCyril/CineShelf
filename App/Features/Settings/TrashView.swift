@@ -96,8 +96,28 @@ struct TrashView: View {
                 .foregroundStyle(item.isExpired ? Color.danger : Color.textTertiary)
             Button("Restaurer") { restore(item) }
                 .buttonStyle(ActionButtonStyle(rank: .secondary))
+                .accessibilityLabel("Restaurer \(item.label)")
         }
         .frame(minHeight: Space.minHitTarget)
+        // **Un seul élément par ligne pour VoiceOver**, plutôt que quatre à parcourir : le
+        // type, le nom et le sursis se lisent ensemble ou ne veulent rien dire — « 12 j » seul
+        // n'apprend rien. Le bouton reste séparé, parce que c'est une action et non une
+        // description : `.combine` l'aurait avalé dans l'annonce et rendu inatteignable.
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(announcement(item))
+    }
+
+    /// Ce que VoiceOver dit d'une ligne.
+    ///
+    /// Le sursis est énoncé en toutes lettres — « expire dans 12 jours » — et non « 12 j » :
+    /// l'abréviation est une économie de place à l'écran, et il n'y a pas de place à économiser
+    /// dans une phrase lue à voix haute.
+    private func announcement(_ item: TrashedItem) -> String {
+        let delay =
+            item.isExpired
+            ? "sursis dépassé, sera supprimé au prochain entretien"
+            : "expire dans \(item.daysRemaining) jour\(item.daysRemaining == 1 ? "" : "s")"
+        return "\(label(for: item.entity)) \(item.label), \(delay)"
     }
 
     /// Le compte à rebours, **négatif compris**.

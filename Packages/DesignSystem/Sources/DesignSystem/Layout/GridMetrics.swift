@@ -62,4 +62,30 @@ public enum GridMetrics {
             cardWidth: cardWidth,
             gutter: Breakpoint.forWidth(window).gridGutter(density))
     }
+
+    // MARK: - V12 · La bascule en liste aux tailles d'accessibilité
+
+    /// Le seuil au-delà duquel une grille devient une liste.
+    ///
+    /// Source : `docs/06-BRIEF-DESIGN.md` §« Accessibilité » — « **Dynamic Type de `xSmall` à
+    /// `AX5`**, sans troncature. **Au-delà de `.accessibility1`, les grilles basculent en
+    /// liste.** » Le mot « au-delà » est strict : `.accessibility1` reste en grille, et c'est
+    /// `.accessibility2` qui bascule.
+    public static let listThreshold: DynamicTypeSize = .accessibility1
+
+    /// La grille doit-elle se rendre en liste ?
+    ///
+    /// **Une fonction plutôt qu'un `if` dans chaque vue**, parce que trois surfaces au moins
+    /// posent des grilles — les titres, les personnes, la galerie — et qu'un seuil recopié
+    /// trois fois finit par diverger. C'est le même motif que `columnCount`, qui existe pour
+    /// qu'aucun appelant ne connaisse la gouttière.
+    ///
+    /// **Pourquoi basculer plutôt que rétrécir.** À `AX2`, une carte de 150 pt porte un titre
+    /// dont une seule ligne dépasse la largeur : la grille ne peut que tronquer ou déborder, et
+    /// tronquer un titre est exactement ce que le brief interdit. En liste, la largeur est celle
+    /// de l'écran et le texte s'enroule — on échange une information de mise en page contre
+    /// l'information qui compte, le texte lui-même.
+    public static func prefersList(at size: DynamicTypeSize) -> Bool {
+        size > listThreshold
+    }
 }

@@ -97,6 +97,8 @@ struct SyncAndDataSection: View {
             Button("Ouvrir") { isShowingTrash = true }
                 .buttonStyle(ActionButtonStyle(rank: .secondary))
                 .disabled(trashCount == 0)
+                .accessibilityLabel("Ouvrir la corbeille")
+                .accessibilityHint(trashSubtitle)
         } label: {
             VStack(alignment: .leading, spacing: Space.s1) {
                 Text("Corbeille")
@@ -127,6 +129,9 @@ struct SyncAndDataSection: View {
         LabeledContent {
             Button("Analyser") { analyse() }
                 .buttonStyle(ActionButtonStyle(rank: .secondary))
+                // **Un indice et non un libellé** : « Analyser » dit déjà l'action, l'indice
+                // dit ce qu'elle va faire — et c'est utile parce que la passe **supprime**.
+                .accessibilityHint("Répare les rattachements orphelins et purge la corbeille expirée")
         } label: {
             VStack(alignment: .leading, spacing: Space.s1) {
                 Text("Maintenance")

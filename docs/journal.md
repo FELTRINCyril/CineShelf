@@ -6596,3 +6596,83 @@ qui promet un travail qui n'a pas lieu est pire que son absence.
 | `swift test` DesignSystem · MediaKit · `DesignSystemCatalog` | ❌ **non relancés** depuis `L16` |
 | `xcodebuild test -scheme CineShelfUITests` | ❌ **non relancée** |
 | **La synchronisation réelle** | ❌ **non exercée** — `SyncStatus` est alimenté par ce que l'app sait de l'appareil, pas par `eventChangedNotification`, qui n'existe pas tant que `FeatureFlags.cloudKitEnabled` est faux. L'écran est vrai sur ce qu'il montre et muet sur ce qu'il ne peut pas observer |
+
+## 2026-08-07 (5) — La couture qui ne trouve rien, et `V12`
+
+### Le motif du `CRLF` entre dans `CLAUDE.md`
+
+**Un test qui construit son entrée n'exerce que les entrées qu'on sait imaginer.** La section
+voisine dit comment *choisir* une valeur ; celle-ci dit d'**où elle doit venir**. Quand un test
+fabrique son entrée, l'espace exercé est exactement l'espace des cas que l'auteur a su
+concevoir — il ne peut donc, par construction, jamais le surprendre.
+
+Le cas mesuré est instructif parce que le choix d'origine était **bon** : construire les
+fichiers octet par octet garde les octets lisibles à côté de l'assertion, et c'est écrit en tête
+du fichier. La conséquence non prévue est que le **writer** n'était jamais confronté à un `CRLF`
+de cellule. Pour écrire l'entrée qui mord, il fallait déjà soupçonner le comportement : **le
+test aurait encodé la découverte, il ne pouvait pas la produire.**
+
+Le geste : compter les tests dont l'entrée ne vient pas de leur propre corps. Sur
+`CSVFormatTests`, il y en avait **un** — l'aller-retour — pour 34 fonctions.
+
+### La couture de restauration : la première qui ne trouve rien
+
+Le bilan était sans exception — `MediaFill`, `PosterCardModel`, le séparateur (6 pertes sur 13),
+le `CRLF`. **Quatre jouées, quatre défauts.** Celle-ci en fait cinq, et elle est propre :
+**13 vérifications, aucune perte.**
+
+Le parcours joué : un titre avec trois crédits, deux genres, une collection, deux médias, un
+lien et un drapeau ; suppression douce ; la corbeille le voit ; restauration **par le même
+chemin que le bouton** ; relecture depuis un `ModelContext` **neuf**. Plus un voisin témoin,
+sans qui une restauration qui restaurerait tout passerait aussi.
+
+**Deux fausses pertes au premier essai, et c'est la leçon de méthode.** La sonde annonçait
+« favori `true → false` » et « voisin intact : PERTE » — deux artefacts. Elle tournait sur le
+magasin **par défaut**, déjà peuplé de **124 titres** par des exécutions antérieures : le profil
+relu n'était donc pas le sien, et le contrôle du voisin comptait des inconnus. Une mesure sur un
+état qu'on ne connaît pas ne mesure rien. Magasin isolé par exécution, et tout est vert.
+
+Preuve d'échec par injection vérifiée : une restauration qui vide les genres fait rougir le
+test **depuis le contexte neuf**.
+
+### `V12` — ce qui manquait, et ce qui n'a pas de surface
+
+**Deux manques réels**, trouvés par recherche plutôt que supposés : `accessibility1`
+n'apparaissait **dans aucun fichier** du dépôt, et `accessibilityReduceTransparency` non plus.
+
+**La bascule grille → liste est livrée.** `GridMetrics.prefersList` porte la règle — un calcul,
+donc hors de la vue. « Au-delà » est **strict** : `.accessibility1` reste en grille, et le test
+le vérifie sur `DynamicTypeSize.allCases` plutôt que sur trois crans choisis, pour qu'un cran
+ajouté par une version future d'iOS ne tombe pas dans un trou.
+
+**Limite mesurée et inscrite** : sur une fenêtre large, une colonne flexible donne une affiche
+pleine largeur. La sonde le voit — **8 couleurs distinctes à `large`, 2 à `AX3`**. Ce n'est pas
+un effondrement, c'est la conséquence attendue d'une colonne unique, mais ce n'est probablement
+pas la bonne mise en page. **Aucune planche ne dessine cette liste** : la bascule est donc
+livrée dans sa forme minimale et exacte plutôt qu'inventée.
+
+**`Reduce Transparency` n'a aucune surface à traiter, et c'est un constat, pas un oubli.** Les
+deux jetons `scrim/modal` et `scrim/crop` n'ont **aucun appelant**, et les seuls matériaux
+vivants sont dans `PosterCard`, qui appartient au banc d'essai. Écrire un modificateur sans
+appelant aurait reproduit le défaut « écrit jamais lu » que cette session a passé son temps à
+fermer. Écart inscrit.
+
+**VoiceOver** posé sur les écrans écrits aujourd'hui, qui n'en avaient aucun.
+
+### Vérifications — les commandes réellement passées
+
+| Commande | Résultat |
+|---|---|
+| **Sonde de restauration** (hors dépôt) | ✅ **13 vérifications, 0 perte** — et 2 fausses pertes écartées par isolement du magasin |
+| **Preuve d'échec, injection vérifiée** | ✅ genres vidés → le test rougit depuis le contexte neuf |
+| `swift test` CineShelfCore | ✅ **598 tests** (+1) |
+| `swift test` DesignSystem | ✅ **89 tests** (+4) |
+| `xcodebuild test -scheme CineShelfScreenTests -destination macOS` | ✅ **16 tests** (+1) — Dynamic Type **xSmall 8 · large 8 · xxxLarge 8 · AX1 6 · AX3 2 · AX5 2** |
+| `xcodebuild test -scheme CineShelf -destination macOS` | ✅ `TEST SUCCEEDED` |
+| `xcodebuild test -scheme DesignSystemCatalog -destination macOS` | ✅ `TEST SUCCEEDED` |
+| `xcodebuild build -scheme CineShelf` · macOS et iOS | ✅ `BUILD SUCCEEDED` |
+| `swiftlint --strict` | ✅ 0 violation sur 347 fichiers |
+| `xcrun swift-format lint --recursive App Catalog Packages Tests` | ✅ 0 avertissement |
+| `swift test` MediaKit · `DesignSystemCatalog` iOS | ❌ **non relancés** |
+| `xcodebuild test -scheme CineShelfUITests` | ❌ **non relancée** |
+| **VoiceOver réel, contraste, clavier Mac** | ❌ **non vérifiés** — ils demandent un appareil et un œil. La sonde prouve que chaque cran **dessine** ; elle ne peut pas prouver l'absence de troncature, un « … » étant trois pixels comme un autre |

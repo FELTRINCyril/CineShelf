@@ -9,11 +9,48 @@ import Testing
 // octets exacts — marque d'ordre, `CRLF`, guillemets doublés — restent lisibles à côté de
 // l'assertion au lieu d'être cachés dans un binaire que personne ne rouvre. C'est aussi ce
 // qui permet de tester un fichier volontairement corrompu sans l'expliquer en commentaire.
+//
+// MARK: - Les sources de ce fichier
+//
+// **Cette section existe parce que ce fichier décide d'un format de données, et qu'il a
+// laissé passer le pire défaut du dépôt.** Le séparateur multivaleur destructeur est né à
+// `L12` sous douze tests verts ; une sonde a ensuite trouvé six pertes sur treize entrées.
+// L'audit du 2026-08-07 a mesuré la cause : 34 fonctions ici, **une** citation de source.
+// Chaque test portait une *justification* — souvent excellente, souvent une mesure — mais
+// presque aucun ne disait **qui décide**. Un test qui ne cite que lui-même décrit une
+// implémentation ; il ne peut pas contredire l'intention de son auteur.
+//
+// Les quatre autorités, et ce que chacune tranche :
+//
+// - **RFC 4180** — norme externe. Le doublement du guillemet (§2.7), le guillemet
+//   significatif **en début de champ seulement** (§2.5), les fins de ligne `CRLF` (§2.1).
+//   C'est la seule source qu'on ne peut pas amender.
+// - **`docs/04-ARCHITECTURE-SWIFTUI.md`, « Écriture CSV »** — « sérialiseur maison, UTF-8
+//   **avec BOM** (sinon Excel massacre les accents), séparateur `;` en locale française,
+//   échappement RFC 4180 ». C'est la source du format d'**écriture**.
+// - **`docs/PROMPTS.md`, fiche `L11a`** — le lecteur tolérant, `TabularData` exclu pour
+//   l'import (une ligne fautive fait rejeter le fichier entier), et la resynchronisation.
+// - **`docs/journal.md`, 2026-08-04** — les six défauts du lecteur trouvés par revue, et le
+//   **regard en avant** qui les a fermés. Autorité empirique : ce qui a été mesuré.
+//
+// **Un désaccord relevé par cet audit, et il était muet.** `docs/04` et `docs/PROMPTS.md`
+// écrivent tous deux « resynchronisation au-delà de **huit** lignes englobées ». Le code dit
+// `maximumQuotedLines = 32`. Le journal du 2026-08-04 explique le passage de 8 à 32 puis
+// l'arrivée du regard en avant, qui a fait du budget un simple garde-fou — mais les deux
+// documents n'ont jamais suivi. C'est le code qui a raison, avec sa mesure ; les documents
+// sont corrigés, et le nom d'un test d'ici disait « huit » lui aussi.
+//
+// **Les assertions qui n'ont aucune source documentaire sont marquées `SANS SOURCE`.** Elles
+// ne sont pas fausses — elles sont des décisions prises dans le code et jamais arbitrées
+// ailleurs. Les nommer est le but de la passe : c'est là qu'un test décrit l'implémentation
+// plutôt que l'exigence, donc là où le prochain défaut de format naîtra.
 
 struct CSVWriterTests {
 
     private let writer = CSVWriter()
 
+    /// Source : `docs/04`, « Écriture CSV » — « UTF-8 **avec BOM** (sinon Excel massacre les
+    /// accents) ». La séquence `EF BB BF` est celle d'Unicode pour UTF-8.
     @Test("La marque d'ordre des octets est en tête, et c'est ce qui sauve les accents")
     func byteOrderMarkComesFirst() {
         let data = writer.data(header: ["titre"], rows: [["Éléphant"]])
@@ -23,6 +60,9 @@ struct CSVWriterTests {
         #expect(Array(data.prefix(3)) == [0xEF, 0xBB, 0xBF])
     }
 
+    /// Sources, et elles sont deux : le point-virgule vient de `docs/04`, « séparateur `;` en
+    /// locale française » — repris par la fiche `L11a` de `docs/PROMPTS.md`. Le `CRLF` vient de
+    /// **RFC 4180 §2.1**, et c'est ce qu'Excel écrit.
     @Test("Le séparateur est le point-virgule, et les lignes finissent en CRLF")
     func delimiterAndNewline() throws {
         let data = writer.data(header: ["a", "b"], rows: [["1", "2"]])
@@ -30,6 +70,15 @@ struct CSVWriterTests {
         #expect(text == "a;b\r\n1;2\r\n")
     }
 
+    /// Source : **RFC 4180 §2.7** pour le doublement du guillemet, et `docs/04` qui l'adopte
+    /// explicitement (« échappement RFC 4180 »).
+    ///
+    /// **SANS SOURCE — les deux cas d'espace de bord.** RFC 4180 n'exige pas de quoter un champ
+    /// pour ses espaces de tête ou de queue : c'est une décision prise dans `CSVWriter`, et sa
+    /// raison est réelle (un tableur mange les espaces non protégés, donc l'aller-retour les
+    /// perdrait). Elle n'est arbitrée par aucun document. À noter : c'est exactement la même
+    /// classe de décision que le `trimmingCharacters` de `splitMultiValue`, qui a failli faire
+    /// écrire un invariant faux le 2026-08-07.
     @Test(
         "Les champs qui l'exigent sont mis entre guillemets",
         arguments: [
@@ -48,6 +97,9 @@ struct CSVWriterTests {
         #expect(writer.escaped(field) == expected)
     }
 
+    /// **SANS SOURCE.** Aucun document ne dit quoi faire d'une ligne trop courte à l'écriture.
+    /// La décision — compléter — est cohérente avec le refus de perdre en silence qui gouverne
+    /// le lecteur (fiche `L11a`), mais elle n'est écrite nulle part.
     @Test("Une ligne plus courte que l'en-tête est complétée")
     func shortRowsArePadded() throws {
         let data = writer.data(header: ["a", "b", "c"], rows: [["1"]])
@@ -55,6 +107,9 @@ struct CSVWriterTests {
         #expect(text == "a;b;c\r\n1;;\r\n")
     }
 
+    /// **SANS SOURCE**, même famille que le test précédent. Le principe invoqué — « perdre une
+    /// valeur en silence est pire qu'un fichier bancal » — est celui de la fiche `L11a` pour le
+    /// *lecteur* ; l'appliquer à l'écriture est une extension raisonnable et non arbitrée.
     @Test("Une ligne plus longue n'est pas tronquée")
     func longRowsAreNotTruncated() throws {
         // Perdre une valeur en silence est pire qu'un fichier bancal, qui se voit.
@@ -85,6 +140,9 @@ struct CSVReaderTests {
         return data
     }
 
+    /// Source du numéro de ligne : **addendum 1**, blocs `11e` et `11f`, qui affichent des
+    /// numéros à quatre chiffres à côté de chaque ligne fautive. C'est le numéro du **tableur**
+    /// — celui que l'utilisateur doit aller corriger — donc l'en-tête est la ligne 1.
     @Test("Un fichier simple se lit, en-tête séparé des données")
     func simpleFile() {
         let document = reader.read(file(["titre;année", "A;1970", "B;1980"]))
@@ -106,6 +164,8 @@ struct CSVReaderTests {
         #expect(document.header.first?.unicodeScalars.first?.value != 0xFEFF)
     }
 
+    /// **SANS SOURCE.** `docs/04` impose le BOM à l'**écriture** et ne dit rien de la lecture.
+    /// L'accepter absent est nécessaire — un fichier tiers n'en a pas — mais non arbitré.
     @Test("Un fichier sans marque d'ordre se lit aussi")
     func fileWithoutByteOrderMark() {
         let document = reader.read(file(["titre;année", "A;1970"], bom: false))
@@ -113,6 +173,9 @@ struct CSVReaderTests {
         #expect(document.rows.count == 1)
     }
 
+    /// **SANS SOURCE**, et c'est une tolérance en lecture plutôt qu'une règle : RFC 4180 §2.1
+    /// impose `CRLF`, mais refuser un fichier Unix serait gratuit. La fiche `L11a` demande un
+    /// « lecteur tolérant » sans énumérer ce qu'il tolère.
     @Test("Les fins de ligne LF seules sont acceptées")
     func lineFeedOnly() {
         // Un fichier venu d'un outil Unix n'a pas de CR. Le refuser serait gratuit.
@@ -121,6 +184,8 @@ struct CSVReaderTests {
         #expect(document.rows[0].fields == ["1", "2"])
     }
 
+    /// Source : **RFC 4180 §2.6** — un séparateur à l'intérieur d'un champ quoté est une
+    /// donnée.
     @Test("Un point-virgule dans un champ quoté n'est pas un séparateur")
     func quotedDelimiter() {
         let document = reader.read(file(["a;b", "\"un;deux\";trois"]))
@@ -128,12 +193,16 @@ struct CSVReaderTests {
         #expect(document.rows[0].isMalformed == false)
     }
 
+    /// Source : **RFC 4180 §2.7**, le pendant en lecture du test d'écriture plus haut.
     @Test("Un guillemet doublé rend un guillemet")
     func doubledQuote() {
         let document = reader.read(file(["a", "\"il a dit \"\"non\"\"\""]))
         #expect(document.rows[0].fields == ["il a dit \"non\""])
     }
 
+    /// Source : **RFC 4180 §2.6** — un saut de ligne dans un champ quoté est une donnée. C'est
+    /// le cas du synopsis, et c'est ce qui rend la resynchronisation difficile : la même
+    /// séquence d'octets peut être un synopsis légitime ou un guillemet oublié.
     @Test("Un champ quoté multiligne légitime est préservé")
     func legitimateMultilineField() {
         let document = reader.read(file(["a;b", "\"ligne 1\nligne 2\nligne 3\";x"]))
@@ -171,18 +240,37 @@ struct CSVReaderTests {
         #expect(usable.contains { $0.fields.first == "Titre 49" })
     }
 
-    @Test("La resynchronisation s'active au-delà de huit lignes englobées")
+    /// **Ce test s'appelait « au-delà de huit lignes » et le seuil vaut 32.**
+    ///
+    /// Le nom venait de `docs/04` et de la fiche `L11a`, qui disent « huit » tous les deux. Le
+    /// journal du 2026-08-04 raconte la suite : le seuil est passé de 8 à 32 — ce qui a fait
+    /// **empirer** le pire cas, 24 lignes perdues au lieu de 8 — puis le regard en avant est
+    /// arrivé et a réduit le coût d'un guillemet oublié à **une** ligne. Le budget n'est plus
+    /// qu'un garde-fou pour le cas où un fermant étranger existe plus loin.
+    ///
+    /// Le nom mentait donc depuis trois jours, sans qu'aucune assertion ne s'en aperçoive :
+    /// 4 < 32 passe, 40 > 32 échoue, et le test est vert avec n'importe quel seuil entre les
+    /// deux. **Source de la valeur : `CSVReader.maximumQuotedLines`, et le test la lit au lieu
+    /// de la recopier** — c'est ce qui empêche le nom et le code de diverger à nouveau.
+    @Test("La resynchronisation s'active au-delà du budget de lignes quotées")
     func resynchronisationThreshold() {
         // En dessous du seuil, le champ multiligne reste légitime : c'est un synopsis.
         let short = reader.read(file(["a", "\"" + Array(repeating: "l", count: 4).joined(separator: "\n") + "\""]))
         #expect(short.rows.allSatisfy { !$0.isMalformed })
 
-        // Au-delà, le guillemet est déclaré fautif plutôt que d'avaler le reste.
-        let long = Array(repeating: "l", count: 40).joined(separator: "\n")
+        // Au-delà, le guillemet est déclaré fautif plutôt que d'avaler le reste. Le compte est
+        // **dérivé du budget** et non écrit en dur : un seuil qui changerait sans que ce test
+        // bouge est exactement ce qui a laissé le nom mentir.
+        let long = Array(repeating: "l", count: CSVReader.maximumQuotedLines + 8)
+            .joined(separator: "\n")
         let document = reader.read(file(["a", "\"\(long)", "suite;normale"]))
         #expect(document.rows.contains { $0.malformation?.isUnterminatedQuote == true })
     }
 
+    /// Source : fiche `L11a` — « `TabularData` est **exclu pour l'import** : mesuré, une seule
+    /// ligne mal formée fait rejeter le fichier **entier** ». Signaler sans jeter est la raison
+    /// d'être du lecteur maison, et l'aperçu « 771 prêtes, 417 en erreur » de l'addendum en
+    /// dépend directement.
     @Test("Un nombre de colonnes incohérent est signalé, la ligne reste lisible")
     func fieldCountMismatchIsReportedNotFatal() {
         // Le cas Excel le plus banal, et le second que `TabularData` refuse en bloc.
@@ -197,6 +285,8 @@ struct CSVReaderTests {
         #expect(document.rows[2].fields == ["6"])
     }
 
+    /// **SANS SOURCE**, et c'est normal : aucun document ne spécifie le cas dégénéré. Le test
+    /// existe pour que le lecteur ne lève pas, pas pour encoder une exigence.
     @Test("Un fichier vide ne casse rien")
     func emptyFile() {
         #expect(reader.read(Data()).rows.isEmpty)
@@ -212,6 +302,14 @@ struct CSVReaderTests {
 
     // MARK: L'aller-retour, qui est le test qui compte
 
+    /// **L'aller-retour n'a pas de source : il EST la source.** C'est la propriété que le
+    /// format doit tenir, et dont tout le reste découle — `docs/04` exige d'exporter un fichier
+    /// réimportable, et `CSVExportTests` vérifie la même chose côté schéma.
+    ///
+    /// **Bornes de l'invariant, et elles ne sont pas rhétoriques.** Il ne vaut que pour des
+    /// lignes de la longueur de l'en-tête : une ligne courte est complétée, une longue n'est pas
+    /// tronquée, donc ni l'une ni l'autre ne revient identique. L'énoncer « pour toute liste de
+    /// lignes » serait une intention fausse déguisée en rigueur — voir `CLAUDE.md`.
     @Test("Ce que le writer écrit, le reader le relit à l'identique")
     func roundTrip() {
         let header = ["titre", "résumé", "note"]
@@ -233,6 +331,9 @@ struct CSVReaderTests {
         }
     }
 
+    /// Source : **addendum 1**, bloc `11j` — le rapport des écartées est « un CSV au format
+    /// d'origine avec une colonne d'erreur en fin de ligne », fait pour être corrigé dans un
+    /// tableur puis redéposé. Le nom `cineshelf_erreur` vient de là.
     @Test("Le rapport des écartées, redéposé, se relit")
     func rejectedReportIsReimportable() {
         // Le parcours que l'addendum décrit : le rapport est un CSV au format d'origine
@@ -245,202 +346,5 @@ struct CSVReaderTests {
         let document = CSVReader().read(data)
         #expect(document.header == ["titre", "année", "cineshelf_erreur"])
         #expect(document.rows[0].fields[2] == "Année attendue entre 1888 et 2030")
-    }
-}
-
-// MARK: - L'encodage, nommé plutôt qu'avalé
-
-struct CSVEncodingTests {
-
-    @Test("Un octet non UTF-8 est signalé, la ligne reste lisible")
-    func invalidEncodingIsReported() {
-        // Le cas réel : un fichier enregistré en Windows-1252 par un vieux tableur.
-        // « Renée » y a un 0xE9 isolé là où UTF-8 attend deux octets.
-        var data = CSVWriter.byteOrderMark
-        data.append(Data("nom\r\n".utf8))
-        data.append(Data([0x52, 0x65, 0x6E, 0xE9, 0x65]))  // "Ren" + 0xE9 + "e"
-        data.append(Data("\r\n".utf8))
-
-        let document = CSVReader().read(data)
-        #expect(document.rows.count == 1)
-        #expect(
-            document.rows[0].malformation == .invalidEncoding,
-            "Un décodage silencieux aurait rendu « Ren?e » sans dire pourquoi"
-        )
-        // La ligne est rendue quand même : l'utilisateur doit voir ce qu'il corrige.
-        #expect(document.rows[0].fields.isEmpty == false)
-    }
-
-    @Test("Un fichier UTF-8 valide n'est jamais signalé pour son encodage")
-    func validEncodingIsNotReported() {
-        // Contrôle négatif : sans lui, le test ci-dessus passerait aussi si toute ligne
-        // était marquée.
-        var data = CSVWriter.byteOrderMark
-        data.append(Data("nom\r\nRenée Falconetti\r\nŒil\r\n".utf8))
-
-        let document = CSVReader().read(data)
-        #expect(document.rows.count == 2)
-        #expect(document.rows.allSatisfy { $0.malformation != .invalidEncoding })
-        #expect(document.rows[0].fields[0] == "Renée Falconetti")
-        #expect(document.rows[1].fields[0] == "Œil")
-    }
-}
-
-// Les six défauts du lecteur trouvés par la revue du 2026-08-04.
-//
-// Tous mesurés sur des entrées que la première batterie n'atteignait pas : un pouce dans un
-// titre, un synopsis long mais correct, un fichier « CSV (Macintosh) », un en-tête fautif.
-// Ils sont ici parce que chacun était **muet** — le lecteur rendait moins de lignes qu'il
-// n'en avait reçu, et le rapport ne le disait pas.
-struct CSVReaderRegressionTests {
-
-    private let reader = CSVReader()
-
-    private func file(_ lines: [String], newline: String = "\r\n") -> Data {
-        CSVWriter.byteOrderMark + Data((lines.joined(separator: newline) + newline).utf8)
-    }
-
-    @Test("Un guillemet au milieu d'un champ n'ouvre rien, et ne coûte aucune ligne")
-    func quoteInsideFieldIsLiteral() throws {
-        // RFC 4180 ne compte un guillemet que collé au **début** d'un champ. La première
-        // version ouvrait sur n'importe lequel : mesuré, `Le mur de 6" de haut` faisait rendre
-        // 7 lignes sur 15 — huit titres valides avalés, et le rapport annonçait sereinement
-        // « 7 analysées ».
-        var lines = ["titre;annee"]
-        for index in 1...15 {
-            lines.append(index == 3 ? "Le mur de 6\" de haut;2001" : "Titre \(index);2001")
-        }
-        let document = reader.read(file(lines))
-
-        #expect(document.rows.count == 15)
-        #expect(document.malformedRows.isEmpty)
-        let pouce = try #require(document.rows.first { $0.number == 4 })
-        #expect(pouce.fields[0] == "Le mur de 6\" de haut")
-    }
-
-    @Test("Un synopsis de douze lignes correctement quoté reste intact")
-    func longQuotedFieldSurvives() throws {
-        // Le seuil de lignes seul ne savait pas distinguer un synopsis d'un guillemet oublié.
-        // Mesuré avant correction : trois lignes utilisables sur dix, quatre fautives, trois
-        // évaporées, et les paragraphes du synopsis remontés en **fausses lignes de données**.
-        let synopsis = (1...12).map { "paragraphe \($0)" }.joined(separator: "\n")
-        var lines = ["titre;resume"]
-        for index in 1...10 {
-            lines.append(index == 4 ? "Long synopsis;\"\(synopsis)\"" : "Titre \(index);court")
-        }
-        let document = reader.read(file(lines))
-
-        #expect(document.rows.count == 10)
-        #expect(document.malformedRows.isEmpty)
-        let long = try #require(document.rows.first { $0.fields[0] == "Long synopsis" })
-        #expect(long.fields[1] == synopsis)
-        // Et aucun paragraphe ne s'est échappé en ligne de données.
-        #expect(document.rows.contains { $0.fields[0].hasPrefix("paragraphe") } == false)
-    }
-
-    @Test("Un guillemet jamais refermé ne coûte qu'une ligne, et le dit")
-    func unterminatedQuoteCostsExactlyOneLine() throws {
-        // C'est le regard en avant qui rend ce compte possible : aucun guillemet fermant
-        // n'existe dans la suite du fichier, donc le champ est refermé au premier saut de
-        // ligne au lieu d'absorber un budget entier.
-        var lines = ["titre;annee"]
-        for index in 1...20 {
-            lines.append(index == 5 ? "\"cassé;1970" : "Titre \(index);1970")
-        }
-        let document = reader.read(file(lines))
-
-        #expect(document.wellFormedRows.count == 19)
-        let faulty = try #require(document.malformedRows.first)
-        #expect(faulty.malformation == .unterminatedQuote(absorbedLines: 0))
-        // Les lignes d'après sont relues pour de vrai, guillemets rendus à leur sens.
-        #expect(document.wellFormedRows.contains { $0.fields.first == "Titre 20" })
-    }
-
-    @Test("Un guillemet parasite qui trouve un fermant étranger dit ce qu'il a absorbé")
-    func absorbedLinesAreReported() throws {
-        // Le cas qui reste après le regard en avant : un guillemet fermant existe plus loin,
-        // mais il appartient à une autre cellule. Le garde-fou de `maximumQuotedLines`
-        // reprend alors la main — et la perte doit être **chiffrée**, parce qu'un rapport qui
-        // annonce moins de lignes qu'il n'en a reçu sans expliquer pourquoi est exactement ce
-        // que ce lecteur refuse.
-        var lines = ["titre;resume"]
-        lines.append("\"jamais refermé;1970")
-        for index in 1...40 {
-            lines.append("Titre \(index);court")
-        }
-        lines.append("Dernier;\"un résumé quoté, tout à fait légitime\"")
-        let document = reader.read(file(lines))
-
-        let faulty = try #require(document.malformedRows.first)
-        #expect(faulty.malformation == .unterminatedQuote(absorbedLines: CSVReader.maximumQuotedLines))
-        #expect(faulty.malformation?.message.contains("\(CSVReader.maximumQuotedLines) lignes") == true)
-    }
-
-    @Test("Un guillemet doublé dans un champ multiligne ne passe pas pour un fermant")
-    func doubledQuoteIsNotAClosingQuote() throws {
-        // Le regard en avant saute les paires : sinon un synopsis contenant une citation se
-        // ferait passer pour terminé, et le champ se couperait au milieu d'une phrase.
-        let document = reader.read(
-            file(["titre;resume", "Dune;\"il a dit \"\"non\"\"\nà la ligne suivante\""]))
-
-        #expect(document.rows.count == 1)
-        #expect(document.rows[0].isMalformed == false)
-        #expect(document.rows[0].fields[1] == "il a dit \"non\"\nà la ligne suivante")
-    }
-
-    @Test("Un fichier à fins de ligne CR seules se lit — c'est le format CSV (Macintosh)")
-    func carriageReturnOnlyFile() {
-        // La première version jetait les CR octet par octet : le fichier entier devenait un
-        // en-tête, zéro ligne, et le rapport réclamait une colonne titre que le fichier
-        // portait. Mesuré : `header == ["titre", "anneeDune", "2021Tenet", "2020"]`.
-        let document = reader.read(file(["titre;annee", "Dune;2021", "Tenet;2020"], newline: "\r"))
-
-        #expect(document.header == ["titre", "annee"])
-        #expect(document.rows.count == 2)
-        #expect(document.rows[0].fields == ["Dune", "2021"])
-    }
-
-    @Test("Un CRLF à l'intérieur d'une cellule devient un LF")
-    func crlfInsideCellIsNormalised() {
-        // Sans normalisation, le même synopsis donne deux valeurs de `summary` selon que le
-        // tableur a écrit `\n` ou `\r\n` : deux fichiers que l'utilisateur tient pour
-        // identiques, et rien ne montre la différence.
-        let data = CSVWriter.byteOrderMark + Data("titre;resume\r\nDune;\"l1\r\nl2\"\r\n".utf8)
-        let document = reader.read(data)
-
-        #expect(document.rows[0].fields[1] == "l1\nl2")
-    }
-
-    @Test("Une ligne d'en-tête fautive est nommée au lieu d'être jetée")
-    func headerMalformationIsReported() throws {
-        // Elle était jetée par `read`, et c'était le fichier entier qu'on perdait : `header`
-        // valait tout le fichier, `rows` était vide, et le rapport annonçait « champ requis
-        // sans colonne » devant un fichier qui contient une colonne titre. L'utilisateur
-        // cherchait une colonne manquante au lieu d'un guillemet.
-        let data = CSVWriter.byteOrderMark + Data("\"titre;annee\r\nDune;2021\r\n".utf8)
-        let document = reader.read(data)
-
-        let malformation = try #require(document.headerMalformation)
-        #expect(malformation.isUnterminatedQuote)
-    }
-
-    @Test("Un en-tête sain ne signale rien")
-    func healthyHeaderReportsNothing() {
-        #expect(reader.read(file(["titre;annee", "Dune;2021"])).headerMalformation == nil)
-    }
-
-    @Test("La reprise après un guillemet parasite redonne les bons numéros de ligne")
-    func resynchronisationKeepsLineNumbers() throws {
-        // L'arithmétique de reprise est la seule du lecteur, et rien ne la vérifiait. Le
-        // numéro est celui du **tableur** : c'est ce que l'utilisateur doit corriger.
-        var lines = ["titre;annee"]
-        for index in 1...10 {
-            lines.append(index == 3 ? "\"cassé;1970" : "Titre \(index);1970")
-        }
-        let document = reader.read(file(lines))
-
-        #expect(document.malformedRows.map(\.number) == [4])
-        // La ligne suivante reprend à 5, sans trou ni doublon.
-        #expect(document.rows.map(\.number) == Array(2...11))
     }
 }

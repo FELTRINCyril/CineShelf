@@ -461,9 +461,12 @@ type. Budget de §4 : 50 ms.
   > Ce que le lecteur maison rend en échange : **une ligne, un incident**. Chaque ligne est
   > rendue avec sa `CSVMalformation` éventuelle — guillemet non fermé, nombre de colonnes,
   > encodage invalide — et les lignes saines restent exploitables. Avec une
-  > resynchronisation au-delà de huit lignes englobées par un guillemet ouvert, sans quoi
-  > une faute de frappe dans une cellule ferait disparaître la moitié du catalogue de
-  > l'aperçu.
+  > resynchronisation au-delà du budget de lignes englobées par un guillemet ouvert
+  > (`CSVReader.maximumQuotedLines`, **32** depuis le 2026-08-04), sans quoi une faute de
+  > frappe dans une cellule ferait disparaître la moitié du catalogue de l'aperçu.
+  > **Ce document disait « huit » jusqu'au 2026-08-07**, et le code disait 32 : le seuil a
+  > été relevé quand le regard en avant a fait du budget un simple garde-fou — un guillemet
+  > jamais refermé coûte désormais **une** ligne, pas un budget entier.
 - **Écriture CSV** : sérialiseur maison, UTF-8 **avec BOM** (sinon Excel massacre les accents), séparateur `;` en locale française, échappement RFC 4180.
 - **Archive complète** : un dossier `.cineshelfarchive` (package) contenant `manifest.json`, les JSON par entité et `media/`. Exposé via `Transferable` + `.fileExporter`, donc partageable par AirDrop.
 - **Aperçu d'import** : `Table` éditable avec statut par ligne (nouveau / mise à jour / conflit / erreur), édition en masse de la sélection, revalidation, puis application dans un `ModelActor` avec progression.

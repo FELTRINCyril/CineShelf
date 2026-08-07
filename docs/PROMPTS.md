@@ -1237,9 +1237,14 @@ démarre.
   mesuré, une seule ligne mal formée fait rejeter le fichier **entier** — 5 000 lignes
   valides, une cassée à la 2 501e, zéro ligne exploitable. L'aperçu « 771 prêtes, 417 en
   erreur » de l'addendum est donc impossible avec lui. Il reste bon pour l'export.
-- **Resynchronisation après un guillemet non fermé**, au-delà de 8 lignes englobées :
-  sans elle, une faute de frappe dans une cellule fait disparaître la moitié du catalogue
-  de l'aperçu, ce qui est conforme à RFC 4180 et inacceptable ici.
+- **Resynchronisation après un guillemet non fermé**, au-delà du budget de lignes
+  englobées : sans elle, une faute de frappe dans une cellule fait disparaître la moitié du
+  catalogue de l'aperçu, ce qui est conforme à RFC 4180 et inacceptable ici.
+  **Corrigé le 2026-08-07 : cette fiche disait « 8 » et `CSVReader.maximumQuotedLines` vaut
+  32.** Le regard en avant, livré le 2026-08-04, a ramené le coût d'un guillemet oublié à
+  une seule ligne ; le budget ne sert plus qu'au cas où un fermant étranger existe plus
+  loin. Le désaccord a été trouvé par la passe de citation des sources de
+  `CSVFormatTests`, dont un test portait « huit » dans son **nom**.
 - Schéma de colonnes par entité, et sélection de champs — la liste des champs exportables
   est une **donnée**, pas une vue.
 - Correspondance des colonnes et ses trois qualités : sûre, déduite du contenu, non
